@@ -7,6 +7,9 @@ import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ORDER_STATUS_TEXT } from '@/shared/types'
 import { ORDERS } from './ordersData'
+// 按钮级权限判断（与 React 版 useAuth().can 逻辑一致，只是取法不同：
+// Vue 直接 import 模块级函数，React 要从 Context 里 useAuth() 取）
+import { can } from './auth'
 
 const route = useRoute()
 const router = useRouter()
@@ -44,6 +47,27 @@ const order = computed(() => ORDERS.find((o) => o.id === route.params.id))
       <button @click="router.back()">
         ← 返回上一页
       </button>
+
+      <!-- 按钮级权限：Vue 里就是一个 v-if；真实项目更常封装成自定义指令
+           v-permission="'order:delete'"，在指令钩子里把没权限的元素 el.remove() 掉。
+           React 对照：条件渲染 can('order:delete') && <button className="btn-danger">删除</button>，
+           React 没有「指令」这个概念（没有一一对应关系），要复用只能抽成包装组件 <Can code="…">。
+           两边的共同点：条件不成立时按钮压根不进 DOM，比 disabled 更安全、比 CSS 隐藏更彻底。
+           也就是说 React 那边「路由守卫 = 包装组件、按钮权限 = 条件渲染」，
+           用的是同一套「组件即一切」的心智模型，而 Vue 这边是「全局钩子 + 自定义指令」两套机制。 -->
+      <button
+        v-if="can('order:delete')"
+        class="btn-danger"
+        title="演示用，不真的删除"
+      >
+        删除
+      </button>
+      <span
+        v-else
+        class="muted"
+      >
+        （未登录 → 没有 order:delete 权限，删除按钮整个不渲染）
+      </span>
     </div>
     <div class="card stack">
       <h3>

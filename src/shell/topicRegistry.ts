@@ -37,12 +37,12 @@ export const PHASES: TopicPhase[] = [
       {
         slug: '02-props',
         title: 'Props',
-        summary: '用 TypeScript 类型声明 props、默认值写法，以及「props 只读」的约定。',
+        summary: '用 TypeScript 类型声明 props、默认值写法、「props 只读」约定，以及继承原生元素属性 + rest 透传。',
       },
       {
         slug: '03-state',
         title: 'State 与 useState',
-        summary: 'useState 的读与写、不可变更新、state 变化如何触发重新渲染，对照 ref/reactive。',
+        summary: 'useState 的读与写、不可变更新、渲染快照与函数式更新，以及多状态收敛到 useReducer。',
       },
       {
         slug: '04-events',
@@ -57,7 +57,7 @@ export const PHASES: TopicPhase[] = [
       {
         slug: '06-list-and-key',
         title: '列表渲染与 key',
-        summary: '.map() 渲染列表、key 为什么必须稳定唯一、index 作 key 的坑，对照 v-for。',
+        summary: '.map() 渲染列表、key 为什么必须稳定唯一、index 作 key 的坑，以及用 key 强制重置组件状态。',
       },
     ],
   },
@@ -67,7 +67,7 @@ export const PHASES: TopicPhase[] = [
       {
         slug: '07-forms',
         title: '表单与受控组件',
-        summary: 'value + onChange 的受控组件模式、表单提交与 preventDefault，对照 v-model。',
+        summary: 'value + onChange 的受控模式、非受控写法（defaultValue / FormData），以及两者的取舍。',
       },
       {
         slug: '08-parent-child-communication',
@@ -82,7 +82,7 @@ export const PHASES: TopicPhase[] = [
       {
         slug: '10-effects-and-lifecycle',
         title: 'useEffect 与生命周期',
-        summary: '依赖数组、cleanup、AbortController；useEffect 不是 onMounted 的替代品。',
+        summary: '依赖数组、cleanup、AbortController、定时器与过期闭包；useEffect 不是 onMounted 的替代品。',
       },
       {
         slug: '11-api-request-state',
@@ -107,7 +107,7 @@ export const PHASES: TopicPhase[] = [
       {
         slug: '14-composable-and-custom-hook',
         title: '自定义 Hook',
-        summary: '状态逻辑复用、Hooks 规则（不能放进条件/循环），对照 composable。',
+        summary: '状态逻辑复用、手写防抖 Hook、Hooks 规则（不能放进条件/循环），对照 composable。',
       },
       {
         slug: '15-context',
@@ -132,7 +132,7 @@ export const PHASES: TopicPhase[] = [
       {
         slug: '18-routing',
         title: '路由（React Router）',
-        summary: '路由参数、query、嵌套路由与页面导航，对照 Vue Router。',
+        summary: '路由参数、query、嵌套路由、页面导航与登录态守卫，对照 Vue Router。',
         isolateReactRoot: true,
         vuePlugins: async () => {
           // 懒加载 18 题的 vue-router 配置（memory history，避免与壳应用的地址栏路由冲突）

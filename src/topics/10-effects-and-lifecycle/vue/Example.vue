@@ -8,21 +8,33 @@
  * - setup 可以返回 cleanup 函数：下一次 setup 执行前 + 组件卸载前各执行一次 —— 一个函数覆盖两个时机
  * - StrictMode 开发期故意把组件「挂载→卸载→重挂载」，effect 双跑一遍，专门检验 cleanup 写没写对
  * - 请求竞态：先发的慢请求可能后返回、覆盖后发的快请求的正确结果；在 cleanup 里 abort 旧请求即可根治
+ * - 定时器与过期闭包（面试高频）：setInterval 回调里写 setCount(count + 1)、依赖数组写 []，
+ *   计数会永远停在 1 —— effect 只在挂载后跑过一次，它闭包里的 count 被永久冻结在首次渲染的 0。
+ *   三种修法：① 函数式更新 setCount(c => c + 1)；② 把 count 写进依赖数组（代价是每次计数都销毁重建定时器）；
+ *   ③ latest ref（用 ref 存最新的回调，effect 依赖仍写 []）
+ * - 定时器的 cleanup 不是可选项：不 clearInterval，组件卸载后定时器还在跑 —— 内存泄漏 + 对已卸载组件 setState
  *
  * Vue 对应概念：
  * - [keyword] ≈ watch(keyword, cb, { immediate: true })—— immediate 必须有：React 的 effect 首次渲染后就会执行一次
  * - [] ≈ onMounted，但语义不同：不是「生命周期钩子」，而是「依赖为空，所以永远不需要重跑」
  * - cleanup ≈ watch 回调的 onCleanup 参数 + onUnmounted 两个 API 的合体
+ * - 定时器：onMounted 里 setInterval(() => count.value++)、onUnmounted 里 clearInterval。
+ *   「必须清理」这条纪律两边完全一致；但 React 那个「坏版本」在 Vue 里根本不存在
+ *   （setup 只跑一次，count.value 是现读现取），所以那三种修法在 Vue 里没有一一对应关系
  *
  * 最重要的区别：
  * - Vue 给你一排按「时机」命名的生命周期钩子；React 只有一个 useEffect，思维模型不是生命周期，
  *   而是「声明式同步」：你声明如何与外部系统同步、如何清理，何时执行由 React 根据依赖决定。
  *   「useEffect(fn, []) 就是 onMounted」是最常见的误解 —— 行为恰好像，出发点完全不同，
  *   useEffect 不是 onMounted 的替代品。
+ * - 「过期闭包」是 React 渲染快照模型的独有陷阱：每次渲染都重跑组件函数，那一帧里创建的每个闭包
+ *   捕获的都是那一帧的 state；异步回调（定时器 / 订阅 / 网络回调）活得比那一帧长，就会读到过期值。
+ *   Vue 的 ref 是一个一直存活的容器、.value 现读现取，压根没有这个概念，没有一一对应关系。
  */
 import { onUnmounted, ref, watch } from 'vue'
 import { fetchUsers, isAbortError } from '@/shared/mockApi'
 import type { User } from '@/shared/types'
+import IntervalCounter from './IntervalCounter.vue'
 
 const keyword = ref('')
 const users = ref<User[]>([])
@@ -78,41 +90,76 @@ onUnmounted(() => controller?.abort())
 // React 侧列了「哪些逻辑不该放 useEffect」：①响应用户事件 ②渲染期可算的派生值 ③随 props 重置 state。
 // Vue 的对应习惯：①放 @click 等事件处理器 ②用 computed ③给组件换 :key ——
 // 道理相通：watch / effect 只留给「与外部系统同步」的场景。
+
+// ============ 场景二：定时器 ============
+// 计数器本体在 IntervalCounter.vue 里（那里有最关键的注释：为什么 Vue 不存在 React 那个「坏」版本）。
+// 这里只保留一个「卸载 / 重新挂载」开关，用来现场演示清理时机 ——
+// React 侧还多了一个「实现方式」下拉框（四选一），Vue 这边没有对应物：
+// 那四种写法全是为了绕开 React 的过期闭包，Vue 只有一种写法且天然正确，没有一一对应关系。
+const counterMounted = ref(true)
 </script>
 
 <template>
   <div class="stack">
-    <p class="muted">
-      输入关键词实时搜索用户；快速连续输入时旧请求会被取消，结果不会错乱
-    </p>
+    <div class="card stack">
+      <h3>场景一：实时搜索（请求副作用 + 竞态取消）</h3>
+      <p class="muted">
+        输入关键词实时搜索用户；快速连续输入时旧请求会被取消，结果不会错乱
+      </p>
 
-    <!-- v-model 对应 React 的 value + onChange 受控写法。
-         分工相同：输入只负责改 keyword，「发请求」由 watch 响应 keyword 变化。 -->
-    <input
-      v-model="keyword"
-      placeholder="搜索姓名或邮箱，如「张」或 example"
-    >
-
-    <p
-      v-if="loading"
-      class="muted"
-    >
-      加载中…
-    </p>
-    <p
-      v-if="!loading && users.length === 0"
-      class="muted"
-    >
-      没有匹配的用户
-    </p>
-
-    <ul>
-      <li
-        v-for="u in users"
-        :key="u.id"
+      <!-- v-model 对应 React 的 value + onChange 受控写法。
+           分工相同：输入只负责改 keyword，「发请求」由 watch 响应 keyword 变化。 -->
+      <input
+        v-model="keyword"
+        placeholder="搜索姓名或邮箱，如「张」或 example"
       >
-        {{ u.name }}（{{ u.email }}）<span class="badge">{{ u.role }}</span>
-      </li>
-    </ul>
+
+      <p
+        v-if="loading"
+        class="muted"
+      >
+        加载中…
+      </p>
+      <p
+        v-if="!loading && users.length === 0"
+        class="muted"
+      >
+        没有匹配的用户
+      </p>
+
+      <ul>
+        <li
+          v-for="u in users"
+          :key="u.id"
+        >
+          {{ u.name }}（{{ u.email }}）<span class="badge">{{ u.role }}</span>
+        </li>
+      </ul>
+    </div>
+
+    <div class="card stack">
+      <h3>场景二：定时器（Vue 里天然正确，React 里是经典陷阱）</h3>
+      <p class="muted">
+        计数每秒 +1。React 侧同一个场景要在四种实现里切换，第一种会永远停在 1 ——
+        那是 React 渲染快照模型独有的「过期闭包」，Vue 没有这个问题。
+      </p>
+
+      <div class="row">
+        <!-- 卸载 / 重新挂载：v-if 让组件真正销毁重建，onUnmounted 因此被触发。
+             对应 React 侧同名按钮（那边由 cleanup 承担 clearInterval）。 -->
+        <button @click="counterMounted = !counterMounted">
+          {{ counterMounted ? '卸载计数器' : '重新挂载计数器' }}
+        </button>
+      </div>
+
+      <IntervalCounter v-if="counterMounted" />
+      <p
+        v-else
+        class="muted"
+      >
+        计数器已卸载 —— onUnmounted 里的 clearInterval 已经执行，后台不再有定时器在跑。
+        重新挂载后计数从 0 重新开始（count 随组件一起被销毁了）。
+      </p>
+    </div>
   </div>
 </template>

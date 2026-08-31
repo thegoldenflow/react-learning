@@ -42,20 +42,20 @@ npm run build      # 先 typecheck 再 vite build
 | 编号 | 目录名 | 标题 | 学习重点 |
 | --- | --- | --- | --- |
 | 01 | `01-component-and-jsx` | 组件与 JSX | 函数组件 + JSX：React 里「一切都是 JavaScript」，对照 Vue 的 SFC 与模板语法 |
-| 02 | `02-props` | Props | 用 TypeScript 类型声明 props、默认值写法，以及「props 只读」的约定 |
-| 03 | `03-state` | State 与 useState | useState 的读与写、不可变更新、state 变化如何触发重新渲染，对照 ref/reactive |
+| 02 | `02-props` | Props | 用 TypeScript 类型声明 props、默认值写法、「props 只读」的约定，以及继承原生元素属性 + `{...rest}` 透传 |
+| 03 | `03-state` | State 与 useState | useState 的读与写、不可变更新、渲染快照与函数式更新、多状态收敛到 useReducer，对照 ref/reactive |
 | 04 | `04-events` | 事件处理 | onClick 与事件对象、处理函数的定义与传参，对照 @click 与 $event |
 | 05 | `05-conditional-rendering` | 条件渲染 | 三元表达式与 && 的用法及陷阱（误渲染 0），对照 v-if / v-else-if |
-| 06 | `06-list-and-key` | 列表渲染与 key | .map() 渲染列表、key 为什么必须稳定唯一、index 作 key 的坑，对照 v-for |
+| 06 | `06-list-and-key` | 列表渲染与 key | .map() 渲染列表、key 为什么必须稳定唯一、index 作 key 的坑、用 key 强制重置组件状态，对照 v-for |
 
 ### 第二阶段：表单和数据流
 
 | 编号 | 目录名 | 标题 | 学习重点 |
 | --- | --- | --- | --- |
-| 07 | `07-forms` | 表单与受控组件 | value + onChange 的受控组件模式、表单提交与 preventDefault，对照 v-model |
+| 07 | `07-forms` | 表单与受控组件 | value + onChange 的受控模式、非受控写法（defaultValue / FormData）、表单提交与 preventDefault，对照 v-model |
 | 08 | `08-parent-child-communication` | 父子组件通信 | callback props 让子组件通知父组件、单向数据流，对照 emit |
 | 09 | `09-derived-state` | 派生状态 | 渲染时直接计算派生值、什么时候才需要 useMemo，对照 computed |
-| 10 | `10-effects-and-lifecycle` | useEffect 与生命周期 | 依赖数组、cleanup、AbortController；useEffect 不是 onMounted 的替代品 |
+| 10 | `10-effects-and-lifecycle` | useEffect 与生命周期 | 依赖数组、cleanup、AbortController、定时器与过期闭包；useEffect 不是 onMounted 的替代品 |
 | 11 | `11-api-request-state` | API 请求状态 | loading / success / error / empty / retry 的完整处理，两边共用同一个模拟 API |
 
 ### 第三阶段：组件复用和常见 Hooks
@@ -64,7 +64,7 @@ npm run build      # 先 typecheck 再 vite build
 | --- | --- | --- | --- |
 | 12 | `12-dom-ref` | useRef 与 DOM | DOM ref、用 ref 保存可变值；修改 ref 为什么不触发重新渲染，对照 template ref |
 | 13 | `13-slots-and-children` | children 与组件组合 | children、具名 props 传 JSX、render props，对照 slot / 具名 slot |
-| 14 | `14-composable-and-custom-hook` | 自定义 Hook | 状态逻辑复用、Hooks 规则（不能放进条件/循环），对照 composable |
+| 14 | `14-composable-and-custom-hook` | 自定义 Hook | 状态逻辑复用、手写防抖 Hook、Hooks 规则（不能放进条件/循环），对照 composable |
 | 15 | `15-context` | Context 跨层传值 | createContext / useContext 解决什么问题、可能引发的重渲染，对照 provide/inject |
 | 16 | `16-global-state` | 全局状态（Zustand） | Zustand store 与组件局部状态的取舍，对照 Pinia |
 | 17 | `17-performance-hooks` | useMemo 与 useCallback | memoization 什么时候有价值、为什么不能无脑用，对照 Vue 的 computed 缓存 |
@@ -73,7 +73,7 @@ npm run build      # 先 typecheck 再 vite build
 
 | 编号 | 目录名 | 标题 | 学习重点 |
 | --- | --- | --- | --- |
-| 18 | `18-routing` | 路由（React Router） | 路由参数、query、嵌套路由与页面导航，对照 Vue Router |
+| 18 | `18-routing` | 路由（React Router） | 路由参数、query、嵌套路由、页面导航、登录态守卫，对照 Vue Router |
 | 19 | `19-async-submit` | 异步提交与防重复 | submitting 状态、防重复点击、成功/失败提示的工业界标准写法 |
 | 20 | `20-error-handling` | 错误边界 | Error Boundary（唯一的 class 组件场景）能捕获什么、不能捕获什么，对照 errorCaptured |
 | 21 | `21-immutable-update` | 不可变数据更新 | 展开、map、filter、嵌套更新；引用变化对 React 为什么至关重要 |
@@ -104,25 +104,25 @@ npm run build      # 先 typecheck 再 vite build
 
 **01 组件与 JSX** —— 函数组件就是「返回 JSX 的普通函数」，JSX 里 `{}` 内是任意 JS 表达式；`className`、`style` 对象写法等与 HTML 的差异。理解「JSX 即 JavaScript」是后面所有题的地基。工业界现状：函数组件 + Hooks 早已全面取代 class 组件，新代码不会再写 class（唯一例外见 20 题）。
 
-**02 Props** —— 用 `interface` 声明 props 类型、参数解构 + 默认值、props 只读约定。工业界现状：TS 化的 React 项目 props 就是纯类型声明，不再用运行时的 `prop-types` 库。
+**02 Props** —— 用 `interface` 声明 props 类型、参数解构 + 默认值、props 只读约定；以及**继承原生元素属性**（`ComponentPropsWithoutRef<'button'>` + `{...rest}`）。后半段是 Vue 老手的盲区：Vue 的 fallthrough attributes 会把 `disabled`/`aria-*` **自动**落到根元素，React 一个都不会自动落，必须显式展开。工业界现状：TS 化的 React 项目 props 就是纯类型声明，不再用运行时的 `prop-types` 库；受控地暴露原生属性是 shadcn/ui、MUI 等组件库的通用 API 设计范式。
 
-**03 State 与 useState** —— 本项目最重要的一题。useState 二元组、**不可变更新**（map/filter/展开造新引用）、函数式更新 `setX(prev => ...)`、「引用变了才重渲染」。这是 Vue 开发者思维转换的第一关，示例注释请逐条读完。
+**03 State 与 useState** —— 本项目最重要的一题。useState 二元组、**不可变更新**（map/filter/展开造新引用）、函数式更新 `setX(prev => ...)`、「引用变了才重渲染」，以及一个能亲手点的**渲染快照**实验（`setCount(count+1)` 连写两次只加 1）。末尾还有 **useReducer**：多个互相牵制的状态如何收敛成 reducer + Action 判别联合 + `never` 穷尽检查。这是 Vue 开发者思维转换的第一关，示例注释请逐条读完。
 
 **04 事件处理** —— `onClick={fn}` 传函数引用、需要传参时套一层箭头函数、合成事件对象。对照 `@click` 与 `$event`；React 没有事件修饰符（`.stop` / `.prevent`），要自己调 `e.stopPropagation()` / `e.preventDefault()`。
 
 **05 条件渲染** —— 三元表达式、`&&` 短路及其经典陷阱（`count && <X/>` 会把 0 渲染出来）。React 的「条件渲染」就是普通 JS 控制流，没有 `v-if` 指令。
 
-**06 列表渲染与 key** —— `.map()` 渲染列表，key 帮 React 在 diff 时识别「哪一项还是哪一项」；index 作 key 在增删/排序时导致状态错位。面试必考，工业界代码评审必查。
+**06 列表渲染与 key** —— `.map()` 渲染列表，key 帮 React 在 diff 时识别「哪一项还是哪一项」；index 作 key 在增删/排序时导致状态错位。本题还演示 key 的第二种用法：**换 key 强制重置组件状态**（`<EditForm key={selectedId}>`），这是官方文档给「prop 变了要重置 state」的标准答案，比在 useEffect 里同步好。面试必考，工业界代码评审必查。
 
 ### 第二阶段：表单和数据流
 
-**07 表单与受控组件** —— `value` + `onChange` 受控模式、多字段表单用一个对象 state、提交时 `preventDefault`。工业界现状：**复杂表单（多字段校验、动态字段）生产上普遍用 react-hook-form**——先学会原生受控写法，才能理解它帮你省掉了什么（每键一次的重渲染、手写校验样板）。
+**07 表单与受控组件** —— `value` + `onChange` 受控模式、多字段表单用一个对象 state、提交时 `preventDefault`；以及**非受控写法**（`defaultValue` + `FormData`/ref 一次性取值）和两种模式的取舍。注意两个经典坑：`defaultValue` 只在首次挂载生效（与 Vue 的响应式直觉相反）、受控 `value` 不给 `onChange` 输入框会变只读。工业界现状：**复杂表单（多字段校验、动态字段）生产上普遍用 react-hook-form**（它内部正是非受控 + ref 注册，所以性能好）——先学会原生写法，才能理解它帮你省掉了什么。
 
 **08 父子组件通信** —— 子组件通过父亲传下来的 callback prop 上报事件，状态提升（lifting state up）+ 单向数据流。React 没有 emit：「通信」就是函数调用，类型安全天然免费。
 
 **09 派生状态** —— 能从现有 state 算出来的值**不要再开一个 state**，渲染时直接算；只有计算确实昂贵时才上 useMemo。这是 Vue 开发者第二个思维关口：React 没有（也不需要）到处都是的 computed。
 
-**10 useEffect 与生命周期** —— 依赖数组三种形态、cleanup 的两个执行时机、StrictMode 双跑的用意、用 AbortController 根治请求竞态。第三个思维关口：useEffect 是「声明式同步」，不是生命周期钩子的换皮。
+**10 useEffect 与生命周期** —— 依赖数组三种形态、cleanup 的两个执行时机、StrictMode 双跑的用意、用 AbortController 根治请求竞态；外加一个**定时器实验**：`setInterval` 配空依赖数组为什么永远停在 1（过期闭包），以及三种修法（函数式更新 / 加进依赖 / latest ref）。第三个思维关口：useEffect 是「声明式同步」，不是生命周期钩子的换皮。
 
 **11 API 请求状态** —— loading / success / error / empty / retry 五态齐全的手写请求流程。工业界现状：**生产项目的服务端数据基本都交给 TanStack Query（React Query）**——缓存、去重、重试、失效开箱即用；本题手写原生流程，是为了让你确切知道 TanStack Query 替你管了哪些状态。
 
@@ -132,7 +132,7 @@ npm run build      # 先 typecheck 再 vite build
 
 **13 children 与组件组合** —— `children`、具名 props 传 JSX、render props 三板斧，对应 Vue 的默认/具名/作用域插槽。工业界现状：组合（composition）是 React 组件库（如 Radix、shadcn/ui）的通用设计语言，比继承和配置项更主流。
 
-**14 自定义 Hook** —— 把「state + effect」逻辑抽成 `useXxx` 复用（本题实现防抖搜索）；Hooks 规则（只能在顶层调用）及其由来。与 composable 写法几乎一致，差异在执行模型（每次渲染重跑 vs setup 一次）。
+**14 自定义 Hook** —— 把「state + effect」逻辑抽成 `useXxx` 复用：`useWindowWidth`（两个实例验证「复用的是逻辑不是状态」）和 `useDebouncedValue`（防抖搜索，配合 10 题的 AbortController 收口）；Hooks 规则（只能在顶层调用）及其由来。手写防抖是自定义 Hook 这个考点最经典的现场手写题——注意定时器为什么不能用普通变量存：Vue 的 setup 只跑一次，`let timer` 天然跨渲染存活，React 每次渲染重跑函数体会把它重置。工业界现状：真实项目多用 lodash.debounce / ahooks，但面试考手写版。
 
 **15 Context 跨层传值** —— createContext / Provider / useContext 解决 props 逐层透传；Context 值变化会让所有消费者重渲染，因此工业界惯例是「低频全局值」（主题、当前用户、国际化）用 Context，高频共享状态交给 16 题的方案。
 
@@ -142,7 +142,7 @@ npm run build      # 先 typecheck 再 vite build
 
 ### 第四阶段：实际开发常见模式
 
-**18 路由（React Router）** —— `<Routes>/<Route>` 声明式路由、`useParams` / `useSearchParams` / `useNavigate`、嵌套路由与 `<Outlet>`。对照 Vue Router 的集中式路由表；本题 Vue 侧用 memory history 挂载以免与壳应用路由冲突。
+**18 路由（React Router）** —— `<Routes>/<Route>` 声明式路由、`useParams` / `useSearchParams` / `useNavigate`、嵌套路由与 `<Outlet>`，以及**登录态守卫**（`<RequireAuth>` 包装组件 + 登录后回跳）与按钮级权限。最重要的一条差异：Vue 的守卫是集中式配置外挂的钩子（`router.beforeEach`），**React 根本没有全局导航钩子**——守卫就是路由表里的一个普通组件，因为 React 的路由表本身就是组件树。本题 Vue 侧用 memory history 挂载以免与壳应用路由冲突。
 
 **19 异步提交与防重复** —— submitting 状态锁按钮、成功/失败提示、错误恢复，工业界表单提交的标准样板。工业界现状：**React 19 的 useActionState / form actions 是官方新趋势**，把「提交中/结果/错误」收进一个 hook——先学会手写版本，才能看懂它抽象了什么。
 
@@ -234,23 +234,23 @@ npm run build      # 先 typecheck 再 vite build
 | 题号 | 面试问题 |
 | --- | --- |
 | 01 | JSX 是什么？它最终被编译成什么？函数组件和 class 组件有什么区别，为什么现在都用函数组件？ |
-| 02 | props 为什么是只读的？如何用 TypeScript 给组件的 props 定义类型和默认值？ |
-| 03 | setState 之后发生了什么？为什么直接修改 state 不会触发更新？什么时候必须用函数式更新 `setX(prev => ...)`？ |
+| 02 | props 为什么是只读的？如何用 TypeScript 给组件的 props 定义类型和默认值？如何让自定义组件支持 `disabled`、`aria-*` 等全部原生属性（对比 Vue 的 `$attrs` 自动透传）？ |
+| 03 | setState 之后发生了什么？为什么直接修改 state 不会触发更新？`setCount(count+1)` 连写两次为什么只加 1？什么时候该从 useState 升级到 useReducer？ |
 | 04 | React 的合成事件（SyntheticEvent）是什么？`onClick={fn()}` 和 `onClick={fn}` 有什么区别？ |
 | 05 | `condition && <Component/>` 有什么陷阱？条件渲染 null / false 时组件会发生什么？ |
-| 06 | key 的作用是什么？为什么不能用 index 作 key？key 变化时组件会发生什么？ |
-| 07 | 受控组件和非受控组件的区别是什么？各适用什么场景？ |
+| 06 | key 的作用是什么？为什么不能用 index 作 key？key 变化时组件会发生什么（卸载旧 Fiber、state 与 effect 全部丢弃）？如何用 key 重置子组件状态？ |
+| 07 | 受控组件和非受控组件的区别是什么？各适用什么场景？`defaultValue` 和 `value` 有什么区别？为什么 react-hook-form 性能好？ |
 | 08 | React 的父子组件如何通信？什么是状态提升？为什么 React 强调单向数据流？ |
 | 09 | 什么是派生状态？为什么「用 useEffect 同步一份派生 state」是反模式？ |
-| 10 | useEffect 的依赖数组三种写法各是什么行为？cleanup 什么时候执行？如何解决请求竞态？为什么 StrictMode 下 effect 执行两次？ |
+| 10 | useEffect 的依赖数组三种写法各是什么行为？cleanup 什么时候执行？如何解决请求竞态？为什么 StrictMode 下 effect 执行两次？`setInterval` 配空依赖数组为什么计数永远停在 1，有哪几种修法？ |
 | 11 | 一个完整的数据请求要处理哪些状态？TanStack Query 解决了手写请求的哪些痛点？ |
 | 12 | useRef 和 useState 的区别？修改 ref.current 为什么不触发重渲染？useRef 有哪些典型用途？ |
 | 13 | children 是什么？什么是 render props？React 如何实现 Vue 作用域插槽的效果？ |
-| 14 | 自定义 Hook 和普通函数有什么区别？Hooks 为什么不能写在条件/循环里（Hooks 规则的原理）？ |
+| 14 | 自定义 Hook 和普通函数有什么区别？Hooks 为什么不能写在条件/循环里（Hooks 规则的原理）？手写一个防抖 Hook（定时器 id 为什么不能用普通变量存？卸载时为什么要 clearTimeout？防抖和节流的区别）。 |
 | 15 | Context 解决什么问题？Context value 变化时哪些组件会重渲染，如何优化？ |
 | 16 | Zustand / Redux / Context 如何选型？Zustand 的 selector 起什么作用？什么状态应该放全局、什么放局部？ |
 | 17 | useMemo 和 useCallback 分别缓存什么？什么时候该用、什么时候是负优化？React.memo 和它们如何配合？ |
-| 18 | React Router 中如何获取路由参数和 query？嵌套路由和 `<Outlet>` 如何工作？如何编程式导航？ |
+| 18 | React Router 中如何获取路由参数和 query？嵌套路由和 `<Outlet>` 如何工作？如何编程式导航？React Router 没有 `beforeEach`，登录态拦截和登录后回跳怎么做？ |
 | 19 | 如何防止表单重复提交？React 19 的 useActionState / useTransition 解决了什么问题？ |
 | 20 | Error Boundary 能捕获哪些错误、不能捕获哪些（事件/异步/自身）？为什么它必须是 class 组件？ |
 | 21 | 为什么 React 要求不可变更新？如何不可变地更新深层嵌套对象？Immer 的原理是什么？ |
