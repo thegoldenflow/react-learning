@@ -30,7 +30,8 @@ interface SubmitResult {
 }
 
 // React 版是四个 useState；这里是四个 ref —— 这层业务逻辑两边几乎一致，差异只在状态 API。
-// 金额的小差异：React 的受控 value 永远是字符串（空串 / "12." 等中间态原样留在 state 里）；
+// 金额的小差异：React 的受控 value 永远是字符串（空串这种转不成数字的中间态原样留在 state 里；
+// "12." 这类半截小数在 type="number" 下会被浏览器规范成空串，要保留得用 type="text" + inputmode="decimal"）；
 // Vue 对 type="number" 的输入会自动做数字转换（相当于隐式加了 .number 修饰符），
 // 输入合法数字时 amount 存的是 number，空串等转不动的仍是 string —— 所以类型写 string | number，
 // 提交时两边都统一 Number() 转换，行为一致。

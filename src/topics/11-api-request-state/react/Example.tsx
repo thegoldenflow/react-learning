@@ -31,7 +31,8 @@ import type { User } from '@/shared/types'
  * 每处 UI 都要靠人肉约定小心维护；判别联合让非法状态「根本无法被表示」—— 面试加分点。
  *
  * 真实业务通常直接用 TanStack Query：useQuery 内部就是这套状态机的完整体
- * （外加缓存/去重/自动重试/失效）。本课程不引入第三方库，但你要能手写出来。
+ * （外加缓存/去重/自动重试/失效）。本题不引库、手写整套状态机，是为了让你确切知道它替你管了什么；
+ * 30 题会用 @tanstack/react-query 把同一类页面重做一遍，可对照着看。
  */
 type RequestState =
   | { status: 'loading' }

@@ -11,7 +11,7 @@
  *   那种「自动缓存的派生值」概念
  * - 选型：Zustand 是 React 社区目前最主流的轻量方案之一（Redux Toolkit 更重、样板多；
  *   Context + useReducer 无外部库但样板多且有整体重渲染问题）——本项目选 Zustand
- * - 什么时候不用全局状态：只被一个组件树用的状态放局部；服务端数据交给请求层（如 TanStack Query）；
+ * - 什么时候不用全局状态：只被一个组件树用的状态放局部；服务端数据交给请求层（如 TanStack Query，见 30 题）；
  *   只有跨页面 / 跨互不嵌套组件共享的客户端状态才进全局 store
  *
  * Vue 对应概念：
@@ -127,7 +127,7 @@ function CartPanel() {
 
 export default function Example() {
   // 两个互不嵌套的兄弟组件，零 props 往来——共享状态全走全局 store。
-  // 如果没有全局 store，就得把购物车状态提升到这里再层层下发（8 题的方案）；
+  // 如果没有全局 store，就得把购物车状态提升到这里再层层下发（父子回调见 08 题；兄弟组件的状态提升见 25 题）；
   // 组件隔得越远，提升方案越痛苦，这正是全局状态管理要解决的问题。
   return (
     <div className="stack">

@@ -61,11 +61,14 @@ const INITIAL_ITEMS: CartItem[] = [
  * - 「setCount(count + 1) 写两次为什么只加 1？怎么改？」→ 就是这一题，改成函数式更新。
  * - 推广版：在 setTimeout / Promise.then / addEventListener 回调等【晚于本次渲染】的地方读 state，
  *   读到的同样是当时那次渲染的快照（10、14 题会再遇到）。统一解法都是函数式更新。
+ *   （若回调里要读最新值去做别的事——上报、判断——函数式更新解决不了，得用 ref 保存最新值，见 26 题）
  *
  * Vue 老手最容易想错的地方：
  * 在 Vue 里 count.value 是每次从响应式对象上【重新读】出来的，写两次 count.value++ 实打实加 2，
  * 「快照」这个概念根本不存在。千万别把「读 state = 读最新值」的直觉带进 React——
  * React 里读到的永远是本次渲染那一帧的定格。
+ *
+ * 本区块只做最小复现，完整讲解见 23 题（渲染模型与 state 快照）与 24 题（批处理与函数式更新）。
  */
 function SnapshotCounter() {
   const [count, setCount] = useState(0)
@@ -234,6 +237,8 @@ function quantityReducer(state: QuantityState, action: QuantityAction): Quantity
  * 「reducer 不就是 Pinia 的 action 吗？」不是。Pinia 的 action 是直接 mutate store、且可以
  * 写异步发请求；reducer 只是一个同步纯函数，只负责算出下一个 state，副作用一律不许进。
  * Vue 侧【没有 useReducer 的对应物】（没有一一对应关系），因为 Vue 直接改响应式对象就行。
+ *
+ * 本区块是 useReducer 的入门；判别联合 Action 的完整讲解、action 日志与撤销重放见 29 题。
  */
 function QuantityEditor() {
   /**
@@ -358,7 +363,7 @@ export default function Example() {
     <div className="stack">
       <p className="muted">购物车：+/- 调整数量（最少 1 件），可整件移除</p>
 
-      {/* 列表渲染就是 items.map(...) —— 对应 Vue 的 v-for；key 要用稳定唯一的 id（07 题详讲） */}
+      {/* 列表渲染就是 items.map(...) —— 对应 Vue 的 v-for；key 要用稳定唯一的 id（06 题详讲） */}
       {items.map(item => (
         <div key={item.id} className="card">
           <div className="row">

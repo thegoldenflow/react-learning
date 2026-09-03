@@ -13,7 +13,7 @@ import { ORDERS } from './ordersData'
 const route = useRoute()
 const router = useRouter()
 
-// route.query.status 类型是 string | string[] | null | undefined（同名参数可能重复出现），
+// route.query.status 类型是 string | null | (string | null)[]（vue-router 4 的 LocationQueryValue；同名参数可能重复出现），
 // URL 是用户可改的外部输入，必须自己收窄成合法值。
 // React 的 searchParams.get() 返回 string | null，同样要收窄。
 // 用 computed 跟踪 query 变化（setup 只跑一次，route 是响应式对象）；

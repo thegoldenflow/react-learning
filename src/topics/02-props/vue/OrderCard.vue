@@ -19,6 +19,8 @@ interface Props {
 
 // defineProps 是编译器宏（无需 import、编译期展开）；React 没有宏，props 就是函数参数。
 // withDefaults 给可选 props 默认值，对应 React 的参数解构默认值 { discount = 0 }。
+// Vue 3.5 起也可以写 const { discount = 0 } = defineProps<Props>()（响应式 props 解构），
+// 与 React 的参数解构默认值逐字对应；本文件保留 withDefaults 写法。
 const props = withDefaults(defineProps<Props>(), { discount: 0 })
 
 // props 只读：这里写 props.amount = 0 开发期会收到警告；

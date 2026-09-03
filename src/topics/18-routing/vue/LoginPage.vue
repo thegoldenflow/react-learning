@@ -15,7 +15,7 @@ import { auth, login } from './auth'
 const route = useRoute()
 const router = useRouter()
 
-// route.query.redirect 的类型是 string | string[] | null | undefined，同样要收窄成合法值
+// route.query.redirect 的类型是 string | null | (string | null)[]，同样要收窄成合法值
 //（和列表页收窄 ?status= 是同一件事）。React 对照：searchParams.get('redirect') ?? '/orders'
 const redirect = computed(() =>
   typeof route.query.redirect === 'string' ? route.query.redirect : '/orders',

@@ -18,6 +18,7 @@
  * 最重要的区别：
  * - 业务逻辑（状态建模、竞态处理、二次确认、行内编辑）两边完全一样 —— 是框架无关的工程功底；
  *   框架差异集中在两点：请求由「依赖变化」还是「显式调用」触发；更新数据必须不可变还是可以直接改
+ * - 本页手写的请求状态机与竞态处理，在 27 题（竞态）和 30 题（TanStack Query）里各有一版深入对照
  */
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { fetchOrders, isAbortError } from '@/shared/mockApi'

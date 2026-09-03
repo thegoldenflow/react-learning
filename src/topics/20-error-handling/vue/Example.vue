@@ -40,7 +40,9 @@ const safeCount = ref(0) // 兜底区域之外的正常计数器（React 版拆�
  * 返回 false 阻止错误继续向上传播（传给更外层的 onErrorCaptured，直至全局 app.config.errorHandler）——
  * 对应 React 边界「把错误就地消化」的行为。app.config.errorHandler 这个全局兜底与 React
  * 没有一一对应关系（React 19 最接近的是 createRoot 的 onUncaughtError / onCaughtError 选项）。
- * 注：开发模式下控制台仍会打印错误详情，属正常现象（React 边界捕获时同样会打印）。
+ * 注：因为这里返回了 false，Vue 不会再把错误打印到控制台（handleError 直接返回，不走 logError）；
+ * 想看详情要自己 console.error，或者不返回 false 让它继续冒泡到 app.config.errorHandler。
+ * React 侧相反：componentDidCatch 接住之后，默认的 onCaughtError 仍会把错误打印出来。
  */
 onErrorCaptured((err) => {
   errorMessage.value = err instanceof Error ? err.message : String(err)

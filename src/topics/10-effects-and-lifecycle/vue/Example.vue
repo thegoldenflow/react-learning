@@ -60,6 +60,8 @@ watch(
     // 在下一次回调执行前触发 —— 同样用来取消旧请求。
     // 竞态不是 React 特有的问题：Vue 里旧的慢请求同样会覆盖新的快结果，解法一样是 abort。
     // （React 文档的 let ignore = false 布尔位方案在 Vue 里同样适用，abort 比它更彻底。）
+    // （这里只展示「onCleanup 里 abort」这一种解法；竞态的可复现演示、ignore 标志 vs AbortController、
+    //  过期响应的处理见 27 题。）
     // （与 React 版一样，本题故意不做防抖 —— 每个字符都发请求；防抖优化是 14 题。）
     onCleanup(() => ctrl.abort())
 
@@ -93,9 +95,12 @@ onUnmounted(() => controller?.abort())
 
 // ============ 场景二：定时器 ============
 // 计数器本体在 IntervalCounter.vue 里（那里有最关键的注释：为什么 Vue 不存在 React 那个「坏」版本）。
+// 注意：页面上的源码查看器只显示两个 Example 文件，IntervalCounter.vue 的源码要在编辑器里打开看。
 // 这里只保留一个「卸载 / 重新挂载」开关，用来现场演示清理时机 ——
 // React 侧还多了一个「实现方式」下拉框（四选一），Vue 这边没有对应物：
 // 那四种写法全是为了绕开 React 的过期闭包，Vue 只有一种写法且天然正确，没有一一对应关系。
+// 本场景聚焦「定时器里 setState 读到旧值」；延迟回调 / 手动事件监听 / 轮询读旧参数等更多现场
+// 与 useEffectEvent 修法见 26 题。
 const counterMounted = ref(true)
 </script>
 

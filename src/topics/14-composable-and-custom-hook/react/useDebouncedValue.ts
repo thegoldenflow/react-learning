@@ -52,7 +52,7 @@ export function useDebouncedValue<T>(value: T, delay: number): T {
    *
    * 【工业界现状 —— 也是常见追问】
    * 真实项目很少手写：JS 侧用 lodash.debounce，React 侧用 ahooks 的 useDebounce / useDebounceFn，
-   * 或者干脆交给 TanStack Query（把 debounce 后的关键词当 queryKey，缓存与竞态一并解决）。
+   * 或者干脆交给 TanStack Query（把 debounce 后的关键词当 queryKey，缓存与竞态一并解决，见 30 题）。
    * 但面试要考的就是这段手写版 —— 它能同时暴露你对 effect 依赖、cleanup 时机和闭包的理解。
    * 本示例遵守项目约定不引入任何第三方库。
    *

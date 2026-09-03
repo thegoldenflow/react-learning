@@ -9,6 +9,8 @@
  * - 反例：order.items[0].quantity++ 引用没变 → React 认为「没变化」→ 不重渲染
  * - 引用比较是整个 React 优化体系的地基：memo 的 props 浅比较、useEffect/useMemo 的
  *   依赖数组比较，全靠「变化必换引用」这条约定才成立
+ * - 本题是 03 题「不可变更新」规则的系统化：03 题只在一层数组上 map / filter，这里把对象展开、
+ *   嵌套更新、数组追加 / 删除等五种模式一次讲全
  * - 深嵌套更新繁琐是真实痛点，工业界常用 Immer（useImmer）「以可变写法生成不可变更新」（本课不引入）
  *
  * Vue 对应概念：
@@ -167,7 +169,8 @@ function directMutate() {
       </tbody>
     </table>
 
-    <!-- 实时展示整个 state 对象，肉眼确认每次操作后的数据（与 React 版一致） -->
+    <!-- 实时展示整个 state 对象，肉眼确认每次操作后的数据（与 React 版一致）。
+         amount 是订单上的静态字段，本题不让它随 items 联动，别被 JSON 里对不上的合计迷惑 -->
     <pre>{{ JSON.stringify(order, null, 2) }}</pre>
   </div>
 </template>

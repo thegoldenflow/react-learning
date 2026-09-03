@@ -7,7 +7,7 @@
  *   一次只能返回单个根节点，需要多个平级节点时用 <>...</>（Fragment）
  * - 属性写 camelCase：class → className、for → htmlFor、tabindex → tabIndex
  * - 花括号 { } 里放任意 JS 表达式（取值、三元、函数调用、模板字符串），不能放 if/for 语句
- * - style={{ }} 接收对象：属性名 camelCase，纯数字默认按 px 处理
+ * - style={{ }} 接收对象：属性名 camelCase，纯数字默认按 px 处理（opacity / zIndex / fontWeight 等无单位属性除外）
  *
  * Vue 对应概念：
  * - SFC 单文件组件：<template> + <script setup> + <style scoped>，模板是专门的 DSL

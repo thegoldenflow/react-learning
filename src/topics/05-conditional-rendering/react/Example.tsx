@@ -106,7 +106,7 @@ export default function Example() {
         {/*
           ★ 反例（面试高频）：{itemCount && <p>…</p>}
           && 短路返回的是「左操作数本身」：itemCount 为 0 时表达式的值是数字 0，
-          而 JSX 会渲染数字（包括 0），只有 false/null/undefined 才不渲染——
+          而 JSX 不渲染的只有布尔值（true/false）、null、undefined；数字（包括 0）和 NaN 都会被渲染成文本——
           于是页面上凭空多出一个「0」。下面这行故意保留了错误写法，清空商品后亲眼看看：
         */}
         <div>
@@ -119,7 +119,8 @@ export default function Example() {
         </div>
         <p className="muted">
           Vue 的 v-if="itemCount" 没有这个陷阱：任何 falsy 值都直接不渲染
-          ——这是 React 特有的坑，Vue 中没有一一对应关系。
+          ——这是 React 特有的坑，Vue 中没有一一对应关系（用 v-if 时才成立；Vue 插值里写 itemCount && '…'
+          同样会把 0 渲染出来）。
         </p>
       </div>
 

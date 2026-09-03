@@ -1,6 +1,6 @@
 /**
  * 共享模拟 API —— Vue 示例和 React 示例使用同一份数据源，
- * 方便对比两个框架处理同一个请求的方式（10 / 11 / 19 / 22 题使用）。
+ * 方便对比两个框架处理同一个请求的方式（10 / 11 / 19 / 22 / 27 / 30 题使用）。
  *
  * 特性：
  * - 模拟网络延迟（默认 600ms）
@@ -105,7 +105,7 @@ async function simulate(options: RequestOptions = {}): Promise<void> {
   }
 }
 
-/** 按关键词搜索用户（10 / 11 / 14 题使用）。keyword 为空时返回全部用户。 */
+/** 按关键词搜索用户（10 / 11 / 14 / 27 题使用）。keyword 为空时返回全部用户。 */
 export async function fetchUsers(keyword: string, options?: RequestOptions): Promise<User[]> {
   await simulate(options)
   const kw = keyword.trim().toLowerCase()
@@ -127,7 +127,7 @@ export interface Paged<T> {
   total: number
 }
 
-/** 查询订单列表，支持关键词 / 状态筛选 / 分页（22 题使用）。 */
+/** 查询订单列表，支持关键词 / 状态筛选 / 分页（22 / 30 题使用）。 */
 export async function fetchOrders(
   params: FetchOrdersParams = {},
   options?: RequestOptions,
@@ -147,7 +147,7 @@ export async function fetchOrders(
   }
 }
 
-/** 更新订单（22 题编辑使用）。返回更新后的订单副本。 */
+/** 更新订单（22 题编辑、30 题 mutation 使用）。返回更新后的订单副本。 */
 export async function updateOrder(
   id: string,
   patch: Partial<Pick<Order, 'customer' | 'amount' | 'status'>>,

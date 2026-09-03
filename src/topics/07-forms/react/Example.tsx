@@ -16,8 +16,9 @@
  * - 「受控 vs 非受控怎么选」是中文面试标配题：需要实时校验 / 联动 / 格式化 / 按内容禁用提交按钮 → 受控；
  *   字段多、只关心提交结果、要接入非 React 的第三方 DOM 组件、不想每次按键都重渲染 → 非受控
  * - react-hook-form 性能好的原因正是内部走非受控 + ref 注册，输入时根本不 setState（面试常问）
- * - React 19 的 form actions（<form action={fn}>）会直接把 FormData 交给你（19 题 useActionState 已用过），
- *   底层就是这里的非受控取值；本示例只写原生 onSubmit 版
+ * - React 19 的 form actions（<form action={fn}>）会直接把 FormData 交给你，底层就是这里的非受控取值；
+ *   本示例只写原生 onSubmit 版（19 题提到过 useActionState，但那里用的是手写 submitting 的基础写法，
+ *   本项目没有实现 form actions）
  *
  * Vue 对应概念：
  * - v-model="form.name" 一个指令完成绑定；text / select / checkbox 全是同一个 v-model
@@ -241,7 +242,8 @@ function UncontrolledQuickForm() {
 
       <p className="muted">
         延伸：React 19 的 form actions（{'<form action={fn}>'}）会直接把这份 FormData 交到你手上，
-        连 onSubmit + preventDefault 都省了（19 题的 useActionState 已经用过），原理就是这里的非受控取值。
+        连 onSubmit + preventDefault 都省了，原理就是这里的非受控取值
+        （19 题提到过 useActionState，但那里用的是手写 submitting 的基础写法，本项目没有实现 form actions）。
       </p>
     </div>
   )

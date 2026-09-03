@@ -22,6 +22,8 @@
  * - emit 是 Vue 专门的自定义事件机制（声明、抛出、监听三步）；React 完全没有对应物，
  *   没有一一对应关系——所谓「子传父」只是「父传给子的函数被子调用了」，纯 JavaScript
  * - React 的子组件可以与父组件同文件（组件只是函数）；本题 ProductItem 就写在下面
+ * - 本题讲「机制」（callback props vs emit）；「状态该归谁」的设计判断——兄弟组件共享、为什么不能各存一份、
+ *   何时留在子组件——见 25 题（状态提升与 state 归属）
  */
 import { ref } from 'vue'
 import type { Product } from '@/shared/types'

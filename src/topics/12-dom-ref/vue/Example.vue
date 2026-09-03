@@ -4,7 +4,8 @@
  *
  * React 核心概念：
  * - 用途一：useRef<HTMLInputElement>(null) + <input ref={inputRef}> 获取真实 DOM 节点，命令式调用 focus() 等
- * - 用途二：跨渲染保存任意可变值 —— 改 .current 不触发重渲染，但值一直存活
+ * - 用途二：跨渲染保存任意可变值 —— 改 .current 不触发重渲染，但值一直存活；
+ *   「用 ref 保存最新值」的完整应用场景见 26 题（过期闭包）
  * - React 完全不追踪 ref：useRef 返回的只是一个每次渲染都相同的普通对象 { current: T }，改它 React 毫不知情
  * - 选择标准：值的变化需要反映到界面 → useState；只是记录、不影响渲染 → useRef
  *

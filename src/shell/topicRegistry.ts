@@ -1,5 +1,5 @@
 /**
- * 22 个知识点的注册表（壳应用基础设施）。
+ * 30 个知识点的注册表（壳应用基础设施）。
  * 通过 import.meta.glob 懒加载每个知识点的 React / Vue 示例及其源码文本，
  * 某个示例文件还不存在时页面会显示占位提示，而不是整个应用崩溃。
  */
@@ -22,6 +22,8 @@ export interface TopicEntry {
 
 export interface TopicPhase {
   label: string
+  /** 仅首页展示的一句说明（例如提醒某阶段应穿插学习而不是留到最后） */
+  note?: string
   topics: TopicEntry[]
 }
 
@@ -162,12 +164,98 @@ export const PHASES: TopicPhase[] = [
       },
     ],
   },
+  {
+    label: '第五阶段：React 核心机制与进阶模式',
+    note: '这 8 题与前四阶段同等重要（渲染模型、批处理、状态归属、过期闭包、竞态、TypeScript、useReducer、服务端状态），建议按上方的推荐顺序穿插学习，不要留到最后。',
+    topics: [
+      {
+        slug: '23-rendering-and-state-snapshot',
+        title: '渲染模型与 state 快照',
+        summary:
+          '组件函数每次渲染都重新执行，state / props 是本次渲染的快照，setter 不改当前闭包里的值；UI = f(props, state)，对照 Vue 的响应式依赖追踪。',
+      },
+      {
+        slug: '24-batching-and-functional-updates',
+        title: 'State batching 与函数式更新',
+        summary:
+          '同一事件里 setCount(count + 1) 连写两次只加 1、setCount(c => c + 1) 才加 2：更新队列、自动批处理与 flushSync，对照 Vue 的异步 DOM 刷新与 nextTick。',
+      },
+      {
+        slug: '25-state-ownership-and-lifting',
+        title: '状态提升与 state 归属',
+        summary:
+          '兄弟组件共享搜索 / 分类筛选时把 state 提升到最近的共同父组件；谁拥有 state、何时留在子组件、何时才上全局 store，对照 props + emit。',
+      },
+      {
+        slug: '26-stale-closures',
+        title: '过期闭包（stale closure）',
+        summary:
+          '延迟回调、手动事件监听、轮询读到旧 state 的坏例子与修法（函数式更新、依赖数组、latest ref / useEffectEvent、cleanup），对照 Vue 永远新鲜的 .value。',
+      },
+      {
+        slug: '27-async-race-and-cancellation',
+        title: '异步竞态、取消与过期响应',
+        summary:
+          '快速改关键词时先发的慢请求后返回并覆盖新结果：坏版本可复现，ignore 标志 vs AbortController、cleanup 里取消，以及 loading / error / empty 的处理。',
+      },
+      {
+        slug: '28-react-typescript-basics',
+        title: 'React + TypeScript 基础',
+        summary:
+          'Props / 可选属性 / 字符串联合 / useState 泛型 / 事件类型 / callback props / ReactNode 的类型建模，对照 defineProps / defineEmits / ref<T>。',
+      },
+      {
+        slug: '29-use-reducer-and-action-types',
+        title: 'useReducer 与判别联合 Action',
+        summary:
+          '购物车的添加 / 删除 / 改数量 / 清空收敛为纯函数 reducer + 判别联合 Action；什么时候 useState 就够，对照 Vue 的 reactive + 类型化 action 函数。',
+      },
+      {
+        slug: '30-tanstack-query-server-state',
+        title: 'TanStack Query 与服务端状态',
+        summary:
+          'query key、缓存与 staleTime、loading / error / data、refetch、mutation 与失效重取；服务端状态不等于本地 UI state，React Query 对照 Vue Query。',
+        vuePlugins: async () => {
+          // 懒加载 30 题的 Vue Query 插件（每次挂载新建 QueryClient，与 React 侧 useState(() => new QueryClient()) 对称）
+          const { createTopic30QueryPlugin } = await import('../topics/30-tanstack-query-server-state/vue/queryPlugin')
+          return [createTopic30QueryPlugin()]
+        },
+      },
+    ],
+  },
 ]
 
 export const ALL_TOPICS: TopicEntry[] = PHASES.flatMap((p) => p.topics)
 
 export function findTopic(slug: string): TopicEntry | undefined {
   return ALL_TOPICS.find((t) => t.slug === slug)
+}
+
+/**
+ * 推荐学习顺序（按理解难度排列，不按目录编号）。首页展示；理由见 README「推荐学习顺序」。
+ * 目录编号只反映文件顺序：23 / 24 / 26 讲的是渲染模型本身，紧挨着 03 / 09 / 10 学最合适；
+ * 28 放在最前，因为所有示例都是 TypeScript。
+ */
+export const RECOMMENDED_ORDER: readonly string[] = [
+  '23', '28', '01', '02', '03', '24', '04', '05', '06', '21',
+  '09', '07', '08', '25',
+  '10', '26', '11', '27',
+  '12', '14', '29', '15', '16', '18', '30',
+  '19', '17', '20', '13', '22',
+]
+
+/** 按推荐顺序排好的知识点；题号写错时只在控制台报错并跳过，绝不让壳应用白屏 */
+export const RECOMMENDED_TOPICS: TopicEntry[] = RECOMMENDED_ORDER.flatMap((num) => {
+  const topic = ALL_TOPICS.find((t) => t.slug.startsWith(`${num}-`))
+  if (!topic) {
+    console.error(`[topicRegistry] RECOMMENDED_ORDER 里的题号不存在：${num}`)
+    return []
+  }
+  return [topic]
+})
+
+if (new Set(RECOMMENDED_ORDER).size !== ALL_TOPICS.length) {
+  console.error('[topicRegistry] RECOMMENDED_ORDER 应恰好覆盖全部知识点各一次，请检查')
 }
 
 const reactModules = import.meta.glob<{ default: ComponentType }>(

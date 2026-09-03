@@ -12,6 +12,7 @@
  *   这些原生属性，必须自己用 { ...rest } 收集，再展开到真实 DOM 元素上
  * - ComponentPropsWithoutRef<'button'> 一次性继承 <button> 的全部原生属性类型，
  *   与自定义 props 用交叉类型 & 拼起来 —— 这是组件库（shadcn/ui、MUI）的通用 API 写法
+ * - props 的 TS 声明基础在这里；事件类型、useState 泛型、ReactNode 等 React + TS 常见类型的系统梳理见 28 题
  *
  * Vue 对应概念：
  * - defineProps<{ ... }>() 声明类型；默认值要包一层 withDefaults(defineProps<...>(), { ... })

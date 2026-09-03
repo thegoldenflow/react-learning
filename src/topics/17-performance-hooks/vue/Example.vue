@@ -56,7 +56,8 @@ const selectedId = ref<string | null>(null)
 const unrelatedCount = ref(0)
 
 // computed 缓存 filter + sort 的结果：自动追踪依赖（products / keyword / category / sortOrder）、
-// 依赖不变时读缓存——等价于 React 版那个手写依赖数组的 useMemo，但不用写依赖、也不可能写漏。
+// 依赖不变时读缓存——作用相当于 React 版那个手写依赖数组的 useMemo，但不是等价物（见头注释）：
+// 这里不用写依赖、也不可能写漏。
 // 打开控制台：点「触发无关重渲染」时这里的计数不动（缓存命中），
 // React 版靠 useMemo 手动达成同样效果，且依赖数组写漏一个就会拿到过期结果。
 const visibleProducts = computed(() => {
@@ -121,7 +122,7 @@ function handleSelect(id: string) {
     <p class="muted">
       共 {{ visibleProducts.length }} 条。打开控制台观察：点「触发无关重渲染」时「计算次数」和
       「更新次数」都不动（computed 缓存命中 + 行组件 props 没变就不更新，全是框架默认行为）；
-      点行内「选中」时「更新次数」只 +2。
+      点行内「选中」时「更新次数」只 +1（首次选中 / 取消选中）或 +2（从 A 行切到 B 行）。
     </p>
 
     <!--

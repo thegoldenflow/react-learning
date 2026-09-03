@@ -3,7 +3,8 @@
  *
  * React 核心概念：
  * - 用途一：useRef<HTMLInputElement>(null) + <input ref={inputRef}> 获取真实 DOM 节点，命令式调用 focus() 等
- * - 用途二：跨渲染保存任意可变值 —— 改 .current 不触发重渲染，但值一直存活
+ * - 用途二：跨渲染保存任意可变值 —— 改 .current 不触发重渲染，但值一直存活；
+ *   「用 ref 保存最新值」的完整应用场景见 26 题（过期闭包）
  * - React 完全不追踪 ref：useRef 返回的只是一个每次渲染都相同的普通对象 { current: T }，改它 React 毫不知情
  * - 选择标准：值的变化需要反映到界面 → useState；只是记录、不影响渲染 → useRef
  *
@@ -24,6 +25,8 @@ export default function Example() {
   // 泛型写 HTMLInputElement、初始值 null：挂载前拿不到节点，所以 .current 的类型是 HTMLInputElement | null。
   // React 在「提交 DOM 之后」才把节点塞进 .current —— 渲染期间它还是 null，只能在事件处理器 / effect 里用。
   // Vue 完全同理：const inputEl = ref<HTMLInputElement | null>(null)，挂载前 .value 也是 null。
+  // 顺带一提：React 19 起 ref 是普通 prop，函数组件不再需要 forwardRef 就能把 ref 透传给子组件
+  //（02 题的 UiButton 提过）；本题只讲 useRef 自身的两种用途，不展开 ref 透传。
   const inputRef = useRef<HTMLInputElement>(null)
 
   const [keyword, setKeyword] = useState('')

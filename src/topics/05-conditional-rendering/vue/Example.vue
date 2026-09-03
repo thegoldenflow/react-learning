@@ -115,7 +115,8 @@ const showDetail = ref(true)
 
       <!-- v-if="itemCount"：0 是 falsy，直接不渲染，页面不会出现「0」。
            React 里 {itemCount && <span>…</span>} 却会把 0 渲染出来——
-           这是 React 特有的坑，Vue 中没有一一对应关系；React 的正确写法是 itemCount > 0 && -->
+           这是 React 特有的坑，Vue 中没有一一对应关系（用 v-if 时才成立；插值里写 itemCount && '…'
+           同样会把 0 渲染出来）；React 的正确写法是 itemCount > 0 && -->
       <div>
         v-if="itemCount" 的渲染结果：<span v-if="itemCount">购物车共 {{ itemCount }} 件商品</span>
       </div>

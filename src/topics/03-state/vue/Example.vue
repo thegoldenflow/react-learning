@@ -70,6 +70,8 @@ const totalPrice = computed(() => items.value.reduce((sum, it) => sum + it.price
  * 按钮 A 连写两次 setCount(count + 1) 只加 1，因为 count 是本次渲染的常量快照。
  * Vue 【没有「渲染快照」这个概念】——count.value 每次都是从响应式对象上重新读，
  * 所以下面两个按钮在 Vue 里效果完全一样，都实打实加 2。
+ *
+ * 本区块只做最小复现，React 侧的完整讲解见 23 题（渲染模型与 state 快照）与 24 题（批处理与函数式更新）。
  */
 const count = ref(0)
 
@@ -104,6 +106,8 @@ function resetCount() {
  * 各个事件处理器里，才需要 reducer 这层间接，把「发生了什么」收敛进一个纯函数；
  * Vue 直接在响应式对象上改就行，逻辑复杂时的惯用做法是抽成 composable 或 Pinia action（见 16 题）——
  * 而且 Pinia action 和 reducer 也不是一回事：前者直接 mutate、可以写异步，后者是同步纯函数。
+ *
+ * 本区块是 useReducer 的入门；判别联合 Action 的完整讲解、action 日志与撤销重放见 29 题。
  */
 const STOCK_LIMIT = 8
 

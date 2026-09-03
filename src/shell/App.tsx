@@ -3,7 +3,7 @@
  * 壳本身就是一个真实的 React Router 应用，可以顺便观察路由的实际用法（详见 18 题）。
  */
 import { NavLink, Route, Routes, Link } from 'react-router-dom'
-import { PHASES } from './topicRegistry'
+import { PHASES, RECOMMENDED_TOPICS } from './topicRegistry'
 import TopicPage from './TopicPage'
 
 function Home() {
@@ -19,9 +19,31 @@ function Home() {
         建议在编辑器里打开对应的 <code>Example.tsx</code> / <code>Example.vue</code>{' '}
         逐行阅读（页面里也可以直接「查看源码」），改一改代码，观察两边行为的差异。
       </p>
+
+      {/* 推荐学习顺序：按理解难度排列，与下面按目录编号分阶段的目录是两种视角 */}
+      <section className="home-order">
+        <h2>推荐学习顺序（按理解难度，不按编号）</h2>
+        <p className="muted">
+          目录编号只是文件顺序。建议先建立渲染模型，再学语法与数据流，副作用与异步放在中段，
+          状态管理与工程模式收尾。理由见 README「推荐学习顺序」。
+        </p>
+        <ol className="home-order-list">
+          {RECOMMENDED_TOPICS.map((t, i) => (
+            <li key={t.slug}>
+              <Link to={`/topic/${t.slug}`} className="home-order-item" title={t.summary}>
+                <span className="home-order-step">{i + 1}</span>
+                <span className="topic-num">{t.slug.slice(0, 2)}</span>
+                {t.title}
+              </Link>
+            </li>
+          ))}
+        </ol>
+      </section>
+
       {PHASES.map((phase) => (
         <section key={phase.label} className="home-phase">
           <h2>{phase.label}</h2>
+          {phase.note && <p className="muted home-phase-note">{phase.note}</p>}
           <div className="home-grid">
             {phase.topics.map((t) => (
               <Link key={t.slug} to={`/topic/${t.slug}`} className="home-card">

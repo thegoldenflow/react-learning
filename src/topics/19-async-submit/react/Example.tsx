@@ -33,8 +33,10 @@ interface SubmitResult {
 
 export default function Example() {
   // 受控组件：输入框的值由 state 驱动（07 题讲过）。
-  // 金额也用 string 存：用户输入过程中可能是空串、半截小数（"12."），
-  // 用 number 存会丢失这些中间态；提交时再 Number() 转换。
+  // 金额也用 string 存：需要 string 承载的是「空串」这种转不成数字的中间态（用 number 存，
+  // 清空输入框时就没法表示「还没填」）；提交时再 Number() 转换。
+  // 注意 type="number" 下浏览器会把 "12." 这类半截小数规范成空串，state 里根本看不到它；
+  // 真要保留原始文本，得改用 type="text" + inputMode="decimal"。
   const [customer, setCustomer] = useState('')
   const [amount, setAmount] = useState('')
   const [submitting, setSubmitting] = useState(false)

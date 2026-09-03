@@ -11,6 +11,7 @@
  *   这些原生属性，必须自己用 { ...rest } 收集，再展开到真实 DOM 元素上
  * - ComponentPropsWithoutRef<'button'> 一次性继承 <button> 的全部原生属性类型，
  *   与自定义 props 用交叉类型 & 拼起来 —— 这是组件库（shadcn/ui、MUI）的通用 API 写法
+ * - props 的 TS 声明基础在这里；事件类型、useState 泛型、ReactNode 等 React + TS 常见类型的系统梳理见 28 题
  *
  * Vue 对应概念：
  * - defineProps<{ ... }>() 声明类型；默认值要包一层 withDefaults(defineProps<...>(), { ... })
@@ -65,7 +66,7 @@ function OrderCard({ orderNo, customer, amount, status, discount = 0 }: OrderCar
   // 真想改？把「想改」这件事通过父组件传下来的回调上浮给父组件（08 题详讲）。
 
   // 派生值就是普通 const：组件函数每次渲染都会重跑，payable 自动保持最新；
-  // Vue 的 setup 只执行一次，对照版要用 computed(() => ...) 包起来（03 题详讲）。
+  // Vue 的 setup 只执行一次，对照版要用 computed(() => ...) 包起来（09 题详讲）。
   const payable = amount * (1 - discount)
 
   return (
@@ -114,8 +115,9 @@ function OrderCard({ orderNo, customer, amount, status, discount = 0 }: OrderCar
  * 用交叉类型 & 把「组件自己的 props」和「原生属性」拼起来，
  * 正是 shadcn/ui、MUI 这类组件库的通用 API 设计范式（面试常考：怎么设计一个可复用按钮）。
  *
- * 小知识：带 ref 的版本是 ComponentProps<'button'>（React 19 起 ref 就是普通 prop），
- * 老代码里的 forwardRef + ComponentPropsWithRef 已不再必需（12 题详讲 ref）。
+ * 小知识：带 ref 的版本是 ComponentProps<'button'>——React 19 起 ref 就是普通 prop，
+ * 函数组件不再需要 forwardRef 就能把 ref 透传给子组件，老代码里的 forwardRef + ComponentPropsWithRef
+ * 已不再必需；12 题讲的是 useRef 自身的两种用途（拿 DOM 节点、跨渲染存可变值），不展开 ref 透传。
  */
 type UiButtonProps = {
   /** 组件自己的 props：只有这一个，其余全部来自原生 button */

@@ -192,7 +192,8 @@ function useAuth(): AuthValue {
  *   React 19 的类型允许函数组件直接返回 ReactNode；@types/react 18 及更早要写成 <>{children}</>。
  * - useLocation() 拿到当前 location（pathname / search / hash），把来路拼进 ?redirect=，
  *   登录成功后才跳得回用户原本想去的页面。Vue 对照：守卫回调参数 to.fullPath（自带 query）；
- *   React 这边想完全等价就写 location.pathname + location.search。
+ *   React 这边要自己拼 location.pathname + location.search 才与之等价（下面就是这么写的），
+ *   只拼 pathname 会把用户原本带着的 ?status=paid 之类的 query 丢掉。
  * - replace 必须加：不加的话历史里会留下「未登录时的 /settings」，用户在登录页按后退会回到
  *   /settings，守卫又立刻把他推回 /login，来回弹跳、退不出去。Vue 对照：beforeEach 的改道发生在
  *   导航「落地」之前，被拦下的 /settings 压根没进过历史，那边不需要显式写 replace ——
@@ -209,7 +210,12 @@ function RequireAuth({ children }: { children: ReactNode }) {
     // 注意这是「渲染出一个跳转组件」，不是调用跳转函数：
     // 声明式跳转天然满足「渲染期不能有副作用」的约束
     // （在组件函数体里直接调 navigate() 是错的，那属于渲染期副作用，只能放事件回调或 useEffect）。
-    return <Navigate to={`/login?redirect=${encodeURIComponent(location.pathname)}`} replace />
+    return (
+      <Navigate
+        to={`/login?redirect=${encodeURIComponent(location.pathname + location.search)}`}
+        replace
+      />
+    )
   }
 
   return children
@@ -258,7 +264,7 @@ function OrderListPage() {
   const [searchParams, setSearchParams] = useSearchParams()
 
   // searchParams.get() 返回 string | null，URL 是用户可改的外部输入，必须自己收窄成合法值。
-  // Vue 的 route.query.status 类型更宽（string | string[] | null | undefined），同样要收窄。
+  // Vue 的 route.query.status 类型更宽（vue-router 4 里是 string | null | (string | null)[]），同样要收窄。
   const raw = searchParams.get('status')
   const status: OrderStatus | 'all' =
     raw === 'pending' || raw === 'paid' || raw === 'cancelled' ? raw : 'all'
@@ -459,8 +465,9 @@ function SettingsNotificationsPage() {
       </label>
       <p className="muted">
         切到「个人资料」再切回来，勾选状态会重置 —— 子路由切换 = 组件卸载再挂载，两框架一致。
-        Vue 可以用 KeepAlive 缓存被切走的组件；React 没有内置对应物（没有一一对应关系，
-        只能状态提升或用社区方案）。
+        Vue 可以直接用 KeepAlive 包住 RouterView 缓存被切走的路由组件；React 19.2 内置了 Activity 组件
+        （mode 为 hidden 时卸载 effect、保留 state），是最接近 KeepAlive 的官方原语，
+        差别是 React 路由层没有开箱封装（本页保持普通的卸载重挂演示）。
       </p>
     </div>
   )

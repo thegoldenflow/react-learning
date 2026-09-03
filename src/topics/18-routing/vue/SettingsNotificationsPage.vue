@@ -20,8 +20,9 @@ const emailEnabled = ref(true)
     </label>
     <p class="muted">
       切到「个人资料」再切回来，勾选状态会重置 —— 子路由切换 = 组件卸载再挂载，两框架一致。
-      Vue 可以用 KeepAlive 缓存被切走的组件；React 没有内置对应物（没有一一对应关系，
-      只能状态提升或用社区方案）。
+      Vue 可以直接用 KeepAlive 包住 RouterView 缓存被切走的路由组件；React 19.2 内置了 Activity 组件
+      （mode 为 hidden 时卸载 effect、保留 state），是最接近 KeepAlive 的官方原语，
+      差别是 React 路由层没有开箱封装（本页保持普通的卸载重挂演示）。
     </p>
   </div>
 </template>

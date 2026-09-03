@@ -95,7 +95,7 @@ export default function Example() {
         {items.map((item) => (
           <li key={item.id} className="row">
             <span>
-              {item.name} × {item.quantity}（¥{item.price}）
+              {item.name} × {item.quantity}(¥{item.price})
             </span>
             {/*
               ★ 经典新手坑：需要传参时必须包一层箭头函数。

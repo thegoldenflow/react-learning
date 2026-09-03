@@ -25,7 +25,7 @@ import type { User } from '@/shared/types'
 // 与 React 版逐字相同的判别联合 —— 两边的状态设计完全一致，差异只在响应式 API。
 // 同样杜绝 isLoading && isError 之类的非法组合；模板里 v-if="state.status === 'success'"
 // 收窄后，TS 同样能保证 state.users 存在。
-// （React 侧的面试点这里同样成立；Vue 生态的现成方案是 @tanstack/vue-query，本课程不引入。）
+// （React 侧的面试点这里同样成立；Vue 生态的现成方案是 @tanstack/vue-query，30 题会引入并对照。）
 type RequestState =
   | { status: 'loading' }
   | { status: 'success'; users: User[] }

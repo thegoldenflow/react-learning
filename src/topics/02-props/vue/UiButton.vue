@@ -36,7 +36,7 @@ defineOptions({ inheritAttrs: false })
 // 对应 React 的 function UiButton({ variant, className, children, ...rest }) 里的 rest。
 const attrs = useAttrs()
 
-// 对应 React 的 VARIANT_CLASS 映射表
+// 对应 React 的 VARIANT_CLASS 映射表；variant 只有两个取值，这里直接写三元，没有另建映射对象
 const variantClass = computed(() => (props.variant === 'danger' ? 'btn-danger' : 'btn-primary'))
 </script>
 
