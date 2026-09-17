@@ -10,7 +10,7 @@
  * - 插件（如 18 题的 vue-router）必须以工厂函数传入：StrictMode 会挂载两次，
  *   router 实例不能跨两个 createApp 复用。
  */
-import { useEffect, useRef } from 'react'
+import { useEffect, useEffectEvent, useRef } from 'react'
 import {
   createApp,
   type App as VueApp,
@@ -29,11 +29,11 @@ interface VueMountProps {
 export function VueMount({ component, createPlugins }: VueMountProps) {
   const hostRef = useRef<HTMLDivElement>(null)
 
-  // 「latest ref」模式：effect 的依赖只有 component。
-  // 内联传入的 createPlugins={() => [...]} 每次渲染都是新函数，
-  // 若放进依赖数组会导致 Vue 应用在每次 React 渲染时反复重挂载。
-  const createPluginsRef = useRef(createPlugins)
-  createPluginsRef.current = createPlugins
+  // effect 的依赖只有 component：内联传入的 createPlugins={() => [...]} 每次渲染都是新函数，
+  // 放进依赖数组会让 Vue 应用在每次 React 渲染时反复重挂载。
+  // useEffectEvent（React 19.2）让 effect 调用时总能拿到最新的 createPlugins，又不必把它列进依赖。
+  // 旧写法「latest ref」要在渲染期执行 ref.current = createPlugins，会被 react-hooks/refs 规则拦下（见 26 题）。
+  const loadPlugins = useEffectEvent(async () => (await createPlugins?.()) ?? [])
 
   useEffect(() => {
     const host = hostRef.current
@@ -43,7 +43,7 @@ export function VueMount({ component, createPlugins }: VueMountProps) {
     let app: VueApp | null = null
 
     void (async () => {
-      const plugins = (await createPluginsRef.current?.()) ?? []
+      const plugins = await loadPlugins()
       if (cancelled) return
       app = createApp(component)
       app.use(createPinia())

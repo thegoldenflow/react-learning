@@ -40,8 +40,13 @@ export function ReactIsolatedMount({ load }: ReactIsolatedMountProps) {
 
     return () => {
       cancelled = true
-      root?.unmount()
+      // 这个 cleanup 由外层 React 在提交阶段执行。此时同步卸载另一棵根，react-dom 会报
+      // "Attempted to synchronously unmount a root while React was already rendering"
+      // （unmount() 检测到外层正处于 render / commit 上下文就会告警）。
+      // 放进微任务：等外层这一轮提交结束后再卸载独立的 React 树。
+      const mounted = root
       root = null
+      if (mounted) queueMicrotask(() => mounted.unmount())
     }
   }, [load])
 

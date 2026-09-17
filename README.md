@@ -434,7 +434,7 @@ src/
 
 | 命令 | 作用 | 结果 |
 | --- | --- | --- |
-| `npm run lint` | `eslint . --max-warnings=0`：react-hooks 官方 recommended 预设 + vue 插件规则，警告也视为失败 | 通过（0 错误、0 警告，2026-09-17）。切换预设时已有的 16 处命中（8 道题 + 站点壳）记在根目录 `eslint-suppressions.json`，待逐处修复 |
+| `npm run lint` | `eslint . --max-warnings=0`：react-hooks 官方 recommended 预设 + vue 插件规则，警告也视为失败 | 通过（0 错误、0 警告，2026-09-17）。切换预设时已有的命中（8 道题共 13 处）记在根目录 `eslint-suppressions.json`，随各题改写逐处修复 |
 | `npm run typecheck` | `vue-tsc --noEmit`，同时检查 .tsx、.vue 与测试文件 | 通过（0 错误，2026-09-17） |
 | `npm test` | `vitest run`（jsdom） | 通过（2 个文件 6 条冒烟测试，2026-09-17） |
 | `npm run build` | typecheck + vite build | 通过（vite build 约 6 秒，产物在 `dist/`，2026-09-17） |

@@ -9,7 +9,7 @@
 |---|---|---|---|---|
 | 0 | 审计（只读） | **完成。** 两轮审计均完成；用户 2026-09-17 答复「全部按建议执行」（AUDIT-ROUND2.md §6 D2-1～8，记录在 AUDIT.md §5.13）；两轮合并规则写在 AUDIT.md 附录 C | `docs/upgrade/AUDIT.md`（含 §5.13、§5.14、附录 C）、`docs/upgrade/REAUDIT-PROMPT.md`、`docs/upgrade/AUDIT-ROUND2.md` | 两轮审计与合并说明均已提交（d550e27、1efc217） |
 | 1 | 依赖与工具链调整 | **完成（2026-09-17）**：commit「阶段 1：依赖与工具链调整」（34cd734）+「阶段 1 补充：ESLint 9 → 10（D1-1）」 | package.json / package-lock.json、vitest.config.ts、eslint.config.js + eslint-suppressions.json、tsconfig.json、src/test/、4 处 react-router 导入、README 事实行 | 复核口径与全部记录见下文「阶段 1 记录」；版本决定见 AUDIT.md §5.0 的 5.14、5.15 |
-| 2 | 逐主题修改（先改 18 路由样板） | 未开始。顺序：先单独一个 commit 修站点壳的 3 条 lint 命中（1.4），再改 18 样板 | 每题一个 commit | 样板完成后停止等确认 |
+| 2 | 逐主题修改（先改 18 路由样板） | **进行中**（分支 `phase-2-topics`）。前置 commit「阶段 2 前置：修复站点壳的 lint 命中与独立根卸载告警」已完成（见「阶段 2 记录」2.0）；下一步 18 样板 | 每题一个 commit | 样板完成后停止等确认 |
 | 3 | 补充新主题 | 未开始 | | 按阶段 0 确认的清单 |
 | 4 | 一致性检查 + CHANGELOG | 未开始 | `docs/upgrade/CHANGELOG.md` | |
 
@@ -83,9 +83,9 @@
 
 | 位置 | 规则 | 由谁处理 |
 |---|---|---|
-| `src/bridge/VueMount.tsx:36`（渲染期写 `createPluginsRef.current`） | refs | 阶段 2 开头单独 commit「壳 lint 修复」 |
-| `src/shell/TopicPage.tsx:58`（effect 里按 slug 重置两个 state） | set-state-in-effect | 同上 |
-| `src/shell/TopicPage.tsx:105`（`useMemo` 里 `lazy()` 出来的组件） | static-components | 同上 |
+| `src/bridge/VueMount.tsx:36`（渲染期写 `createPluginsRef.current`） | refs | **已修复**（阶段 2 前置 commit，见 2.0） |
+| `src/shell/TopicPage.tsx:58`（effect 里按 slug 重置两个 state） | set-state-in-effect | **已修复**（同上） |
+| `src/shell/TopicPage.tsx:105`（`useMemo` 里 `lazy()` 出来的组件） | static-components | **已修复**（同上） |
 | 10 `react/Example.tsx:291` | set-state-in-effect | 阶段 2 改 10 题 |
 | 11 `react/Example.tsx:61` | set-state-in-effect | 阶段 2 改 11 题 |
 | 12 `react/Example.tsx:86`（×2）、`:93` | refs | 阶段 2 改 12 题 |
@@ -133,6 +133,23 @@
   - 插件侧 API 移除（context / SourceCode 旧方法）：四个插件都已声明支持 ^10，实跑正常。
 - **配置改动**：`tseslint.config()` 在已安装的 typescript-eslint 里已标 `@deprecated`（`node_modules/typescript-eslint/dist/config-helper.d.ts:67`：「ESLint core now provides this functionality via `defineConfig()`, which we now recommend instead」），所以改为 `defineConfig()` + `globalIgnores(['dist'])`（`node_modules` 默认就被忽略），各预设数组直接传入不再展开。规则内容和作用范围不变。
 - **结果**：`npm run lint` 0 error / 0 warning；16 条批量抑制原样生效（没有新增，也没有失效）；另外 3 条是题目里原有的 `eslint-disable-next-line react-hooks/exhaustive-deps`（10:127、26:264、26:430，教学反例）。用 stdin 探针确认各类规则确实在跑：react-hooks/rules-of-hooks、@typescript-eslint/no-explicit-any、新的 preserve-caught-error、vue/require-v-for-key 都能报出。`npm run check` 全部通过（test 6/6、build 约 5.6 秒）。
+
+## 阶段 2 记录
+
+### 2.0 前置：站点壳修复（2026-09-17，分支 `phase-2-topics`，单独 commit）
+
+属于规格规则 10 的「站点壳改动」：只改基础设施，不动任何课件。
+
+- `src/bridge/VueMount.tsx`（refs）：原先在渲染期执行 `createPluginsRef.current = createPlugins`（latest ref），改为 `useEffectEvent`（React 19.2）包一层 `loadPlugins`，在 effect 里的异步 IIFE 中调用。effect 依赖仍只有 `component`，内联传入的插件工厂照样不会引起重挂载。
+- `src/shell/TopicPage.tsx`（set-state-in-effect）：原先 `useEffect` 在 slug 变化时把两个「查看源码」开关重置为 false。改为外层 `TopicPage` 只读 `slug`，渲染 `<TopicPageContent key={slug} slug={slug} />`，切题时整页重新挂载，state 自然回到初始值（React 文档「用 key 重置全部 state」）。
+- `src/shell/TopicPage.tsx`（static-components）：原先在 `useMemo` 里 `lazy(loader)`。第一次改成模块级 Map 缓存 + 渲染中调用 `getReactExample(slug)` 取组件，**仍被规则命中**：规则实现（`eslint-plugin-react-hooks` 的 `validateStaticComponents`）只要 JSX 标签的值来自渲染期的 `CallExpression` / `MethodCall` / `FunctionExpression` / `NewExpression` 就报，不区分有没有缓存。最终改为在模块顶层遍历 `ALL_TOPICS`，一次性创建 `reactExamples[slug] = lazy(...)`、`vueExamples[slug] = defineAsyncComponent(...)`，渲染时只做属性读取（`lazy` 只登记加载器，渲染到该题才下载代码块）。
+- **顺带修复一个早就存在的控制台错误**（验证时发现，不是 lint 命中）：离开 18 题时控制台报 `Attempted to synchronously unmount a root while React was already rendering`。原因是 `src/bridge/ReactIsolatedMount.tsx` 在 effect cleanup 里同步调用 `root.unmount()`，而这个 cleanup 由外层 React 在提交阶段执行；react-dom 的 `unmount()` 一旦发现外层处于 render / commit 上下文就告警（`react-dom/cjs/react-dom-client.development.js:27906-27908`）。已用旧代码复现，确认不是这次改动引入的。修法：把 `unmount()` 放进 `queueMicrotask`，等外层这一轮提交结束再卸载。
+- 台账：`npx eslint . --prune-suppressions` 后，`eslint-suppressions.json` 只剩 8 道题的 13 条。
+- 验证：`npm run check` 通过（lint 0 / typecheck 0 / test 6/6 / build）。浏览器用临时 5174 dev 服务器，验证完已停掉并还原 launch.json：
+  - 03 题打开两侧「查看源码」后切到 16 题，查看器数量从 2 回到 0；切回 03 正常渲染，没有卡在 Suspense fallback。
+  - 每个 Vue 宿主只有 1 个根节点（StrictMode 双挂载没有留下重复实例）。
+  - 18 题 Vue 侧的 vue-router 插件照常装上（点「设置」被 `beforeEach` 拦到登录页）；30 题两侧各 15 行数据。
+  - 18 → 16 → 18 → 17 以及 18 → 19 → 18 快速切换，控制台 0 条 error。
 
 ## 每题状态（阶段 2 起填写）
 

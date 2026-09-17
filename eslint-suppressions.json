@@ -1,17 +1,4 @@
 {
-  "src/bridge/VueMount.tsx": {
-    "react-hooks/refs": {
-      "count": 1
-    }
-  },
-  "src/shell/TopicPage.tsx": {
-    "react-hooks/set-state-in-effect": {
-      "count": 1
-    },
-    "react-hooks/static-components": {
-      "count": 1
-    }
-  },
   "src/topics/10-effects-and-lifecycle/react/Example.tsx": {
     "react-hooks/set-state-in-effect": {
       "count": 1
