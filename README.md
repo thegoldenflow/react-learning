@@ -100,7 +100,7 @@ src/
 | 08 | `08-parent-child-communication` | 父子组件通信 | callback props 让子组件通知父组件、单向数据流，对照 emit |
 | 09 | `09-derived-state` | 派生状态 | 渲染时直接计算派生值、什么时候才需要 useMemo，对照 computed |
 | 10 | `10-effects-and-lifecycle` | useEffect 与生命周期 | 依赖数组、cleanup、AbortController、定时器与过期闭包；useEffect 不是 onMounted 的替代品 |
-| 11 | `11-api-request-state` | API 请求状态 | loading / success / error / empty / retry 的完整处理，两边共用同一个模拟 API |
+| 11 | `11-api-request-state` | API 请求状态 | Effect 手写请求（判别联合 + 派生 pending + 取消 + 重试 + 保留旧数据）与四种取数方案速查 |
 
 ### 第三阶段：组件复用和常见 Hooks
 
@@ -211,7 +211,7 @@ src/
 
 **10 useEffect 与生命周期** —— 依赖数组三种形态、cleanup 的两个执行时机、StrictMode 双跑的用意、用 AbortController 根治请求竞态；外加一个**定时器实验**：`setInterval` 配空依赖数组为什么永远停在 1（过期闭包），以及三种修法（函数式更新 / 加进依赖 / latest ref）。第三个思维关口：useEffect 是「声明式同步」，不是生命周期钩子的换皮（过期闭包见 26 题、竞态与取消见 27 题）。
 
-**11 API 请求状态** —— loading / success / error / empty / retry 五态齐全的手写请求流程。工业界现状：**生产项目的服务端数据基本都交给 TanStack Query（React Query）**——缓存、去重、重试、失效开箱即用；本题手写原生流程，是为了让你确切知道 TanStack Query 替你管了哪些状态（TanStack Query 版见 30 题）。
+**11 API 请求状态** —— 主线是**在 Effect 里手写请求（教学用）**：判别联合建模结果、取消与竞态、重试、空态与错误态分开。两个做法值得记：请求态**派生而不另存**（结果带上「参数指纹」，`pending = 指纹 ≠ 当前指纹`，于是 Effect 体里不用同步 `setState`，也不会被 `set-state-in-effect` 拦下，过期响应写进来也不会被当成当前结果），以及**切换关键词时保留旧数据**只加一个「刷新中…」（TanStack Query 的 `placeholderData: keepPreviousData` 同一目的）。区块二是四种方案速查（Effect 手写 / TanStack Query v5 的 `status × fetchStatus` / 路由 loader / `use(promise)` + Suspense）以及官方对「在 Effect 里取数」的四条缺点原文——**手写不是生产默认**：生产用缓存层（30 题）或路由 loader（18 题）。Vue 侧用 `watch` + `onWatcherCleanup`（3.5）一一对应，并列出 Vue 的对应物（`@tanstack/vue-query`、导航前/后取数、实验性的 `<Suspense>`）。
 
 ### 第三阶段：组件复用和常见 Hooks
 
@@ -388,7 +388,7 @@ src/
 | 08 | React 的父子组件如何通信？什么是状态提升？为什么 React 强调单向数据流？（状态提升的完整讨论见 25 题） |
 | 09 | 什么是派生状态？为什么「用 useEffect 同步一份派生 state」是反模式？ |
 | 10 | useEffect 的依赖数组三种写法各是什么行为？cleanup 什么时候执行？如何解决请求竞态？为什么 StrictMode 下 effect 执行两次？`setInterval` 配空依赖数组为什么计数永远停在 1，有哪几种修法？ |
-| 11 | 一个完整的数据请求要处理哪些状态？TanStack Query 解决了手写请求的哪些痛点？ |
+| 11 | 一个完整的数据请求要处理哪些状态？为什么不用三个布尔？官方为什么不推荐在 Effect 里取数、替代方案各解决什么？`fetch` 拿到 404 会进 catch 吗？TanStack Query 的 `status` 和 `fetchStatus` 有什么区别？ |
 | 12 | useRef 和 useState 的区别？修改 ref.current 为什么不触发重渲染？useRef 有哪些典型用途？ |
 | 13 | children 是什么？什么是 render props？React 如何实现 Vue 作用域插槽的效果？ |
 | 14 | 自定义 Hook 和普通函数有什么区别？Hooks 为什么不能写在条件/循环里（Hooks 规则的原理）？手写一个防抖 Hook（定时器 id 为什么不能用普通变量存？卸载时为什么要 clearTimeout？防抖和节流的区别）。 |

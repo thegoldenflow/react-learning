@@ -9,7 +9,7 @@
 |---|---|---|---|---|
 | 0 | 审计（只读） | **完成。** 两轮审计均完成；用户 2026-09-17 答复「全部按建议执行」（AUDIT-ROUND2.md §6 D2-1～8，记录在 AUDIT.md §5.13）；两轮合并规则写在 AUDIT.md 附录 C | `docs/upgrade/AUDIT.md`（含 §5.13、§5.14、附录 C）、`docs/upgrade/REAUDIT-PROMPT.md`、`docs/upgrade/AUDIT-ROUND2.md` | 两轮审计与合并说明均已提交（d550e27、1efc217） |
 | 1 | 依赖与工具链调整 | **完成（2026-09-17）**：commit「阶段 1：依赖与工具链调整」（34cd734）+「阶段 1 补充：ESLint 9 → 10（D1-1）」 | package.json / package-lock.json、vitest.config.ts、eslint.config.js + eslint-suppressions.json、tsconfig.json、src/test/、4 处 react-router 导入、README 事实行 | 复核口径与全部记录见下文「阶段 1 记录」；版本决定见 AUDIT.md §5.0 的 5.14、5.15 |
-| 2 | 逐主题修改（先改 18 路由样板） | **进行中**（分支 `phase-2-topics`）：前置 commit（壳修复，2.0）、**18 路由样板**（2.1，风格已确认，AUDIT.md §5.0 的 5.16）、**2-A Vue 响应式措辞批量修正**（2.2，措辞见「统一措辞」）、**2-B 的 07 表单**（2.3）、**19 异步提交**（2.4）已完成。**下一步：2-B 的 11 API 请求状态**（其后 30 → 14 → 16 → 20 → 26），做法见 `docs/upgrade/CONTINUE-PROMPT.md` | 每题一个 commit | 样板已确认，其余题不再逐题停 |
+| 2 | 逐主题修改（先改 18 路由样板） | **进行中**（分支 `phase-2-topics`）：前置 commit（壳修复，2.0）、**18 路由样板**（2.1，风格已确认，AUDIT.md §5.0 的 5.16）、**2-A Vue 响应式措辞批量修正**（2.2，措辞见「统一措辞」）、**2-B 的 07 表单**（2.3）、**19 异步提交**（2.4）、**11 API 请求状态**（2.5）已完成。**下一步：2-B 的 30 TanStack Query**（其后 14 → 16 → 20 → 26，再做 2-C），做法见 `docs/upgrade/CONTINUE-PROMPT.md` | 每题一个 commit | 样板已确认，其余题不再逐题停 |
 | 3 | 补充新主题 | 未开始 | | 按阶段 0 确认的清单 |
 | 4 | 一致性检查 + CHANGELOG | 未开始 | `docs/upgrade/CHANGELOG.md` | |
 
@@ -259,6 +259,28 @@
 
 **验证**：`npm run check` 通过（lint 0 / typecheck 0 / 85 条测试 / build），全量测试连跑两次稳定；19 的 17 条测试无 act 警告、无 stderr。浏览器用临时 5174 服务器（完成后已停掉并还原 launch.json）：两侧四个区块渲染；手写版成功 / 网络失败 + 重试 / 字段错误 + 聚焦 + aria-describedby（React `_r_3_-error`、Vue `v-0-0-error`）；同一轮提交两次的有锁 / 无锁对比；Actions 版 pending、回填、备注被清空、排队串行；Vue 侧守卫拦下第二次；19 ↔ 18 / 07 来回切换；源码查看器 React 5 个 / Vue 3 个文件。捕获到的 console.error / console.warn 为 0。
 
+### 2.5 11 API 请求状态（2026-09-17）
+
+**蓝本与依据**：AUDIT-ROUND2.md §5 的 11 大纲 + §3.3（教学用 effect 手写为主线，生产默认 TanStack Query，loader 并排指向 18，`use(promise)` 只作【较新】引用指向 32）；问题表 = R2-11-1～11 + AUDIT.md §3 的 11 各行。
+
+**结构（React 4 个文件，Vue 4 个文件）**
+- `react/EffectRequestPanel.tsx`【主线】：判别联合的结果 + **派生的请求态**（结果带「参数指纹」`keyword|reloadFlag|failMode`，`pending = 指纹不等于当前指纹`）；cleanup 里 abort；`reloadFlag` 让「搜同一个词」也重新请求；切换关键词保留旧数据 + 「刷新中…」；失败用开关模拟（不再用 35% 随机失败）。
+- `react/ApproachesCard.tsx`：四种方案速查表（Effect 手写 / TanStack Query v5 / 路由 loader / `use(promise)`+Suspense）+ 官方对「在 Effect 里取数」的四条缺点与建议原文 + 只读骨架。
+- `react/Example.tsx`：十段文件头，开头就写明「手写是教学写法，生产用缓存层（30）或 loader（18）」。
+- Vue 侧：`WatchRequestPanel.vue`（`watch(参数指纹, …, { immediate: true })` + `onWatcherCleanup`【主流·3.5】，同一套建模与派生 pending）、`ApproachesCard.vue`（Vue 对应物：`@tanstack/vue-query`、导航前 / 后取数、实验性 `<Suspense>`）、`Example.vue` 精简头。
+- 测试：React 7 条、Vue 7 条（全仓库 11 个文件 99 条）。
+
+**问题表处理**：R2-11-1 官方四条缺点 + 替代方案 + 选型（速查卡 + 文件头二-7）；R2-11-2 `fetch` 不因 404 reject（③ MDN 逐字）+「本课模拟接口直接 throw」标为演示简化；R2-11-3 删掉「半吊子抽象」，改成官方建议「至少抽成自定义 Hook（14 题）」；R2-11-4 TanStack 的 status × fetchStatus、默认重试 3 次指数退避、gcTime 5 分钟、loader + useLoaderData + useNavigation 骨架；R2-11-5 `use(promise)` 的两条 caveat 原文 + Suspense 只对支持 Suspense 的数据源生效；R2-11-6 保留旧数据 + 「刷新中」（对应 placeholderData: keepPreviousData）；R2-11-7 v4 → v5 改名清单进「八、旧写法」，手写版术语改成 pending / success / error；R2-11-8 Vue 侧 useFetch / 导航取数 / `<Suspense>` 全部补齐；R2-11-9 交叉引用改指 27（竞态）、10（StrictMode）、19（提交类禁用）、24（批处理）、29（判别联合）、30 / 18 / 32；R2-11-10 见下；R2-11-11 「两边一模一样」改为「状态建模可以逐字相同，更新方式不同」。
+
+**待核实项结论**：
+- **M-6 / P-11-2（官方 Fetching data 示例与 `set-state-in-effect`）：已核实。** 把官方示例原样写成探针文件后跑 `npx eslint`：`setBio(null)` 命中 `react-hooks/set-state-in-effect`（error：「Calling setState synchronously within an effect can trigger cascading renders」）。结论：官方示例重在讲 ignore，不代表这一行必须这么写。本题因此改成**派生请求态**，Effect 体里不再有同步 setState，`eslint-suppressions.json` 里 11 题的那条已 prune（现在只剩 10 / 12 / 14 / 21 / 23 / 24 / 27 共 12 条）。10 / 24 / 27 题改写时可沿用这个做法或按各题情况保留反例。
+- P-11-4（「空」是不是第四态）：按大纲口径定稿 —— 请求态三值，空态是 success 的派生展示；标题与文案都不再写「四态 / 五态」。
+- P-11-1 / P-11-3 / P-11-5：未核（TanStack 细节默认值留给 30 题按 query-core 的 d.ts 核；采用情况数据阶段 4 再抓；Vue `<Suspense>` 与 vue-router 数据加载器组合留给 32 / 18 题）。
+
+**本次新发现**：把「结果带参数指纹、请求态派生」当主线写法，一次解决三件事：Effect 体里不用同步 setState（避开 lint 规则、少一轮渲染）、过期响应写进来也不会被当成当前结果（等价于官方的 ignore 标记）、切换参数时旧数据能留在屏幕上（等价于 keepPreviousData）。10 / 22 / 27 题改写时可以沿用。
+
+**验证**：`npm run check` 通过（lint 0 / typecheck 0 / 99 条测试 / build）；11 的 14 条测试无 act 警告、无 stderr。浏览器用临时 5174 服务器（完成后已停掉并还原 launch.json）：两侧初始 8 行；React 切换关键词时「刷新中…」出现且旧 8 行仍在，完成后 1 行、指纹 `张|1|false`；失败开关 → role="alert" + 重试按钮 → 关掉后恢复；Vue 侧同样（指纹 `王|1|false`）。捕获到的 console.error / console.warn 为 0。
+
 ## 统一措辞（各题改写时照用）
 
 ### Vue 响应式（2-A 定稿，2026-09-17）
@@ -297,16 +319,17 @@
 | 题号 | 主题 | 状态 | 改动摘要 | 遗留问题 |
 |---|---|---|---|---|
 | 18 | 路由（React Router） | **完成（样板已确认）** | Data 模式主线（loader / action / middleware 守卫 / errorElement / lazy / useBlocker / 面包屑）+ 声明式 RequireAuth 三态并排；十段文件头；React 18 条 + Vue 7 条结论测试；Vue 守卫改为返回值写法；safeRedirect 共享实现；源码查看器支持多文件（5.10）。详见 2.1 | 32 / 34 / 35 题新增后回填交叉引用 |
+| 11 | API 请求状态 | **完成** | Effect 手写主线（判别联合 + 派生 pending + 取消 + 重试 + 保留旧数据）+ 四种方案速查；lint 抑制已清（M-6 / P-11-2 了结）；React 7 条 + Vue 7 条测试。详见 2.5 | 32 题新增后回填交叉引用；P-11-1 / P-11-3 / P-11-5 留给 30 / 18 / 32 与阶段 4 |
 | 19 | 异步提交与防重复 | **完成** | 手写 submitting 主线（防重复三道关 + 错误分层 + a11y）+ React 19 Actions 可运行并排；共享 mockApi 加 `ApiFieldError`；React 10 条 + Vue 7 条测试；了结 P-19-1/3/4、M-3 与「12.」的待核实。详见 2.4 | 31 / 35 题新增后回填交叉引用；P-19-2（回车与 disabled）无法核实，已从课件去掉 |
 | 07 | 表单与受控组件 | **完成** | 受控、非受控两条主线（各一个可运行表单）+ TextField（useId、ref 作为 prop、aria）+ onChange / v-model 触发时机实验；十段文件头；React 19 条 + Vue 13 条结论测试；FormEvent → SubmitEvent；更正审计「Vue 无 useId」。详见 2.3 | 31 / 32 / 34 / 35 题新增后回填交叉引用；「SubmitEvent.submitter 是否随 19.3 发布」待核实 |
-| 其余 01–30 | — | 未开始 | — | 10 / 11 / 12 / 14 / 21 / 23 / 24 / 27 有 lint 抑制待清（1.4） |
+| 其余 01–30 | — | 未开始 | — | 10 / 12 / 14 / 21 / 23 / 24 / 27 有 lint 抑制待清（共 12 条，1.4；11 题那条已在 2.5 清掉） |
 
 ## 遗留 / 待核实
 
 - 已决定：AUDIT.md §5.0（5.1–5.12 + 5.13 第二轮 + 5.14 阶段 1 复核 + 5.15 D1-1 升级 ESLint 10）。当前没有待决事项。
 - 第二轮审计已完成（2026-09-17）：`docs/upgrade/AUDIT-ROUND2.md`（§1 逐题目标大纲 vs 现状、§2 缺失汇总、§3 主线判定、§4 与第一轮差异、§5 每题十段重写大纲、§6 待决 D2-1～8、附录待核实）。统计：35 题 371 条（严重 54 / 概念 228 / 生产 32 / 小问题 57）；待核实 182 条 + 主会话 M-1～M-10。
 - 合并规则（已按 §6 答复执行，写在 AUDIT.md 附录 C）：阶段 2 每题以 AUDIT-ROUND2.md §5 的十段大纲为蓝本；逐题问题表 = 本轮 §2 缺失清单 + 第一轮 §3 讲错清单，其中 AUDIT-ROUND2.md §4 第 4 条列出的约 20 条「第一轮有依据、本轮标已讲对」的条目以第一轮为准；§4 第 5 条的可关闭项（P-25-1、P-22-1）关闭；§3 主线判定与 §6 决定覆盖第一轮 §4.2 里与之冲突的处置建议（18 主线、14 uSES 主线、26 latest ref 标签、Vue 3.5 特性标【主流】）。
-- 待核实：AUDIT-ROUND2.md 附录（各题 P-NN-k 共 182 条 + M-1～M-10）。阶段 1 已了结：M-1（recommended 实跑清单，见 1.4）、M-4（@testing-library/vue 8.1.0 与 vue 3.5.42 / vitest 4.1.11 实测可用）、M-5（react-error-boundary 已安装）、M-10（采用情况复核：本次复核发布日期、engines 与 deprecated 状态，未重抓周下载）。仍待核实：M-6、M-7、M-8。M-2 已在 07 题了结（成立，见 2.3）；M-3 已在 19 题了结（成立，见 2.4，20 / 31 题可直接引用）。
+- 待核实：AUDIT-ROUND2.md 附录（各题 P-NN-k 共 182 条 + M-1～M-10）。阶段 1 已了结：M-1（recommended 实跑清单，见 1.4）、M-4（@testing-library/vue 8.1.0 与 vue 3.5.42 / vitest 4.1.11 实测可用）、M-5（react-error-boundary 已安装）、M-10（采用情况复核：本次复核发布日期、engines 与 deprecated 状态，未重抓周下载）。仍待核实：M-7、M-8。M-2 已在 07 题了结（成立，见 2.3）；M-3 已在 19 题了结（成立，见 2.4，20 / 31 题可直接引用）；M-6 已在 11 题了结（官方示例确实命中 `set-state-in-effect`，见 2.5）。
 - 阶段 1 新增待核实：vue-router 从哪个 5.x 版本开始对 `next()` 发 R0025 警告。
 - 阶段 1 遗留：README 叙述性章节留阶段 4；@testing-library/vue 内嵌 DTL 9，Vue 测试里的 `screen` 来自 DTL 9（34 题讲 Vue 测试时注明）；冒烟测试在 34 题落地后并入或删除；已装的 6 个不满 30 天的包满 30 天后也不主动升级，除非有需要。
 - 第二轮工作方式记录：大纲阶段 5 批（按文档域分组、禁读课件）→ 对照阶段 10 批（按代码体量 ≤ 125 KB 分组）→ 主线回填 1 批 → 与第一轮对比 3 批；全部 2 并发，共 19 个只读子代理，约 4.5 小时；产物先写 scratchpad 的 parts 再由脚本合并并做机械校验（`file:line` 存在、原文片段命中、`grep0` 复跑为 0、枚举 / 编号合法、无残留标记）；脚本与 parts 不入库。

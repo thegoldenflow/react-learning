@@ -89,7 +89,7 @@ export const PHASES: TopicPhase[] = [
       {
         slug: '11-api-request-state',
         title: 'API 请求状态',
-        summary: 'loading / success / error / empty / retry 的完整处理，两边共用同一个模拟 API。',
+        summary: 'Effect 手写请求：判别联合建模、派生 pending、取消与竞态、重试、保留旧数据；另附四种取数方案速查。',
       },
     ],
   },

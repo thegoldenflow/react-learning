@@ -4,11 +4,6 @@
       "count": 1
     }
   },
-  "src/topics/11-api-request-state/react/Example.tsx": {
-    "react-hooks/set-state-in-effect": {
-      "count": 1
-    }
-  },
   "src/topics/12-dom-ref/react/Example.tsx": {
     "react-hooks/refs": {
       "count": 3
