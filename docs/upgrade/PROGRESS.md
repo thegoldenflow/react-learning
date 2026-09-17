@@ -9,7 +9,7 @@
 |---|---|---|---|---|
 | 0 | 审计（只读） | **完成。** 两轮审计均完成；用户 2026-09-17 答复「全部按建议执行」（AUDIT-ROUND2.md §6 D2-1～8，记录在 AUDIT.md §5.13）；两轮合并规则写在 AUDIT.md 附录 C | `docs/upgrade/AUDIT.md`（含 §5.13、§5.14、附录 C）、`docs/upgrade/REAUDIT-PROMPT.md`、`docs/upgrade/AUDIT-ROUND2.md` | 两轮审计与合并说明均已提交（d550e27、1efc217） |
 | 1 | 依赖与工具链调整 | **完成（2026-09-17）**：commit「阶段 1：依赖与工具链调整」（34cd734）+「阶段 1 补充：ESLint 9 → 10（D1-1）」 | package.json / package-lock.json、vitest.config.ts、eslint.config.js + eslint-suppressions.json、tsconfig.json、src/test/、4 处 react-router 导入、README 事实行 | 复核口径与全部记录见下文「阶段 1 记录」；版本决定见 AUDIT.md §5.0 的 5.14、5.15 |
-| 2 | 逐主题修改（先改 18 路由样板） | **进行中**（分支 `phase-2-topics`）：前置 commit（壳修复，2.0）与 **18 路由样板**（2.1）已完成。**现在停下，等用户确认样板的风格和深度**（待确认项见 2.1 末尾），确认后再处理其余题 | 每题一个 commit | 样板完成后停止等确认 |
+| 2 | 逐主题修改（先改 18 路由样板） | **进行中**（分支 `phase-2-topics`）：前置 commit（壳修复，2.0）与 **18 路由样板**（2.1）已完成，**样板风格已确认**（AUDIT.md §5.0 的 5.16）。**下一步：按 `docs/upgrade/CONTINUE-PROMPT.md` 在新会话继续**，先做 2-A（Vue 响应式措辞批量修正），再按 2-B → 2-C 逐题改 | 每题一个 commit | 样板已确认，其余题不再逐题停 |
 | 3 | 补充新主题 | 未开始 | | 按阶段 0 确认的清单 |
 | 4 | 一致性检查 + CHANGELOG | 未开始 | `docs/upgrade/CHANGELOG.md` | |
 
@@ -179,7 +179,7 @@
 
 **验证**：`npm run check` 通过（lint 0 / typecheck 0 / 36 条测试 / build）；18 题测试无 act 警告、无 stderr。浏览器用临时 5174 服务器验证（完成后已停掉并还原 launch.json）：两种守卫的日志、Form 登录回跳、恶意回跳被拦、实例复用与 key、query 合并、404、useBlocker、登出、声明式三态与模拟刷新、Vue 侧守卫 / 复用 / 返回 / query / onBeforeRouteLeave、源码查看器切换文件。捕获到的 console.error / console.warn 为 0（R0025 已消失）。
 
-**需要用户确认的风格与深度（样板定稿后套用到其余题）**：
+**样板风格与深度（2026-09-17 用户答复「按你推荐的来」，6 项全部确认，见 AUDIT.md §5.0 的 5.16；其余题照此执行）**：
 1. 文件头只在 `react/Example.tsx` 写完整十段；`vue/Example.vue` 写题目信息 + Vue 侧要点，并指向 React 文件（避免两份长文头各改各的）。
 2. 一题拆成多个文件（主线 / 并排 / 模拟服务 / 测试），靠源码查看器切换阅读；这样做而不是塞进一个大文件。
 3. 演示深度：主线把规格与大纲点名的 Data 模式能力（loader、action、Form、useNavigation、errorElement、lazy、middleware、useBlocker、handle / useMatches）都做成可运行代码；并排版只演示与主线不同的部分（守卫）。
@@ -191,7 +191,7 @@
 
 | 题号 | 主题 | 状态 | 改动摘要 | 遗留问题 |
 |---|---|---|---|---|
-| 18 | 路由（React Router） | **样板完成，等用户确认风格和深度** | Data 模式主线（loader / action / middleware 守卫 / errorElement / lazy / useBlocker / 面包屑）+ 声明式 RequireAuth 三态并排；十段文件头；React 18 条 + Vue 7 条结论测试；Vue 守卫改为返回值写法；safeRedirect 共享实现；源码查看器支持多文件（5.10）。详见 2.1 | 等用户确认 2.1 末尾的 6 项；32 / 34 / 35 题新增后回填交叉引用 |
+| 18 | 路由（React Router） | **完成（样板已确认）** | Data 模式主线（loader / action / middleware 守卫 / errorElement / lazy / useBlocker / 面包屑）+ 声明式 RequireAuth 三态并排；十段文件头；React 18 条 + Vue 7 条结论测试；Vue 守卫改为返回值写法；safeRedirect 共享实现；源码查看器支持多文件（5.10）。详见 2.1 | 32 / 34 / 35 题新增后回填交叉引用 |
 | 其余 01–30 | — | 未开始 | — | 10 / 11 / 12 / 14 / 21 / 23 / 24 / 27 有 lint 抑制待清（1.4） |
 
 ## 遗留 / 待核实
