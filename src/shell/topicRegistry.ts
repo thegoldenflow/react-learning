@@ -69,7 +69,7 @@ export const PHASES: TopicPhase[] = [
       {
         slug: '07-forms',
         title: '表单与受控组件',
-        summary: 'value + onChange 的受控模式、非受控写法（defaultValue / FormData），以及两者的取舍。',
+        summary: '受控（value + onChange）与非受控（defaultValue + FormData）两条主线、useId 与无障碍关联、onChange 的触发时机，对照 v-model / defineModel。',
       },
       {
         slug: '08-parent-child-communication',

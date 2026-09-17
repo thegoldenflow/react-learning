@@ -9,7 +9,7 @@
 |---|---|---|---|---|
 | 0 | 审计（只读） | **完成。** 两轮审计均完成；用户 2026-09-17 答复「全部按建议执行」（AUDIT-ROUND2.md §6 D2-1～8，记录在 AUDIT.md §5.13）；两轮合并规则写在 AUDIT.md 附录 C | `docs/upgrade/AUDIT.md`（含 §5.13、§5.14、附录 C）、`docs/upgrade/REAUDIT-PROMPT.md`、`docs/upgrade/AUDIT-ROUND2.md` | 两轮审计与合并说明均已提交（d550e27、1efc217） |
 | 1 | 依赖与工具链调整 | **完成（2026-09-17）**：commit「阶段 1：依赖与工具链调整」（34cd734）+「阶段 1 补充：ESLint 9 → 10（D1-1）」 | package.json / package-lock.json、vitest.config.ts、eslint.config.js + eslint-suppressions.json、tsconfig.json、src/test/、4 处 react-router 导入、README 事实行 | 复核口径与全部记录见下文「阶段 1 记录」；版本决定见 AUDIT.md §5.0 的 5.14、5.15 |
-| 2 | 逐主题修改（先改 18 路由样板） | **进行中**（分支 `phase-2-topics`）：前置 commit（壳修复，2.0）、**18 路由样板**（2.1，风格已确认，AUDIT.md §5.0 的 5.16）、**2-A Vue 响应式措辞批量修正**（2.2，措辞见「统一措辞」）已完成。**下一步：2-B 主线题，从 07 表单开始**（顺序 07 → 19 → 11 → 30 → 14 → 16 → 20 → 26），做法见 `docs/upgrade/CONTINUE-PROMPT.md` | 每题一个 commit | 样板已确认，其余题不再逐题停 |
+| 2 | 逐主题修改（先改 18 路由样板） | **进行中**（分支 `phase-2-topics`）：前置 commit（壳修复，2.0）、**18 路由样板**（2.1，风格已确认，AUDIT.md §5.0 的 5.16）、**2-A Vue 响应式措辞批量修正**（2.2，措辞见「统一措辞」）、**2-B 的 07 表单**（2.3）已完成。**下一步：2-B 的 19 异步提交与防重复**（其后 11 → 30 → 14 → 16 → 20 → 26），做法见 `docs/upgrade/CONTINUE-PROMPT.md` | 每题一个 commit | 样板已确认，其余题不再逐题停 |
 | 3 | 补充新主题 | 未开始 | | 按阶段 0 确认的清单 |
 | 4 | 一致性检查 + CHANGELOG | 未开始 | `docs/upgrade/CHANGELOG.md` | |
 
@@ -197,6 +197,37 @@
 - **按 5.16 没做**：「没有一一对应关系」残留和绝对化用词（这次改到的句子里有的也原样保留，逐题清零）；12 题 3 处「改 .value 视图立即更新」属于「时机」一行，12 题改写时处理。
 - **验证**：lint 0 / typecheck 0 / 36 条测试 / build 全部通过；改动文件无 CRLF。改动只涉及注释和几处模板文案（07、21、23 Vue 侧），vue-tsc 与构建都编译了模板，没有另做浏览器验证。
 
+### 2.3 07 表单与受控组件（2026-09-17，2-B 第一题）
+
+**蓝本与依据**：AUDIT-ROUND2.md §5 的 07 大纲 + §3.2 主线判定（受控、非受控两条都是主线，Actions 只作并排指向 31）；问题表 = R2-07-1～8 + AUDIT.md §3 的 07 各行（:300-:304，其中 :301「受控 / 非受控是 React 特有」按附录 C 备注保留第一轮的概念级定级）。
+
+**结构（React 6 个文件，Vue 6 个文件）**
+- `react/Example.tsx`：十段文件头 + 三个区块。
+- `react/ControlledProfileForm.tsx`【主线：受控】：对象 state + name 分发；文本、type="number"（存字符串）、`<select value>`、`<textarea value>`、radio（fieldset + legend）、checkbox；手机号只收数字（被拒的输入由 React 弹回）；错误信息是派生值；提交失败聚焦第一个出错字段；只读字段 `readOnly`；`SubmitEvent<HTMLFormElement>`。
+- `react/UncontrolledContactForm.tsx`【主线：非受控】：`defaultValue` / `defaultChecked`（input、select、textarea）；FormData 读字段并列出实际的键（没写 name 的字段、没勾选的 checkbox 不在里面）；ref 单点读；async 提交里演示 `e.currentTarget` 在 await 后为 null；保留原生 `required` 校验；「换默认姓名」+「换 key」实验；一段 `<form action>` 并排说明。
+- `react/TextField.tsx`：`useId` + `htmlFor` / `aria-describedby` / `aria-invalid`；React 19 `ref` 作为普通 prop。
+- `react/InputEventLab.tsx`：onChange 与原生 change、输入法合成事件的日志实验。
+- Vue 侧：`ControlledProfileForm.vue`（v-model，type="number" 自动 `.number`，`.trim`，手机号用 `:value` + `@input` 手动改回）、`UncontrolledContactForm.vue`（静态属性初始值、`<option selected>` 与 textarea 文字、FormData、`useTemplateRef`、`:key` 重置、「`:value` 持续绑定会冲掉输入」实验）、`TextField.vue`（`defineModel()` + `useId()` + `defineExpose`）、`InputEventLab.vue`（v-model 合成期间不更新、v-model 拒绝写入不改回 DOM 的反例与正确写法）、`Example.vue` 精简头。
+- 测试：React 19 条、Vue 13 条（全仓库 7 个文件 68 条）。
+
+**问题表处理**：R2-07-1 useId（含为什么不用计数器、派生多个 id、禁作 key / cache key、identifierPrefix、19.2 前缀 `_r_`，都有测试或原文）；R2-07-2 受控 ↔ 非受控切换报错（测试断言报错文本）；R2-07-3 onChange ≈ input 事件、IME、`.lazy/.number/.trim`、`defineModel()`；R2-07-4 number 字符串、`<option selected>`、textarea children；R2-07-5 a11y 引用（→35）；R2-07-6 `<form action>`【主流·19.0】并排 + 「只重置非受控字段」测试；R2-07-7 八段旧写法（forwardRef、18 无 Actions、useFormState 改名、FormEvent、Vue 3.4 前手写 v-model、3.5 前无 useId）；R2-07-8 模板残留与「根本不 setState」清零。第一轮 :300 同 R2-07-6；:301 改为「两种模式两边都有，差别在『受控强度』、更新范围、:value 与 defaultValue 语义」；:302 残留已清；:303 react-hook-form 表述改为官方 FAQ 原文；:304「控制台警告」改为「开发环境报错」。
+
+**待核实项结论**：
+- M-2（FormEvent @deprecated）：成立。@types/react 19.2.18 `index.d.ts:2086-2091`「FormEvent doesn't actually exist」，onSubmit 类型是 `SubmitEventHandler`（:2314）。07 已改用 `SubmitEvent`；19 / 28 等题改写时照做（见「统一措辞 · 事件类型」）。
+- P-07-1（IME 期间 onChange）：react-dom 19.2.8 `getTargetInstForInputOrChangeEvent`（:3587）只看值是否变化，不看合成状态，测试用 compositionstart 后的 input 事件证明会触发。真实输入法无法用浏览器工具自动输入，未做人工实测。
+- P-07-2（react-hook-form 表述）：按 react-hook-form.com/faqs 原文改写（非受控 + register 拿 ref；Controller / useController 把重新渲染限制在字段内；watch 订阅会重新渲染）。
+- **P-07-3（Vue 无 useId 对应物）：审计结论不成立。** Vue 3.5 起有 `useId()`（vuejs.org/api/composition-api-helpers；blog.vuejs.org/posts/vue-3-5；源码 `runtime-core.cjs.js:1704`），多应用用 `app.config.idPrefix`（`runtime-core.d.ts:1117-1119`）。AUDIT-ROUND2 的 07 Vue 对照表与 §5 大纲「useId 无对应物」作废，课件已按实测写，测试断言默认前缀 `v-` 与 idPrefix。
+- P-07-4（07 在 recommended 预设下的 lint）：0 命中（阶段 1 起已用 recommended，本题新代码同样 0）。
+
+**本次新发现（审计没写到）**：
+1. v-model 与 React 受控的「强度」不同：React 在事件处理结束后把 DOM 改回 props.value（`react-dom-client.development.js:3251-3272` → `restoreStateOfTarget`），被拒的输入会弹回；Vue 的 vModelText 只在 `beforeUpdate` 写回（`runtime-dom.cjs.js:1559-1576`），写入被拒时组件不重新渲染，非法字符留在输入框。两边都有测试，Chrome 实测一致。
+2. Vue 的 `:value`（不配 @input）在组件**任何一次**重新渲染时都会写回：`runtime-core.cjs.js:5897` 对 `value` 不比较新旧、每次都 patch，`runtime-dom.cjs.js:591-601` 发现和 DOM 当前值不同就覆盖。测试与 Chrome 实测：只改一个无关的计数器，用户输入也被冲掉。
+3. `<form action>` 成功后受控字段保持 state 的值、非受控字段回到默认值（测试实测，与官方原文一致）；reset 由 `startHostTransition` 里的 `requestFormReset$1`（:8940-8957）请求、提交阶段 `form.reset()`（:15152）执行。
+4. 被 React 弹回时光标跳到末尾（Chrome 实测）：在「1380」第 1 位后敲字母，值不变、`selectionStart` 变成 4；敲数字则停在插入处。
+5. v-model 的 input 监听先于模板上的 `@input` 注册（`runtime-core.cjs.js:5737-5743`：先调指令 created，再挂 props 上的事件），所以同一元素上 `@input` 里读到的是 v-model 处理过的值。
+
+**验证**：`npm run check` 通过（lint 0 / typecheck 0 / 68 条测试 / build）；07 的 32 条测试无 act 警告、无 stderr。浏览器用临时 5174 服务器（完成后已停掉并还原 launch.json）：两侧三个区块渲染；React 手机号逐字输入「138a0」得到 1380；onChange 逐字触发、失焦才出现原生 change；非受控提交两侧都显示 FormData 键与「await 之后 currentTarget：null」；React「换默认姓名」不影响改过的输入框、换 key 后恢复；两侧提交失败聚焦姓名、aria-invalid 与 aria-describedby 正确（React id `_r_3_-error`，Vue id `v-0-2`）；Vue `:value` 被无关的重新渲染冲掉、v-model 反例留下「12a」；07 ↔ 08 / 06 来回切换；源码查看器两侧各 6 个文件。发现并修复一处布局问题：「实时 state」的长 JSON 撑出卡片 24px，加了 `word-break: break-all`。捕获到的 console.error / console.warn 为 0。
+
 ## 统一措辞（各题改写时照用）
 
 ### Vue 响应式（2-A 定稿，2026-09-17）
@@ -219,11 +250,23 @@
 | 更细粒度的方向 | 逐个绑定直接更新 DOM、不经过组件级虚拟 DOM，是 Vapor Mode（Vue 3.6 RC）的方向【尝鲜】 | 把 Vapor 的行为说成 Vue 3.5 的现状 |
 | 本来就对、不用改 | 「props 是响应式 Proxy」（`shallowReactive`）；reactive 对象、从 reactive 数组里取出的对象由 Proxy 拦截；「依赖追踪是属性级的」（说的是追踪，不是更新） | — |
 
+### 表单与事件类型（07 定稿，2026-09-17）
+
+| 要说的事 | 这样写 | 不要这样写 |
+|---|---|---|
+| 提交事件类型 | `onSubmit` 的参数写 `SubmitEvent<HTMLFormElement>`（@types/react 19.2.18：`onSubmit?: SubmitEventHandler<T>`，index.d.ts:2314） | `FormEvent<HTMLFormElement>`（已 `@deprecated`，:2086-2091），只在「旧写法对照」里出现 |
+| 输入事件类型 | `ChangeEvent<HTMLInputElement>` 等 | — |
+| onChange 的语义 | 「行为像原生 input 事件，值每变一次触发一次，输入法拼写期间也触发」（官方「for example, it fires on every keystroke」只是举例） | 「和原生 change 一样」 |
+| 受控 / 非受控 | 两种都是【主流】基础写法；Vue 两种模式都有（v-model = 受控，静态属性 + FormData = 非受控），差别在受控强度、更新范围、`:value` 与 `defaultValue` 语义 | 「受控 / 非受控是 React 特有的概念」「Vue 里不存在」 |
+| 开发期报错 | 「开发环境报错（console.error）」 | 「控制台警告」（生产构建没有这些检查） |
+| useId | React 18.0 起；Vue 3.5 起也有 `useId()`（多应用 `app.config.idPrefix`） | 「Vue 没有 useId 对应物」 |
+
 ## 每题状态（阶段 2 起填写）
 
 | 题号 | 主题 | 状态 | 改动摘要 | 遗留问题 |
 |---|---|---|---|---|
 | 18 | 路由（React Router） | **完成（样板已确认）** | Data 模式主线（loader / action / middleware 守卫 / errorElement / lazy / useBlocker / 面包屑）+ 声明式 RequireAuth 三态并排；十段文件头；React 18 条 + Vue 7 条结论测试；Vue 守卫改为返回值写法；safeRedirect 共享实现；源码查看器支持多文件（5.10）。详见 2.1 | 32 / 34 / 35 题新增后回填交叉引用 |
+| 07 | 表单与受控组件 | **完成** | 受控、非受控两条主线（各一个可运行表单）+ TextField（useId、ref 作为 prop、aria）+ onChange / v-model 触发时机实验；十段文件头；React 19 条 + Vue 13 条结论测试；FormEvent → SubmitEvent；更正审计「Vue 无 useId」。详见 2.3 | 31 / 32 / 34 / 35 题新增后回填交叉引用；「SubmitEvent.submitter 是否随 19.3 发布」待核实 |
 | 其余 01–30 | — | 未开始 | — | 10 / 11 / 12 / 14 / 21 / 23 / 24 / 27 有 lint 抑制待清（1.4） |
 
 ## 遗留 / 待核实
@@ -231,7 +274,7 @@
 - 已决定：AUDIT.md §5.0（5.1–5.12 + 5.13 第二轮 + 5.14 阶段 1 复核 + 5.15 D1-1 升级 ESLint 10）。当前没有待决事项。
 - 第二轮审计已完成（2026-09-17）：`docs/upgrade/AUDIT-ROUND2.md`（§1 逐题目标大纲 vs 现状、§2 缺失汇总、§3 主线判定、§4 与第一轮差异、§5 每题十段重写大纲、§6 待决 D2-1～8、附录待核实）。统计：35 题 371 条（严重 54 / 概念 228 / 生产 32 / 小问题 57）；待核实 182 条 + 主会话 M-1～M-10。
 - 合并规则（已按 §6 答复执行，写在 AUDIT.md 附录 C）：阶段 2 每题以 AUDIT-ROUND2.md §5 的十段大纲为蓝本；逐题问题表 = 本轮 §2 缺失清单 + 第一轮 §3 讲错清单，其中 AUDIT-ROUND2.md §4 第 4 条列出的约 20 条「第一轮有依据、本轮标已讲对」的条目以第一轮为准；§4 第 5 条的可关闭项（P-25-1、P-22-1）关闭；§3 主线判定与 §6 决定覆盖第一轮 §4.2 里与之冲突的处置建议（18 主线、14 uSES 主线、26 latest ref 标签、Vue 3.5 特性标【主流】）。
-- 待核实：AUDIT-ROUND2.md 附录（各题 P-NN-k 共 182 条 + M-1～M-10）。阶段 1 已了结：M-1（recommended 实跑清单，见 1.4）、M-4（@testing-library/vue 8.1.0 与 vue 3.5.42 / vitest 4.1.11 实测可用）、M-5（react-error-boundary 已安装）、M-10（采用情况复核：本次复核发布日期、engines 与 deprecated 状态，未重抓周下载）。仍待核实：M-2（`FormEvent` 已 `@deprecated`）、M-3（`onErrorCaptured` 异步范围）、M-6、M-7、M-8。
+- 待核实：AUDIT-ROUND2.md 附录（各题 P-NN-k 共 182 条 + M-1～M-10）。阶段 1 已了结：M-1（recommended 实跑清单，见 1.4）、M-4（@testing-library/vue 8.1.0 与 vue 3.5.42 / vitest 4.1.11 实测可用）、M-5（react-error-boundary 已安装）、M-10（采用情况复核：本次复核发布日期、engines 与 deprecated 状态，未重抓周下载）。仍待核实：M-3（`onErrorCaptured` 异步范围）、M-6、M-7、M-8。M-2 已在 07 题了结（成立，见 2.3）。
 - 阶段 1 新增待核实：vue-router 从哪个 5.x 版本开始对 `next()` 发 R0025 警告。
 - 阶段 1 遗留：README 叙述性章节留阶段 4；@testing-library/vue 内嵌 DTL 9，Vue 测试里的 `screen` 来自 DTL 9（34 题讲 Vue 测试时注明）；冒烟测试在 34 题落地后并入或删除；已装的 6 个不满 30 天的包满 30 天后也不主动升级，除非有需要。
 - 第二轮工作方式记录：大纲阶段 5 批（按文档域分组、禁读课件）→ 对照阶段 10 批（按代码体量 ≤ 125 KB 分组）→ 主线回填 1 批 → 与第一轮对比 3 批；全部 2 并发，共 19 个只读子代理，约 4.5 小时；产物先写 scratchpad 的 parts 再由脚本合并并做机械校验（`file:line` 存在、原文片段命中、`grep0` 复跑为 0、枚举 / 编号合法、无残留标记）；脚本与 parts 不入库。

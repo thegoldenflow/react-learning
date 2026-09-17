@@ -96,7 +96,7 @@ src/
 
 | 编号 | 目录名 | 标题 | 学习重点 |
 | --- | --- | --- | --- |
-| 07 | `07-forms` | 表单与受控组件 | value + onChange 的受控模式、非受控写法（defaultValue / FormData）、表单提交与 preventDefault，对照 v-model |
+| 07 | `07-forms` | 表单与受控组件 | 受控（value + onChange）与非受控（defaultValue + FormData）两条主线、useId 与无障碍关联、onChange 的触发时机，对照 v-model / defineModel |
 | 08 | `08-parent-child-communication` | 父子组件通信 | callback props 让子组件通知父组件、单向数据流，对照 emit |
 | 09 | `09-derived-state` | 派生状态 | 渲染时直接计算派生值、什么时候才需要 useMemo，对照 computed |
 | 10 | `10-effects-and-lifecycle` | useEffect 与生命周期 | 依赖数组、cleanup、AbortController、定时器与过期闭包；useEffect 不是 onMounted 的替代品 |
@@ -203,7 +203,7 @@ src/
 
 ### 第二阶段：表单和数据流
 
-**07 表单与受控组件** —— `value` + `onChange` 受控模式、多字段表单用一个对象 state、提交时 `preventDefault`；以及**非受控写法**（`defaultValue` + `FormData`/ref 一次性取值）和两种模式的取舍。注意两个经典坑：`defaultValue` 只在首次挂载生效（与 Vue 的响应式直觉相反）、受控 `value` 不给 `onChange` 输入框会变只读。工业界现状：**复杂表单（多字段校验、动态字段）生产上普遍用 react-hook-form**（它内部正是非受控 + ref 注册，所以性能好）——先学会原生写法，才能理解它帮你省掉了什么。
+**07 表单与受控组件** —— 两条主线都是【主流】：**受控**（`value` / `checked` + `onChange`，一个对象 state + 按 `name` 分发，text / number / select / textarea / radio / checkbox 各自的写法，校验结果作为派生值，失败时聚焦第一个出错字段）和**非受控**（`defaultValue` / `defaultChecked` + 提交时 `new FormData(表单)` 或 ref 读一次，`key` 重置表单）。`TextField` 演示 `useId` + `htmlFor` / `aria-describedby` 和 React 19 的「`ref` 作为普通 prop」。区块三是 `onChange` 触发时机实验：它像原生 `input` 事件、输入法拼写期间也触发，Vue 的 `v-model` 拼写期间不更新。几条面试常考的边界都有测试：onChange 拒绝的输入会被 React 弹回（v-model 不会）、`value` 不配 `onChange` 与「uncontrolled → controlled」两类开发环境报错、`e.currentTarget` 在 await 后为 null、React 19 `<form action>` 成功后只重置非受控字段。工业界现状：复杂表单常用 react-hook-form，它默认走非受控 + ref 注册（本项目不安装）。
 
 **08 父子组件通信** —— 子组件通过父亲传下来的 callback prop 上报事件，状态提升（lifting state up）+ 单向数据流（状态归属的判断标准见 25 题）。React 没有 emit：「通信」就是函数调用，类型安全天然免费。
 
@@ -384,7 +384,7 @@ src/
 | 04 | React 的合成事件（SyntheticEvent）是什么？`onClick={fn()}` 和 `onClick={fn}` 有什么区别？ |
 | 05 | `condition && <Component/>` 有什么陷阱？条件渲染 null / false 时组件会发生什么？ |
 | 06 | key 的作用是什么？为什么不能用 index 作 key？key 变化时组件会发生什么（卸载旧 Fiber、state 与 effect 全部丢弃）？如何用 key 重置子组件状态？ |
-| 07 | 受控组件和非受控组件的区别是什么？各适用什么场景？`defaultValue` 和 `value` 有什么区别？为什么 react-hook-form 性能好？ |
+| 07 | 受控组件和非受控组件的区别是什么？各适用什么场景？`value` 不配 `onChange`、初始值给 `undefined` 分别会怎样？`onChange` 和原生 `change` 一样吗？`useId` 为什么不用自增计数器？为什么 react-hook-form 性能好？ |
 | 08 | React 的父子组件如何通信？什么是状态提升？为什么 React 强调单向数据流？（状态提升的完整讨论见 25 题） |
 | 09 | 什么是派生状态？为什么「用 useEffect 同步一份派生 state」是反模式？ |
 | 10 | useEffect 的依赖数组三种写法各是什么行为？cleanup 什么时候执行？如何解决请求竞态？为什么 StrictMode 下 effect 执行两次？`setInterval` 配空依赖数组为什么计数永远停在 1，有哪几种修法？ |
