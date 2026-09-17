@@ -8,7 +8,7 @@
 | 阶段 | 内容 | 状态 | 交付物 | 备注 |
 |---|---|---|---|---|
 | 0 | 审计（只读） | **完成。** 两轮审计均完成；用户 2026-09-17 答复「全部按建议执行」（AUDIT-ROUND2.md §6 D2-1～8，记录在 AUDIT.md §5.13）；两轮合并规则写在 AUDIT.md 附录 C | `docs/upgrade/AUDIT.md`（含 §5.13、§5.14、附录 C）、`docs/upgrade/REAUDIT-PROMPT.md`、`docs/upgrade/AUDIT-ROUND2.md` | 两轮审计与合并说明均已提交（d550e27、1efc217） |
-| 1 | 依赖与工具链调整 | **完成（2026-09-17）**，commit「阶段 1：依赖与工具链调整」。**有一项新待决 D1-1（ESLint 9 已 EOL），见下文 1.6** | package.json / package-lock.json、vitest.config.ts、eslint.config.js + eslint-suppressions.json、tsconfig.json、src/test/、4 处 react-router 导入、README 事实行 | 复核口径与全部记录见下文「阶段 1 记录」；版本决定见 AUDIT.md §5.0 的 5.14 |
+| 1 | 依赖与工具链调整 | **完成（2026-09-17）**：commit「阶段 1：依赖与工具链调整」（34cd734）+「阶段 1 补充：ESLint 9 → 10（D1-1）」 | package.json / package-lock.json、vitest.config.ts、eslint.config.js + eslint-suppressions.json、tsconfig.json、src/test/、4 处 react-router 导入、README 事实行 | 复核口径与全部记录见下文「阶段 1 记录」；版本决定见 AUDIT.md §5.0 的 5.14、5.15 |
 | 2 | 逐主题修改（先改 18 路由样板） | 未开始。顺序：先单独一个 commit 修站点壳的 3 条 lint 命中（1.4），再改 18 样板 | 每题一个 commit | 样板完成后停止等确认 |
 | 3 | 补充新主题 | 未开始 | | 按阶段 0 确认的清单 |
 | 4 | 一致性检查 + CHANGELOG | 未开始 | `docs/upgrade/CHANGELOG.md` | |
@@ -116,9 +116,23 @@
 2. **Vitest 里 react-router 会加载出两份实例。** 不配 `resolve.conditions` 时，测试里的 `react-router` 解析到 CJS 的 `dist/development/index.js`；而 `react-router/dom` 的 CJS 入口内部 `require('react-router')` 被 Node 22 按 `module-sync` 条件解析成 ESM 的 `index.mjs`（`node -e "require.resolve('react-router')"` 实测）。结果是两份 Context，用 `react-router/dom` 的 `RouterProvider` 渲染时 `useParams()` 读到 `{}`。已在 `vitest.config.ts` 设 `resolve.conditions = [...defaultClientConditions]`：两个入口都解析到 `.mjs`，vue / react / @vue/test-utils 的解析结果不变（已逐个追踪）。冒烟测试第 2 条守着这个修复。浏览器端（Vite 预构建）不受影响。影响：18 题的测试、34 题「测路由」的写法都依赖这项配置，34 题讲 Vitest 配置时要提一句。
 3. **vue-router 5.2.0 对 `next()` 发出弃用警告。** dev 控制台：`[VUE_ROUTER_R0025] The next() callback in navigation guards is deprecated.`，并给出 fix「Return the value instead」。源码：`node_modules/vue-router/dist/useApi-CROJJdhE.js:223-224`（诊断定义）、`devtools-Bpr7ZAVB.js:596`（调用点）。**需更正审计**：AUDIT.md 附录 A-D「next 仍被支持」与 §5.4「18 题 Vue 侧代码不用改」不再完整。18 题 Vue 守卫在阶段 2 改为返回值写法（规格 §6 第 12 条本来就要改）；课件讲 `next()` 时标【旧写法】，写明 v5 起 dev 会警告（从哪个 5.x 版本开始待核实）。
 4. **@testing-library/jest-dom 6.10.0 已被维护者弃用**，改装 6.9.1（见 1.1）。AUDIT.md §2.1 / §2.2 / §5.2 里的「6.10.0」作废。
-5. **新待决 D1-1：ESLint 9 已 EOL。** eslint.org/version-support 原文：「ESLint v9.x reached end-of-life on 2026-08-06 and is no longer maintained」；`npm view eslint@9.39.5 deprecated` 为「This version is no longer supported.」。审计 §2.2「保持 9.x」没发现这一点。v10：首发 2026-02-06（已满 6 个月）；typescript-eslint 8.x、eslint-plugin-vue 10、eslint-plugin-react-hooks 7.1.1 的 peer 都已包含 ^10；周下载份额 16.6%（2026-09-16 数据），未达 30%。阶段 1 没有擅自升级，需要用户决定：A 阶段 2 开始前单独一个 commit 升到 ESLint 10；B 保持 9，到阶段 4 再评估。
+5. **D1-1：ESLint 9 已 EOL（已决定 A 并执行，见 1.7）。** eslint.org/version-support 原文：「ESLint v9.x reached end-of-life on 2026-08-06 and is no longer maintained」；`npm view eslint@9.39.5 deprecated` 为「This version is no longer supported.」。审计 §2.2「保持 9.x」没发现这一点。v10：首发 2026-02-06（已满 6 个月）；typescript-eslint 8.x、eslint-plugin-vue 10、eslint-plugin-react-hooks 7.1.1 的 peer 都已包含 ^10；周下载份额 16.6%（2026-09-16 数据），未达 30%。阶段 1 没有擅自升级，需要用户决定：A 阶段 2 开始前单独一个 commit 升到 ESLint 10；B 保持 9，到阶段 4 再评估。
 6. **用户自己的 dev 服务器已过期。** 2026-09-16 20:19 从 `cmd /k "cd /d D:\code\AI\learning\react && npm run dev"` 启动（PID 6464，端口 5173）。依赖变更后它的预构建缓存过期，请求 `react-router` 预构建产物返回 504（Outdated Optimize Dep）。没有动它，需要用户重启。
 7. 本机 PATH 上的 npm 是全局安装的 10.5.2（`C:\Users\lenovo\AppData\Roaming\npm`），盖过了 Node 自带的 10.9.4。仅记录。
+
+### 1.7 D1-1：ESLint 9 → 10（2026-09-17，用户选 A，单独 commit）
+
+- **版本**：eslint **10.8.1**（2026-08-07，满 30 天的最新 10.x；之后的 10.9.0 / 10.9.1 / 10.10.0 修的都是具体规则的误报和 autofix 问题，不是 10.8.1 引入的回归）；`@eslint/js` **10.0.1**（2026-02-06，10.x 目前唯一的正式版，不再和 eslint 同步发版，peer `eslint ^10.0.0`）。eslint 10 的 engines 是 `^20.19.0 || ^22.13.0 || >=24`，本机 22.22.1 满足。typescript-eslint 8.68.0、eslint-plugin-vue 10.10.0、vue-eslint-parser 10.4.1、eslint-plugin-react-hooks 7.1.1 的 peer 都包含 ^10，`npm ls` 没有 invalid / unmet。这次安装没有触发 arborist 崩溃；lockfile 只变了 ESLint 自身的依赖，并移除了旧 eslintrc 那一套（@eslint/eslintrc 等 15 个包）。
+- **v10 破坏性变更逐条核对**（官方 eslint.org/docs/latest/use/migrate-to-10.0.0）：
+  - Node 版本：满足。
+  - `eslint:recommended` 新增 `no-unassigned-vars` / `no-useless-assignment` / `preserve-caught-error`：实跑 0 命中。
+  - 配置文件改为从被检查文件所在目录向上查找：只有根目录一份配置，不受影响。
+  - 旧 eslintrc 格式彻底移除：本项目早已是 flat config。
+  - JSX 引用纳入作用域分析：0 新增报告。
+  - `eslint-env` 注释改报错：仓库里没有。
+  - 插件侧 API 移除（context / SourceCode 旧方法）：四个插件都已声明支持 ^10，实跑正常。
+- **配置改动**：`tseslint.config()` 在已安装的 typescript-eslint 里已标 `@deprecated`（`node_modules/typescript-eslint/dist/config-helper.d.ts:67`：「ESLint core now provides this functionality via `defineConfig()`, which we now recommend instead」），所以改为 `defineConfig()` + `globalIgnores(['dist'])`（`node_modules` 默认就被忽略），各预设数组直接传入不再展开。规则内容和作用范围不变。
+- **结果**：`npm run lint` 0 error / 0 warning；16 条批量抑制原样生效（没有新增，也没有失效）；另外 3 条是题目里原有的 `eslint-disable-next-line react-hooks/exhaustive-deps`（10:127、26:264、26:430，教学反例）。用 stdin 探针确认各类规则确实在跑：react-hooks/rules-of-hooks、@typescript-eslint/no-explicit-any、新的 preserve-caught-error、vue/require-v-for-key 都能报出。`npm run check` 全部通过（test 6/6、build 约 5.6 秒）。
 
 ## 每题状态（阶段 2 起填写）
 
@@ -128,8 +142,7 @@
 
 ## 遗留 / 待核实
 
-- 已决定：AUDIT.md §5.0（5.1–5.12 + 5.13 第二轮 + 5.14 阶段 1 复核）。
-- **待决 D1-1**：ESLint 9 已 EOL，是否在阶段 2 前升级到 10（见 1.6 第 5 条）。
+- 已决定：AUDIT.md §5.0（5.1–5.12 + 5.13 第二轮 + 5.14 阶段 1 复核 + 5.15 D1-1 升级 ESLint 10）。当前没有待决事项。
 - 第二轮审计已完成（2026-09-17）：`docs/upgrade/AUDIT-ROUND2.md`（§1 逐题目标大纲 vs 现状、§2 缺失汇总、§3 主线判定、§4 与第一轮差异、§5 每题十段重写大纲、§6 待决 D2-1～8、附录待核实）。统计：35 题 371 条（严重 54 / 概念 228 / 生产 32 / 小问题 57）；待核实 182 条 + 主会话 M-1～M-10。
 - 合并规则（已按 §6 答复执行，写在 AUDIT.md 附录 C）：阶段 2 每题以 AUDIT-ROUND2.md §5 的十段大纲为蓝本；逐题问题表 = 本轮 §2 缺失清单 + 第一轮 §3 讲错清单，其中 AUDIT-ROUND2.md §4 第 4 条列出的约 20 条「第一轮有依据、本轮标已讲对」的条目以第一轮为准；§4 第 5 条的可关闭项（P-25-1、P-22-1）关闭；§3 主线判定与 §6 决定覆盖第一轮 §4.2 里与之冲突的处置建议（18 主线、14 uSES 主线、26 latest ref 标签、Vue 3.5 特性标【主流】）。
 - 待核实：AUDIT-ROUND2.md 附录（各题 P-NN-k 共 182 条 + M-1～M-10）。阶段 1 已了结：M-1（recommended 实跑清单，见 1.4）、M-4（@testing-library/vue 8.1.0 与 vue 3.5.42 / vitest 4.1.11 实测可用）、M-5（react-error-boundary 已安装）、M-10（采用情况复核：本次复核发布日期、engines 与 deprecated 状态，未重抓周下载）。仍待核实：M-2（`FormEvent` 已 `@deprecated`）、M-3（`onErrorCaptured` 异步范围）、M-6、M-7、M-8。

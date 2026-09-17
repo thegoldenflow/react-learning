@@ -119,7 +119,7 @@
 | vite | 7.x 或 8.x | **保持 7.3.6，不为升级而升级**；v8 记为「已满足主流条件，可选升级」 | v8 首发 6 个月零 4 天、份额 43.6%、plugin-vue 6 / plugin-react 5.2 / vitest 4 都声明支持 ^8 → 按 §3.3 已够格。但项目现状正常，且 plugin-react 6（vite 8 专用）曾误处理 `.vue` 子模块（见 vite.config.ts 注释）；课件没有依赖 Vite 大版本的内容。若升级，用 plugin-react 5.2.0 + vite 8 |
 | typescript | 5.9.x 或 6.0.x | **保持 5.9.3** | typescript-eslint peer `<6.1.0` 排除 7.x；6.0 首发 5.8 个月、份额 17.1%，都未达标；v5 65.2% |
 | typescript-eslint | — | 保持 8.68.0（8.70.0 发布 9 天） | 满 30 天后可升到 8.69 / 8.70 |
-| eslint | — | **保持 9.x**（9.39.5）；v10 标【较新】。**阶段 1 更正（2026-09-17）：ESLint v9.x 已于 2026-08-06 EOL**（eslint.org/version-support；npm 上 9.39.5 标 deprecated），本条结论待重新决定（PROGRESS.md 待决 D1-1） | v9 57.5%；v10 首发 7 个月但份额 16.6% < 30%。typescript-eslint、eslint-plugin-vue、react-hooks 都已声明支持 ^10，将来升级无阻碍 |
+| eslint | — | **保持 9.x**（9.39.5）；v10 标【较新】。**阶段 1 更正（2026-09-17）：ESLint v9.x 已于 2026-08-06 EOL**（eslint.org/version-support；npm 上 9.39.5 标 deprecated）。按 D1-1 已升到 **10.8.1**（§5.0 的 5.15） | v9 57.5%；v10 首发 7 个月但份额 16.6% < 30%。typescript-eslint、eslint-plugin-vue、react-hooks 都已声明支持 ^10，将来升级无阻碍 |
 | eslint-plugin-react-hooks | 7.x | **同意 7.1.1** | v7 43.1% 第一；其 `recommended` 预设内容见附录 A（决定是否需要单独装 React Compiler 的 lint 规则） |
 | vue | 3.5.x | **同意 3.5.42**；3.6 标【尝鲜】 | 3.6 仍是 rc.8 |
 | vue-router | 4.x API，安装 5.x | **同意：安装 5.3.1，课件只用 4.x / 5.x 共有的 API；文件路由【较新】、`vue-router/experimental` 数据加载器【尝鲜】** | v5 首发 7.5 个月、份额 35.1%（≥ 30%）、peer vue ^3.5.34 已满足；v4 自 2025-12-11 后没有发版。前提：附录 A 核实 v5 对非文件路由项目无破坏性变更（含 `next()` 是否仍可用） |
@@ -991,6 +991,7 @@
 | **5.12（新增）** | **18 题主线改为 Data 模式**（`createBrowserRouter` / 演示用 `createMemoryRouter` + `RouterProvider` + loader + `errorElement` + `lazy` + middleware 守卫【较新】），声明式 + `RequireAuth` 作并排版本并标「存量项目与面试最常见」。**规格 §6 的第 1 条「主线」相应调整，其余 12 条修改点不变。** |
 | **5.13（第二轮，2026-09-17）** | 用户答复「全部按建议执行」：AUDIT-ROUND2.md §6 的 D2-1～D2-8 全部按建议执行（严重级保留外延解读；22 题保留 effect 手写 + 三种生产改写；阶段 1 安装 `react-error-boundary`；切 `recommended` 只记录、阶段 2 处理；规格 §6 路由样板 5 条随 Data 主线调整）。两轮合并说明见附录 C |
 | **5.14（阶段 1 复核，2026-09-17）** | 用户四项均按建议：① 新装 / 升级的包按 §3.3 取「满 30 天的最新补丁」，已装在用的不降级 → vue-router **5.2.0**（不是 5.3.1）、@testing-library/react 16.3.2、@testing-library/dom 10.4.1、user-event 14.6.5、react-error-boundary 6.1.3、vitest 4.1.11；② jsdom 30.x 要求 Node ^22.22.2，本机 22.22.1 → 改装 **jsdom 29.1.1**；③ 新增 **@vue/test-utils 2.4.11** 为直接 devDependency；④ 切 `recommended` 后站点壳的 3 条命中先记录，阶段 2 开头单独 commit 修。执行中另发现：@testing-library/jest-dom 6.10.0 已被维护者 deprecated → 按其说明改装 **6.9.1**；**ESLint 9 已于 2026-08-06 EOL**（新待决 D1-1，未擅自升级）；vue-router 5.2.0 对 `next()` 发 R0025 弃用警告。全部记录见 PROGRESS.md「阶段 1 记录」 |
+| **5.15（D1-1，2026-09-17）** | 用户选 **A**：阶段 2 开始前单独一个 commit 把 ESLint 9.39.5 升到 **10.8.1**（满 30 天的最新 10.x）+ `@eslint/js` 10.0.1（10.x 唯一正式版）；`eslint.config.js` 从已 `@deprecated` 的 `tseslint.config()` 改为 ESLint 核心的 `defineConfig()` / `globalIgnores()`。v10 破坏性变更逐条核对后，本仓库实跑 0 条新增命中，16 条批量抑制保持不变。记录见 PROGRESS.md 1.7 |
 
 **追加约束（用户 2026-09-16）**：第一轮审计偏重「查错」，对「缺什么」只做了一行覆盖检查，没有给缺失项定级、也没有质疑规格里的主线选择。阶段 1 之前先由另一个会话做第二轮「学习完整性」审计（prompt 见 `docs/upgrade/REAUDIT-PROMPT.md`），合并后再开工。
 

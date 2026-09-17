@@ -1,16 +1,20 @@
+import { defineConfig, globalIgnores } from 'eslint/config'
 import js from '@eslint/js'
 import globals from 'globals'
 import tseslint from 'typescript-eslint'
 import pluginVue from 'eslint-plugin-vue'
 import reactHooks from 'eslint-plugin-react-hooks'
 
-export default tseslint.config(
-  { ignores: ['dist', 'node_modules'] },
+// defineConfig / globalIgnores 由 ESLint 核心的 eslint/config 提供。
+// typescript-eslint 已把自家的 tseslint.config() 标为 @deprecated，推荐改用 defineConfig()。
+export default defineConfig(
+  // dist 是构建产物；node_modules 默认就会被忽略
+  globalIgnores(['dist']),
 
   js.configs.recommended,
-  ...tseslint.configs.recommended,
+  tseslint.configs.recommended,
   // 必须放在 tseslint 之后：它会把 *.vue 重新指派给 vue-eslint-parser（后写的配置生效）
-  ...pluginVue.configs['flat/recommended'],
+  pluginVue.configs['flat/recommended'],
   {
     files: ['**/*.vue'],
     languageOptions: {
