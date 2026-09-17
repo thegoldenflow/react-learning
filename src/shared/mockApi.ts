@@ -65,6 +65,20 @@ function createAbortError(): DOMException {
   return new DOMException('请求已取消', 'AbortError')
 }
 
+/**
+ * 服务端校验失败（相当于 HTTP 400 / 422 带字段信息）：前端应该把 message 显示在 field 对应的输入框旁边。
+ * 和网络错误不同，原样重试没有意义，要用户改了输入再提交（19 题的错误分层）。
+ */
+export class ApiFieldError extends Error {
+  readonly field: string
+
+  constructor(field: string, message: string) {
+    super(message)
+    this.name = 'ApiFieldError'
+    this.field = field
+  }
+}
+
 /** 判断一个异常是否是「请求被取消」——取消不是失败，UI 不应把它当错误展示 */
 export function isAbortError(err: unknown): boolean {
   return err instanceof DOMException && err.name === 'AbortError'
@@ -183,14 +197,17 @@ export interface SubmitOrderPayload {
   amount: number
 }
 
-/** 创建订单（19 题提交表单使用）。amount <= 0 时模拟服务端校验失败。 */
+/**
+ * 创建订单（19 题提交表单使用）。
+ * 客户名称为空、金额不是正数时模拟服务端校验失败，抛 ApiFieldError；failRate 命中时抛普通 Error（网络错误，可重试）。
+ */
 export async function submitOrder(
   payload: SubmitOrderPayload,
   options?: RequestOptions,
 ): Promise<Order> {
   await simulate(options)
-  if (!payload.customer.trim()) throw new Error('服务端校验失败：客户名称不能为空')
-  if (payload.amount <= 0) throw new Error('服务端校验失败：金额必须大于 0')
+  if (!payload.customer.trim()) throw new ApiFieldError('customer', '服务端校验失败：客户名称不能为空')
+  if (!(payload.amount > 0)) throw new ApiFieldError('amount', '服务端校验失败：金额必须大于 0')
   const seq = nextOrderSeq++
   const order = makeOrder(seq, payload.customer.trim(), payload.amount, 'pending', '2026-08-28')
   ORDERS.unshift(order)

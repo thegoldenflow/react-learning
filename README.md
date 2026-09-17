@@ -118,7 +118,7 @@ src/
 | 编号 | 目录名 | 标题 | 学习重点 |
 | --- | --- | --- | --- |
 | 18 | `18-routing` | 路由（React Router） | Data 模式主线（loader / action / middleware 守卫）与声明式 RequireAuth 并排；参数、query、嵌套路由、导航，对照 Vue Router |
-| 19 | `19-async-submit` | 异步提交与防重复 | submitting 状态、防重复点击、成功/失败提示的工业界标准写法 |
+| 19 | `19-async-submit` | 异步提交与防重复 | 手写 submitting（disabled + state 守卫 + useRef 锁）、错误分层与重试，并排 React 19 Actions（useActionState / useFormStatus） |
 | 20 | `20-error-handling` | 错误边界 | Error Boundary（唯一的 class 组件场景）能捕获什么、不能捕获什么，对照 errorCaptured |
 | 21 | `21-immutable-update` | 不可变数据更新 | 展开、map、filter、嵌套更新；引用变化对 React 为什么至关重要 |
 | 22 | `22-integrated-order-page` | 综合：订单管理页 | 搜索 + 筛选 + 分页 + 编辑 + 删除 + 各种请求状态，综合前面所有知识点 |
@@ -231,7 +231,7 @@ src/
 
 **18 路由（React Router）** —— 课件升级阶段 2 的样板题（2026-09-17 重写，文件头按十段模板）。主线是 Data 模式：`createMemoryRouter` / `createBrowserRouter` 配置数组 + `RouterProvider`，loader / action / `errorElement` / `handle` / 路由级 `lazy`，登录守卫两种写法并排——分组路由 loader 里 `throw redirect`【主流】（日志面板演示父子 loader 并行的坑）与 middleware【较新·7.9 起】（下游 loader 不执行）；`useNavigation`、`useBlocker`、`useMatches` 面包屑、`safeRedirect` 回跳校验。并排是声明式模式 + RequireAuth 三态（checking / authed / guest）。最重要的区别是拦截时机：渲染之前（Data 模式、Vue `beforeEach`）还是渲染之中（声明式 RequireAuth）；「路由表是组件树还是配置」只是声明式模式的表象。参数变化时组件实例复用、`setSearchParams` 整体替换、`navigate(-1)` 兜底、NavLink 默认 `active` 类都有测试（`react/Example.test.tsx`、`vue/Example.test.ts`）。Vue 侧用返回值写法的 `beforeEach` 与 memory history。
 
-**19 异步提交与防重复** —— submitting 状态锁按钮、成功/失败提示、错误恢复，工业界表单提交的标准样板。工业界现状：**React 19 的 useActionState / form actions 是官方新趋势**，把「提交中/结果/错误」收进一个 hook——先学会手写版本，才能看懂它抽象了什么。
+**19 异步提交与防重复** —— 主线是**手写 submitting**（`useState` 驱动界面 + `useRef` 锁 + `try / catch / finally`）：防重复三道关（按钮 `disabled` → 处理函数里的 state 守卫 → `useRef` 锁），结果用判别联合建模，错误分层（服务端字段错误显示在字段旁并聚焦、网络错误 `role="alert"` + 重试），成功清空、失败保留输入。页面上的「同一轮事件里提交两次」实验能看到：只有 state 守卫时两个请求都发出去了，加上 `useRef` 锁才拦住（渲染快照）。并排是 **React 19 Actions【主流·19.0 起】**：`<form action>` + `useActionState`（`isPending`、重复提交排队串行）+ `useFormStatus`（按钮必须放在 `<form>` 的子组件里），并演示了一个常见坑——action 返回错误 state 也算成功，非受控字段照样被重置，要把提交的值放回 state 用 `defaultValue` 回填。Vue 侧逐行对应，但 `ref` 同步生效，守卫本身就够；事件处理函数里的同步错误和 async 拒绝都会进 `onErrorCaptured`（React 的错误边界接不住事件处理函数里的错误）。完整的 Actions（`useOptimistic`、Server Functions）在 31 题。
 
 **20 错误边界** —— Error Boundary 是 React 里**唯一还必须用 class 组件**的场景；它能捕获渲染期错误，捕获不了事件处理器/异步代码里的错误。对照 Vue 的 `errorCaptured`。工业界现状：一般直接用 `react-error-boundary` 库而不是手写 class。
 
@@ -396,7 +396,7 @@ src/
 | 16 | Zustand / Redux / Context 如何选型？Zustand 的 selector 起什么作用？什么状态应该放全局、什么放局部？ |
 | 17 | useMemo 和 useCallback 分别缓存什么？什么时候该用、什么时候是负优化？React.memo 和它们如何配合？ |
 | 18 | React Router 三种模式怎么选？登录守卫用 loader 还是 middleware，各有什么坑？RequireAuth 为什么要三态？路由参数变化时 state 会不会重置？`setSearchParams` 为什么会丢参数？v6 → v7 → v8 的导入路径怎么变？ |
-| 19 | 如何防止表单重复提交？React 19 的 useActionState / useTransition 解决了什么问题？ |
+| 19 | 如何防止表单重复提交？只靠 `disabled` 为什么不够、为什么还要 `useRef` 锁？提交出错该 throw 给错误边界还是放进 state？React 19 的 `useActionState` / `useFormStatus` 解决了什么问题，重复提交会怎样？ |
 | 20 | Error Boundary 能捕获哪些错误、不能捕获哪些（事件/异步/自身）？为什么它必须是 class 组件？ |
 | 21 | 为什么 React 要求不可变更新？如何不可变地更新深层嵌套对象？Immer 的原理是什么？ |
 | 22 | （综合题）如何设计一个列表页的状态结构？搜索/筛选/分页状态如何组织？防抖放在哪一层？ |

@@ -145,7 +145,7 @@ export const PHASES: TopicPhase[] = [
       {
         slug: '19-async-submit',
         title: '异步提交与防重复',
-        summary: 'submitting 状态、防重复点击、成功/失败提示的工业界标准写法。',
+        summary: '手写 submitting（disabled + state 守卫 + useRef 锁）、错误分层与重试，并排 React 19 的 useActionState / useFormStatus。',
       },
       {
         slug: '20-error-handling',
