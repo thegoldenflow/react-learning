@@ -455,3 +455,20 @@ td {
 .home-phase-note {
   margin: -4px 0 10px;
 }
+
+/* 示例里的导航链接：React Router 的 NavLink 激活时默认带 class="active"（18 题），
+   Vue 侧的 RouterLink 对应 router-link-active（写在各自的 scoped 样式里） */
+.nav-links a.active {
+  font-weight: 700;
+}
+
+/* 源码查看器的文件切换按钮（壳应用） */
+.source-tabs {
+  padding: 8px 16px;
+  border-bottom: 1px solid #edf0f3;
+}
+
+.source-tabs button {
+  font-size: 12px;
+  padding: 2px 8px;
+}

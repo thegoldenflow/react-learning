@@ -3,7 +3,7 @@
  *
  * 为什么需要它：React Router 规定一棵组件树里只能有一个 <Router>
  * （报错 "You cannot render a <Router> inside another <Router>"）。
- * 壳应用本身用 BrowserRouter，而 18 题的示例内部要用 MemoryRouter，
+ * 壳应用本身用 BrowserRouter，而 18 题的示例内部要渲染 RouterProvider（并排演示里还有 MemoryRouter），
  * 因此该示例必须用 createRoot 挂进一棵全新的 React 树，摆脱外层的 Router 上下文。
  * 这和 VueMount 挂载 Vue 组件是同一个思路：宿主 div 归外层 React 管，
  * 它的子节点归内层这棵独立 React 树管。

@@ -15,7 +15,7 @@ export interface TopicEntry {
   /**
    * 该题的 React 示例需要挂进独立的 React 树。
    * 目前只有 18 题：React Router 不允许一棵树里嵌套两个 Router，
-   * 示例内部的 MemoryRouter 必须脱离壳应用的 BrowserRouter 上下文。
+   * 示例内部的 RouterProvider（以及并排演示里的 MemoryRouter）必须脱离壳应用的 BrowserRouter 上下文。
    */
   isolateReactRoot?: boolean
 }
@@ -134,7 +134,7 @@ export const PHASES: TopicPhase[] = [
       {
         slug: '18-routing',
         title: '路由（React Router）',
-        summary: '路由参数、query、嵌套路由、页面导航与登录态守卫，对照 Vue Router。',
+        summary: 'Data 模式主线（loader / action / middleware 守卫）与声明式 RequireAuth 并排；参数、query、嵌套路由、导航，对照 Vue Router。',
         isolateReactRoot: true,
         vuePlugins: async () => {
           // 懒加载 18 题的 vue-router 配置（memory history，避免与壳应用的地址栏路由冲突）
@@ -262,11 +262,12 @@ const reactModules = import.meta.glob<{ default: ComponentType }>(
   '../topics/*/react/Example.tsx',
 )
 const vueModules = import.meta.glob<{ default: VueComponent }>('../topics/*/vue/Example.vue')
-const reactSources = import.meta.glob<string>('../topics/*/react/Example.tsx', {
+// 源码查看器展示每题 react/、vue/ 目录下的全部文件（含测试），不只是两个 Example
+const reactSources = import.meta.glob<string>('../topics/*/react/**/*.{ts,tsx}', {
   query: '?raw',
   import: 'default',
 })
-const vueSources = import.meta.glob<string>('../topics/*/vue/Example.vue', {
+const vueSources = import.meta.glob<string>('../topics/*/vue/**/*.{ts,vue}', {
   query: '?raw',
   import: 'default',
 })
@@ -281,10 +282,34 @@ export function loadVueExample(slug: string): (() => Promise<{ default: VueCompo
   return vueModules[`../topics/${slug}/vue/Example.vue`] ?? null
 }
 
-export function loadReactSource(slug: string): (() => Promise<string>) | null {
-  return reactSources[`../topics/${slug}/react/Example.tsx`] ?? null
+export interface SourceFile {
+  /** 相对题目目录的路径，例如 react/Example.tsx */
+  path: string
+  load: () => Promise<string>
 }
 
-export function loadVueSource(slug: string): (() => Promise<string>) | null {
-  return vueSources[`../topics/${slug}/vue/Example.vue`] ?? null
+/** 某题某一侧的全部源码文件：入口 Example 排第一，其余按路径排序 */
+function listSources(
+  sources: Record<string, () => Promise<string>>,
+  slug: string,
+  side: 'react' | 'vue',
+  entry: string,
+): SourceFile[] {
+  const prefix = `../topics/${slug}/`
+  return Object.entries(sources)
+    .filter(([key]) => key.startsWith(`${prefix}${side}/`))
+    .map(([key, load]) => ({ path: key.slice(prefix.length), load }))
+    .sort((a, b) => {
+      if (a.path === entry) return -1
+      if (b.path === entry) return 1
+      return a.path.localeCompare(b.path)
+    })
+}
+
+export function listReactSources(slug: string): SourceFile[] {
+  return listSources(reactSources, slug, 'react', 'react/Example.tsx')
+}
+
+export function listVueSources(slug: string): SourceFile[] {
+  return listSources(vueSources, slug, 'vue', 'vue/Example.vue')
 }

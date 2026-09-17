@@ -1,32 +1,75 @@
 <script setup lang="ts">
 /**
- * 订单列表页（/orders）：演示 query 参数筛选（?status=paid）。
- * React 版对照：useSearchParams —— 读用 searchParams.get('status')，写用 setSearchParams，
- * 一个 hook 管读写；Vue 里读写分离在两个对象上：useRoute() 读当前路由信息，useRouter() 做跳转。
+ * 订单列表（/orders）：筛选条件和页码存在 URL 的 query 里。
+ *
+ * Vue 的主流取数方式【主流】：导航完成后在组件里请求，watch 跟着 query 变化重新请求，
+ * onWatcherCleanup（Vue 3.5 起）在下一次触发前取消上一个请求（27 题）。
+ * React Data 模式对照：路由的 loader 在导航提交前取数，组件用 useLoaderData 读；
+ * vue-router 5 的 vue-router/experimental 数据加载器【尝鲜】才是 Vue 这边的同类写法。
  */
-import { computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import type { OrderStatus } from '@/shared/types'
-import { ORDER_STATUS_TEXT } from '@/shared/types'
-import { ORDERS } from './ordersData'
+import { computed, onWatcherCleanup, ref, watch } from 'vue'
+import { useRoute, useRouter, type LocationQueryRaw } from 'vue-router'
+import { fetchOrders, isAbortError } from '@/shared/mockApi'
+import { ORDER_STATUS_TEXT, type Order, type OrderStatus } from '@/shared/types'
+
+const PAGE_SIZE = 5
 
 const route = useRoute()
 const router = useRouter()
 
-// route.query.status 类型是 string | null | (string | null)[]（vue-router 4 的 LocationQueryValue；同名参数可能重复出现），
-// URL 是用户可改的外部输入，必须自己收窄成合法值。
-// React 的 searchParams.get() 返回 string | null，同样要收窄。
-// 用 computed 跟踪 query 变化（setup 只跑一次，route 是响应式对象）；
-// React 版组件在 URL 变化时重新渲染，直接在函数体里算即可。
+// route.query 的值来自 URL，是外部输入，读出来要收窄成合法值（React 侧 searchParams.get() 同理）
 const status = computed<OrderStatus | 'all'>(() => {
   const raw = route.query.status
   return raw === 'pending' || raw === 'paid' || raw === 'cancelled' ? raw : 'all'
 })
+const page = computed(() => {
+  const n = Number(route.query.page)
+  return Number.isInteger(n) && n > 0 ? n : 1
+})
 
-// 派生数据用 computed（React 版：渲染时直接算的普通变量）
-const filtered = computed(() =>
-  status.value === 'all' ? ORDERS : ORDERS.filter((o) => o.status === status.value),
+const orders = ref<Order[]>([])
+const total = ref(0)
+const loading = ref(true)
+const pageCount = computed(() => Math.max(1, Math.ceil(total.value / PAGE_SIZE)))
+
+watch(
+  [status, page],
+  async ([nextStatus, nextPage]) => {
+    const controller = new AbortController()
+    onWatcherCleanup(() => controller.abort())
+    loading.value = true
+    try {
+      const result = await fetchOrders(
+        { status: nextStatus, page: nextPage, pageSize: PAGE_SIZE },
+        { signal: controller.signal },
+      )
+      orders.value = result.items
+      total.value = result.total
+      loading.value = false
+    } catch (err) {
+      // 被取消不是失败：新的请求已经在路上，保持 loading
+      if (!isAbortError(err)) {
+        loading.value = false
+        throw err
+      }
+    }
+  },
+  { immediate: true },
 )
+
+/**
+ * router.push({ query }) 会用你给的对象整体替换 query，写 { status } 会把 page 等其它参数丢掉，
+ * 所以先展开 route.query 再改。React 对照：setSearchParams 的函数形式。
+ * 默认 push（后退能回到上一个筛选条件）；高频变化（逐字输入的搜索词）用 router.replace。
+ */
+function updateQuery(patch: Record<string, string | undefined>) {
+  const query: LocationQueryRaw = { ...route.query }
+  for (const [key, value] of Object.entries(patch)) {
+    if (value === undefined) delete query[key]
+    else query[key] = value
+  }
+  void router.push({ query })
+}
 
 const FILTERS: Array<{ value: OrderStatus | 'all'; label: string }> = [
   { value: 'all', label: '全部' },
@@ -35,28 +78,32 @@ const FILTERS: Array<{ value: OrderStatus | 'all'; label: string }> = [
   { value: 'cancelled', label: ORDER_STATUS_TEXT.cancelled },
 ]
 
-// 改 query：router.push 一个 location 对象（Vue 惯用「对象描述目标」），向 history 压入新记录（可后退）。
-// React 版对照：setSearchParams({ status })，效果等价于点了 <Link to="/orders?status=paid">。
 function changeStatus(next: OrderStatus | 'all') {
-  router.push({ path: '/orders', query: next === 'all' ? {} : { status: next } })
+  // 换筛选条件就回到第 1 页
+  updateQuery({ status: next === 'all' ? undefined : next, page: undefined })
+}
+
+function goToPage(nextPage: number) {
+  updateQuery({ page: nextPage === 1 ? undefined : String(nextPage) })
 }
 </script>
 
 <template>
   <div class="stack">
-    <p class="muted">
-      点筛选按钮观察 query 参数变化（当前 status={{ status }}）；筛选状态存在 URL
-      里，刷新 / 分享 / 后退都不丢 —— 这是 query 优于组件 state 的场景
-    </p>
     <div class="row">
       <button
         v-for="f in FILTERS"
         :key="f.value"
+        type="button"
         :class="{ 'btn-primary': status === f.value }"
         @click="changeStatus(f.value)"
       >
         {{ f.label }}
       </button>
+      <span
+        v-if="loading"
+        class="muted"
+      >加载中……</span>
     </div>
     <table>
       <thead>
@@ -69,12 +116,10 @@ function changeStatus(next: OrderStatus | 'all') {
       </thead>
       <tbody>
         <tr
-          v-for="o in filtered"
+          v-for="o in orders"
           :key="o.id"
         >
           <td>
-            <!-- RouterLink 生成 <a> 但拦截点击、走客户端路由（不刷新页面）。
-                 React 对照：<Link to={`/orders/${o.id}`}> -->
             <RouterLink :to="`/orders/${o.id}`">
               {{ o.orderNo }}
             </RouterLink>
@@ -87,5 +132,22 @@ function changeStatus(next: OrderStatus | 'all') {
         </tr>
       </tbody>
     </table>
+    <div class="row">
+      <button
+        type="button"
+        :disabled="page <= 1"
+        @click="goToPage(page - 1)"
+      >
+        上一页
+      </button>
+      <span class="muted">第 {{ page }} / {{ pageCount }} 页，共 {{ total }} 条</span>
+      <button
+        type="button"
+        :disabled="page >= pageCount"
+        @click="goToPage(page + 1)"
+      >
+        下一页
+      </button>
+    </div>
   </div>
 </template>

@@ -9,7 +9,7 @@
 |---|---|---|---|---|
 | 0 | 审计（只读） | **完成。** 两轮审计均完成；用户 2026-09-17 答复「全部按建议执行」（AUDIT-ROUND2.md §6 D2-1～8，记录在 AUDIT.md §5.13）；两轮合并规则写在 AUDIT.md 附录 C | `docs/upgrade/AUDIT.md`（含 §5.13、§5.14、附录 C）、`docs/upgrade/REAUDIT-PROMPT.md`、`docs/upgrade/AUDIT-ROUND2.md` | 两轮审计与合并说明均已提交（d550e27、1efc217） |
 | 1 | 依赖与工具链调整 | **完成（2026-09-17）**：commit「阶段 1：依赖与工具链调整」（34cd734）+「阶段 1 补充：ESLint 9 → 10（D1-1）」 | package.json / package-lock.json、vitest.config.ts、eslint.config.js + eslint-suppressions.json、tsconfig.json、src/test/、4 处 react-router 导入、README 事实行 | 复核口径与全部记录见下文「阶段 1 记录」；版本决定见 AUDIT.md §5.0 的 5.14、5.15 |
-| 2 | 逐主题修改（先改 18 路由样板） | **进行中**（分支 `phase-2-topics`）。前置 commit「阶段 2 前置：修复站点壳的 lint 命中与独立根卸载告警」已完成（见「阶段 2 记录」2.0）；下一步 18 样板 | 每题一个 commit | 样板完成后停止等确认 |
+| 2 | 逐主题修改（先改 18 路由样板） | **进行中**（分支 `phase-2-topics`）：前置 commit（壳修复，2.0）与 **18 路由样板**（2.1）已完成。**现在停下，等用户确认样板的风格和深度**（待确认项见 2.1 末尾），确认后再处理其余题 | 每题一个 commit | 样板完成后停止等确认 |
 | 3 | 补充新主题 | 未开始 | | 按阶段 0 确认的清单 |
 | 4 | 一致性检查 + CHANGELOG | 未开始 | `docs/upgrade/CHANGELOG.md` | |
 
@@ -151,11 +151,48 @@
   - 18 题 Vue 侧的 vue-router 插件照常装上（点「设置」被 `beforeEach` 拦到登录页）；30 题两侧各 15 行数据。
   - 18 → 16 → 18 → 17 以及 18 → 19 → 18 快速切换，控制台 0 条 error。
 
+### 2.1 18 路由样板（2026-09-17，分支 `phase-2-topics`）
+
+**蓝本与依据**：AUDIT-ROUND2.md §5 的 18 题十段大纲（主线判定 §3.1），规格 §6 的 13 条修改点（其中 5 条按 D2-7 随 Data 主线调整），逐题问题表按附录 C 取两轮（R2-18-1～12 + AUDIT.md §3 的 18 题各行，含「以第一轮为准」的 18:517）。
+
+**结构（React 侧 8 个文件，Vue 侧 12 个文件）**
+- `react/Example.tsx`：十段文件头 + 「主线：Data 模式 / 并排：声明式模式」切换。主线 router 在模块顶层创建（官方「Data Routers should not be held in React state」）。
+- `react/dataRouter.tsx`【主线】：createMemoryRouter 配置数组，包含 loader / action / errorElement / handle / HydrateFallback / 路由级 lazy；守卫两种写法并排，「设置」用分组 loader 【主流】，「报表」用分组 middleware【较新·7.9 起】；根路由有一个日志 middleware，演示父 → 子执行顺序和「每次导航都执行」；`declare module 'react-router' { interface Future { v8_middleware: true } }` 只打开类型。
+- `react/dataPages.tsx`【主线页面】：useLoaderData、useNavigation 加载提示、useMatches 面包屑（读 loaderData）、`<Form>` + useActionData 登录、useOutletContext、useBlocker + useBeforeUnload、NavLink 默认 active、setSearchParams 函数式合并并重置 page、`location.key === 'default'` 返回兜底、NoteDraft 演示同位置复用（勾选框切换 `key={order.id}`）、404 errorElement、按钮权限的正确安全表述。
+- `react/ReportsPage.tsx`：由 lazy 按需加载，loader 用 `context.get(userContext)` 读 middleware 写入的用户。
+- `react/DeclarativeDemo.tsx`【并排】：MemoryRouter + Routes + RequireAuth 三态（checking / authed / guest）、「模拟刷新」、退出登录后立即弹回；讲清 `<Routes>` 子元素限制和 v5 PrivateRoute【旧写法】。
+- `react/demoAuth.ts`（异步模拟会话 + 安全边界说明）、`react/demoLog.ts`（导航日志面板）。
+- Vue 侧：`router.ts` 改成返回值写法的 async beforeEach，给 `RouteMeta` 加类型，settings 系列路由懒加载；`auth.ts` 改为三态 + 异步；`OrdersPage.vue` / `OrderDetailPage.vue` 改为组件内 watch 取数 + `onWatcherCleanup` 取消，并合并 query、给返回按钮加兜底、演示实例复用（新增 `NoteDraft.vue`）；`LoginPage.vue` 用 safeRedirect；`SettingsNotificationsPage.vue` 用 onBeforeRouteLeave + beforeunload；新增 `navigationHistory.ts`（返回兜底的依据）；删除 `ordersData.ts`（改用共享 mockApi）；`Example.vue` 文件头精简（见待确认项 1）。
+- 共享：`src/shared/safeRedirect.ts`（+ 5 条测试）、`mockApi.ts` 新增 `fetchOrder`、`styles.css` 新增 `.nav-links a.active` 与源码查看器样式。
+- 壳（AUDIT §5.0 的 5.10）：`topicRegistry.ts` 的源码 glob 扩到每题 `react/**/*.{ts,tsx}`、`vue/**/*.{ts,vue}`（含测试），`TopicPage.tsx` 的源码查看器改为可切换文件（入口 Example 排第一）；18 题 summary 同步；README 里 18 题相关的几处事实行、源码查看器说明同步更新。
+
+**规格 §6 十三条的落实**：#1 导入统一为 react-router + react-router/dom，createMemoryRouter 作主线，并讲清 v6 → v7 → v8 的演变；#2「最重要的区别」改成「渲染前拦截 vs 渲染中拦截」；#3 loader throw redirect【主流】作主线守卫，讲清父子并行，并补上本次发现的「最深一层 redirect 优先」，middleware【较新】并排，useBlocker 已实现；#4 Data 主线在 loader / middleware 里 await，声明式并排用 RequireAuth 三态，并修正了「loader 不会闪」的说法；#5 实例复用的结论改正，给出 key 与依赖数组两种解法，并有测试；#6 NavLink 默认 active + aria-current；#7 安全表述改正；#8 返回兜底；#9 setSearchParams 函数式合并、重置 page、push / replace 的取舍；#10 safeRedirect 已实现（在 action 与 loader 里使用）；#11 清理残留（全题 0 处「没有一一对应关系」），版本说明改为「主线 v7，写法兼容 v8；v6 已 EOL」；#12 Vue 守卫改成返回值写法，数据加载器标【尝鲜】；#13 ViewTransition 只作一句【尝鲜】介绍。
+
+**第一轮条目的处理**：18:517（ReactNode 返回类型从 @types/react 18.2.8 + TS 5.1 起，与 React 19 无关）已改正；:510 / :537 的交叉引用已处理（原文已重写，不再引用 17 题）；:526 守卫持续性改成「模式差异」；:527 meta ↔ handle / 分组路由；:528 相对路径改为「相对路由 vs 相对路径」；:534 页面计数的表述已删除；:536 RouteMeta 类型已扩展。
+
+**待核实项的结论**：P-18-1 recommended 预设下 18 题 0 命中；P-18-2 参数变化 state 保留，React、Vue 两侧都有测试；P-18-3 用一次性测试确认 RouterProvider 嵌进另一个 Router 会抛「inside another」，所以仍需 ReactIsolatedMount；P-18-4 middleware 父 → 子顺序、未登录时下游 loader 不执行、没有 loader 也执行，均有测试；P-18-5 函数式 lazy 从 6.9.0（2023-03-10）起，对象式 lazy 从 7.5.0 起（官方 CHANGELOG）；P-18-6 浏览器实测：Vue 的「订单」RouterLink 在详情页不激活；P-18-7 Vue 侧不再写死「vue-router 4」的类型措辞；P-18-8 query 顺序已由测试按实际序列化结果断言。附录 B 的 18 题 (1)「Vue router.back() 兜底判据」：`createWebHistory` 的 `history.state.back` 来自源码 buildState（`vue-router/dist/vue-router.js:91`），不是公开 API，memory history 下不可用，已在 `navigationHistory.ts` 注明。
+
+**本次新发现**：
+1. 父级守卫 loader 与子路由 loader 同时 redirect 时，React Router 采用最深一层的 redirect（`findRedirect` 从最后一个匹配往前找），守卫要到下一次导航才生效。已写进注释、文件头和测试。
+2. `useSearchParams` 函数形式不会像 setState 那样排队（官方原文已引用）。
+3. vue-router 的 memory history 不记录 back，「应用内有无上一页」只能自己跟踪。
+
+**验证**：`npm run check` 通过（lint 0 / typecheck 0 / 36 条测试 / build）；18 题测试无 act 警告、无 stderr。浏览器用临时 5174 服务器验证（完成后已停掉并还原 launch.json）：两种守卫的日志、Form 登录回跳、恶意回跳被拦、实例复用与 key、query 合并、404、useBlocker、登出、声明式三态与模拟刷新、Vue 侧守卫 / 复用 / 返回 / query / onBeforeRouteLeave、源码查看器切换文件。捕获到的 console.error / console.warn 为 0（R0025 已消失）。
+
+**需要用户确认的风格与深度（样板定稿后套用到其余题）**：
+1. 文件头只在 `react/Example.tsx` 写完整十段；`vue/Example.vue` 写题目信息 + Vue 侧要点，并指向 React 文件（避免两份长文头各改各的）。
+2. 一题拆成多个文件（主线 / 并排 / 模拟服务 / 测试），靠源码查看器切换阅读；这样做而不是塞进一个大文件。
+3. 演示深度：主线把规格与大纲点名的 Data 模式能力（loader、action、Form、useNavigation、errorElement、lazy、middleware、useBlocker、handle / useMatches）都做成可运行代码；并排版只演示与主线不同的部分（守卫）。
+4. 每条关键结论都配自动化测试（React 18 条、Vue 7 条），测试文件和示例放同目录。
+5. 引用未来新题时写「（32 题，待新增）」。
+6. 模拟服务可注入延迟（页面上 300–400ms 方便观察，测试里 0）。
+
 ## 每题状态（阶段 2 起填写）
 
 | 题号 | 主题 | 状态 | 改动摘要 | 遗留问题 |
 |---|---|---|---|---|
-| 01–30 | — | 未开始 | — | 10 / 11 / 12 / 14 / 21 / 23 / 24 / 27 有 lint 抑制待清（1.4）；18 的 Vue 守卫有 R0025 弃用警告（1.6 第 3 条） |
+| 18 | 路由（React Router） | **样板完成，等用户确认风格和深度** | Data 模式主线（loader / action / middleware 守卫 / errorElement / lazy / useBlocker / 面包屑）+ 声明式 RequireAuth 三态并排；十段文件头；React 18 条 + Vue 7 条结论测试；Vue 守卫改为返回值写法；safeRedirect 共享实现；源码查看器支持多文件（5.10）。详见 2.1 | 等用户确认 2.1 末尾的 6 项；32 / 34 / 35 题新增后回填交叉引用 |
+| 其余 01–30 | — | 未开始 | — | 10 / 11 / 12 / 14 / 21 / 23 / 24 / 27 有 lint 抑制待清（1.4） |
 
 ## 遗留 / 待核实
 

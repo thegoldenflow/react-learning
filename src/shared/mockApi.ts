@@ -1,6 +1,6 @@
 /**
  * 共享模拟 API —— Vue 示例和 React 示例使用同一份数据源，
- * 方便对比两个框架处理同一个请求的方式（10 / 11 / 19 / 22 / 27 / 30 题使用）。
+ * 方便对比两个框架处理同一个请求的方式（10 / 11 / 18 / 19 / 22 / 27 / 30 题使用）。
  *
  * 特性：
  * - 模拟网络延迟（默认 600ms）
@@ -145,6 +145,16 @@ export async function fetchOrders(
     items: list.slice(start, start + pageSize).map((o) => structuredClone(o)),
     total: list.length,
   }
+}
+
+/**
+ * 按 id 查询单个订单（18 题详情页使用）。
+ * 找不到时返回 null，由调用方决定怎么处理（例如 18 题的 loader 抛 404）。
+ */
+export async function fetchOrder(id: string, options?: RequestOptions): Promise<Order | null> {
+  await simulate(options)
+  const order = ORDERS.find((o) => o.id === id)
+  return order ? structuredClone(order) : null
 }
 
 /** 更新订单（22 题编辑、30 题 mutation 使用）。返回更新后的订单副本。 */

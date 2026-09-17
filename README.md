@@ -73,7 +73,7 @@ src/
 约定：
 
 - **根组件 `Example` 不接收任何 props**——壳应用直接 `<Example />` 渲染，每题都能独立运行。
-- **兄弟文件放在 Example 旁边**（18 题 `vue/router.ts`、30 题 `vue/queryPlugin.ts`、25 / 27 / 28 题拆出的子组件 SFC），但核心讲解全部写在两个 Example 文件里：**页面内的源码查看器只显示这两个文件**，其余文件要在编辑器里打开。
+- **兄弟文件放在 Example 旁边**（18 题 `vue/router.ts`、30 题 `vue/queryPlugin.ts`、25 / 27 / 28 题拆出的子组件 SFC），核心讲解写在两个 Example 文件里；页面内的源码查看器可以切换查看该题 `react/`、`vue/` 目录下的全部文件（含测试）。
 - **自动发现**：`topicRegistry.ts` 用 `import.meta.glob('../topics/*/react/Example.tsx')`（以及 `.vue` 和 `?raw` 源码）按目录名自动懒加载。新增一题 = 新建目录 + 在注册表加一条标题 / 摘要；文件还不存在时页面显示占位提示而不是崩溃。
 - **头注释约定**：每个 Example 文件开头固定四段「学习主题 / React 核心概念 / Vue 对应概念 / 最重要的区别」。React 在前是有意为之——本项目的视角是 React 第一。两侧头注释互相对应；概念没有一一对应时明确写「没有一一对应关系」。
 
@@ -117,7 +117,7 @@ src/
 
 | 编号 | 目录名 | 标题 | 学习重点 |
 | --- | --- | --- | --- |
-| 18 | `18-routing` | 路由（React Router） | 路由参数、query、嵌套路由、页面导航、登录态守卫，对照 Vue Router |
+| 18 | `18-routing` | 路由（React Router） | Data 模式主线（loader / action / middleware 守卫）与声明式 RequireAuth 并排；参数、query、嵌套路由、导航，对照 Vue Router |
 | 19 | `19-async-submit` | 异步提交与防重复 | submitting 状态、防重复点击、成功/失败提示的工业界标准写法 |
 | 20 | `20-error-handling` | 错误边界 | Error Boundary（唯一的 class 组件场景）能捕获什么、不能捕获什么，对照 errorCaptured |
 | 21 | `21-immutable-update` | 不可变数据更新 | 展开、map、filter、嵌套更新；引用变化对 React 为什么至关重要 |
@@ -229,7 +229,7 @@ src/
 
 ### 第四阶段：实际开发常见模式
 
-**18 路由（React Router）** —— `<Routes>/<Route>` 声明式路由、`useParams` / `useSearchParams` / `useNavigate`、嵌套路由与 `<Outlet>`，以及**登录态守卫**（`<RequireAuth>` 包装组件 + 登录后回跳）与按钮级权限。最重要的一条差异：Vue 的守卫是集中式配置外挂的钩子（`router.beforeEach`），**React 根本没有全局导航钩子**——守卫就是路由表里的一个普通组件，因为 React 的路由表本身就是组件树。本题 Vue 侧用 memory history 挂载以免与壳应用路由冲突。
+**18 路由（React Router）** —— 课件升级阶段 2 的样板题（2026-09-17 重写，文件头按十段模板）。主线是 Data 模式：`createMemoryRouter` / `createBrowserRouter` 配置数组 + `RouterProvider`，loader / action / `errorElement` / `handle` / 路由级 `lazy`，登录守卫两种写法并排——分组路由 loader 里 `throw redirect`【主流】（日志面板演示父子 loader 并行的坑）与 middleware【较新·7.9 起】（下游 loader 不执行）；`useNavigation`、`useBlocker`、`useMatches` 面包屑、`safeRedirect` 回跳校验。并排是声明式模式 + RequireAuth 三态（checking / authed / guest）。最重要的区别是拦截时机：渲染之前（Data 模式、Vue `beforeEach`）还是渲染之中（声明式 RequireAuth）；「路由表是组件树还是配置」只是声明式模式的表象。参数变化时组件实例复用、`setSearchParams` 整体替换、`navigate(-1)` 兜底、NavLink 默认 `active` 类都有测试（`react/Example.test.tsx`、`vue/Example.test.ts`）。Vue 侧用返回值写法的 `beforeEach` 与 memory history。
 
 **19 异步提交与防重复** —— submitting 状态锁按钮、成功/失败提示、错误恢复，工业界表单提交的标准样板。工业界现状：**React 19 的 useActionState / form actions 是官方新趋势**，把「提交中/结果/错误」收进一个 hook——先学会手写版本，才能看懂它抽象了什么。
 
@@ -395,7 +395,7 @@ src/
 | 15 | Context 解决什么问题？Context value 变化时哪些组件会重渲染，如何优化？ |
 | 16 | Zustand / Redux / Context 如何选型？Zustand 的 selector 起什么作用？什么状态应该放全局、什么放局部？ |
 | 17 | useMemo 和 useCallback 分别缓存什么？什么时候该用、什么时候是负优化？React.memo 和它们如何配合？ |
-| 18 | React Router 中如何获取路由参数和 query？嵌套路由和 `<Outlet>` 如何工作？如何编程式导航？React Router 没有 `beforeEach`，登录态拦截和登录后回跳怎么做？ |
+| 18 | React Router 三种模式怎么选？登录守卫用 loader 还是 middleware，各有什么坑？RequireAuth 为什么要三态？路由参数变化时 state 会不会重置？`setSearchParams` 为什么会丢参数？v6 → v7 → v8 的导入路径怎么变？ |
 | 19 | 如何防止表单重复提交？React 19 的 useActionState / useTransition 解决了什么问题？ |
 | 20 | Error Boundary 能捕获哪些错误、不能捕获哪些（事件/异步/自身）？为什么它必须是 class 组件？ |
 | 21 | 为什么 React 要求不可变更新？如何不可变地更新深层嵌套对象？Immer 的原理是什么？ |
@@ -414,7 +414,7 @@ src/
 **已完成**
 
 - 30 个知识点全部就位，每题都有 `react/Example.tsx` 与 `vue/Example.vue`，头注释四段齐全、两侧互相对应，可在壳应用里并排运行。
-- 壳应用：侧栏按编号分五阶段；首页展示推荐学习顺序；每题页面内可查看两个 Example 文件的源码；Vue 插件工厂（18 题 vue-router、30 题 VueQueryPlugin）。
+- 壳应用：侧栏按编号分五阶段；首页展示推荐学习顺序；每题页面内可查看该题目录下全部文件的源码；Vue 插件工厂（18 题 vue-router、30 题 VueQueryPlugin）。
 - 共享层：类型、模拟 API（支持 `signal` / `failRate` / `delayMs`）、25 / 29 题共用的商品目录。
 - lint / typecheck / build：见下节验证结果。
 
@@ -466,7 +466,7 @@ Vue 示例通过桥接组件 `src/bridge/VueMount.tsx` 挂进 React 组件树：
 - cleanup 时调用 `app.unmount()` 完整销毁，保证切换知识点时 Vue 侧的状态、定时器、插件都被干净回收；
 - 需要 Vue 插件的题目（如 18 题的 vue-router）通过 `topicRegistry.ts` 里该题的 `vuePlugins` 工厂函数**每次挂载新建插件实例**（router 实例不能跨两个 createApp 复用），并用 memory history 避免与壳应用的地址栏路由冲突；
 - 30 题的 Vue Query 同理：`vue/queryPlugin.ts` 导出 `createTopic30QueryPlugin()` 工厂，每次挂载新建 `QueryClient` 并 `app.use(VueQueryPlugin, { queryClient })`；`VueMount` 调用 `app.use(plugin)` 时不传 options，所以配置包在工厂返回的插件里，卸载由 VueQueryPlugin 自己在 `app.onUnmount` 完成；
-- 18 题的 **React 示例**同样被挂进一棵独立的 React 树（`src/bridge/ReactIsolatedMount.tsx`）：React Router 规定一棵组件树里只能有一个 `<Router>`，示例内部的 MemoryRouter 必须脱离壳应用 BrowserRouter 的上下文。
+- 18 题的 **React 示例**同样被挂进一棵独立的 React 树（`src/bridge/ReactIsolatedMount.tsx`）：React Router 规定一棵组件树里只能有一个 `<Router>`，示例内部的 RouterProvider（以及并排演示里的 MemoryRouter）必须脱离壳应用 BrowserRouter 的上下文。
 
 两侧示例共用 `src/shared/` 下的同一套类型与模拟 API，保证并排运行时行为一致——这个桥接是项目基础设施，本身不属于 30 个知识点。
 

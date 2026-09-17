@@ -1,585 +1,201 @@
 /**
- * 学习主题：路由 —— React Router 的参数、query、嵌套路由、导航与登录态守卫
+ * 主题：18. 路由（React Router）
+ * 适用版本：React 19.2 · react-router 7.x（写法兼容 8.x）· Vue 3.5 · vue-router 5.x（本课用到的 API 与 4.x 相同）
+ * 最后核对：2026-09-17
+ * 前置主题：05 条件渲染、09 派生状态、13 children 组合、16 全局状态、27 异步竞态与取消
+ * 成熟度：本课知识点按【主流】【较新】【尝鲜】【旧写法】逐一标注
+ * 本课文件：Example.tsx（讲解 + 模式切换）· dataRouter.tsx【主线：路由表 / loader / action / 守卫】·
+ *          dataPages.tsx【主线：页面】· ReportsPage.tsx（路由级 lazy）· DeclarativeDemo.tsx【并排：声明式】·
+ *          demoAuth.ts · demoLog.ts · Example.test.tsx（本课结论的自动化测试）
  *
- * React 核心概念：
- * - 路由即组件：Route 就是 JSX 组件，路由表直接写在渲染输出里，和普通组件树长在一起
- * - useParams 读路径参数（/orders/:id）、useSearchParams 读写 query（?status=paid）、
- *   useNavigate 命令式跳转（navigate(-1) 后退）
- * - 嵌套路由：父 Route 的 element 里放 <Outlet />，命中的子 Route 渲染到 Outlet 位置
- * - Link 声明式跳转；NavLink 是 Link 的增强版，把 isActive 交给回调用于高亮当前项
- * - 路由守卫（登录态拦截）= 一个普通包装组件：RequireAuth 里读登录态，未登录就
- *   return <Navigate to={`/login?redirect=…`} replace />，已登录就 return children；
- *   用 useLocation() 拿当前路径当回跳地址，登录页用 useSearchParams 把它读回来
- * - 按钮级权限 = 普通条件渲染：{can('order:delete') && <button>删除</button>}
+ * 一、30 秒面试速答
+ * - React Router 7 有三种模式：声明式（<BrowserRouter> + <Routes>）、Data（createBrowserRouter 配置数组 +
+ *   loader / action / pending 状态）、Framework（Data 模式 + Vite 插件）。本课主线是 Data 模式：
+ *   从 react-router 导入，RouterProvider 从 react-router/dom 导入，写法兼容 v8。
+ * - 登录守卫：Data 模式在无 path 的分组路由上用 loader 里 throw redirect【主流】，或用 middleware【较新·7.9 起】。
+ *   两者都在导航提交之前执行、可以 await 异步检查。loader 写法的坑是父子 loader 并行，被拦时子路由的请求可能已经发出；
+ *   middleware 在 loader 之前执行，没有这个问题。声明式模式只能在渲染时用 RequireAuth 包 element，刷新时要有 checking 态。
+ * - 「React 的路由表是组件树、Vue 的是配置」不是框架差异：<Routes> 内部把 <Route> 转成配置对象，Data 模式本身就是数组。
+ *   真正的区别是拦截时机：渲染之前（Data 模式、Vue 的 beforeEach），还是渲染之中（声明式的 RequireAuth）。
+ * - /orders/o1 → /orders/o2 命中同一条路由，组件实例被复用，state 保留；要重置就加 key={id}，或把 id 写进 effect 依赖。
+ * - setSearchParams 会整体替换查询串，要用函数形式在旧参数上改；navigate(-1) 用 location.key === 'default' 兜底；
+ *   回跳地址要做站内校验；前端守卫和隐藏按钮只影响体验，鉴权必须由后端完成。
  *
- * Vue 对应概念：
- * - 集中式路由表：createRouter({ routes: [...] }) 的配置对象，独立于组件树，还要 app.use() 安装
- * - useRoute().params / useRoute().query 读参数；useRouter().push() / back() 跳转
- * - 嵌套路由：children 配置 + 父组件模板里的 <RouterView />
- * - RouterLink 自动给激活链接加 router-link-active 类，用 CSS 命中即可
- * - 路由守卫 = 挂在 router 实例上的全局钩子 router.beforeEach((to, from, next) => …)，
- *   写在路由配置文件里，与组件树无关；按钮级权限常封装成自定义指令 v-permission
+ * 二、核心概念（React）
+ * 1. 三种模式【主流】（reactrouter.com/start/modes）：
+ *    - 声明式：「enables basic routing features like matching URLs to components, navigating around the app,
+ *      and providing active states」；
+ *    - Data：「By moving route configuration outside of React rendering, Data Mode adds data loading, actions,
+ *      pending states and more」，v6.4 起就有（当时叫 data router）；
+ *    - Framework：「wraps Data Mode with a Vite plugin」，再加上类型安全的路由模块、代码拆分、SSR 等，本课不展开。
+ * 2. Data 模式启动【主流】：createBrowserRouter(routes)（生产）或 createMemoryRouter(routes, { initialEntries })
+ *    （嵌入演示、测试），再渲染 <RouterProvider router={router} />。router 在组件树之外只创建一次
+ *    （官方：「Data Routers should not be held in React state」），见本文件底部。
+ * 3. 路由对象字段【主流】：path / index / children；Component（6.9 起）或 element；loader / action；
+ *    errorElement；handle；lazy（6.9 起）；HydrateFallback；middleware【较新·7.9 起】。
+ *    两种模式共有：嵌套 children + <Outlet />、index 路由、动态段 :id + useParams、通配 *。
+ * 4. loader【主流】：「the loaders are called before the route component is rendered」，组件里用 useLoaderData 读，
+ *    父路由的数据用 useRouteLoaderData(路由 id) 读。同一次导航里父子 loader 并行执行（「running loaders in parallel」）。
+ *    loader 收到的 request.signal 会在导航被打断时 abort，可以直接传给请求函数（27 题）。
+ * 5. 守卫（本课主线，代码在 dataRouter.tsx）：
+ *    - 写法一【主流】：无 path 分组路由的 loader 里 await 检查登录态，未登录 throw redirect('/login?redirectTo=…')。
+ *      坑有两个：父子 loader 并行，子路由请求可能已发出；子路由 loader 也 redirect 时，最深一层的 redirect 先生效；
+ *    - 写法二【较新·7.9 起】：分组路由上的 middleware。父路由的 middleware 先执行；在调用 next() 之前 throw redirect，
+ *      下游的 loader 就不会执行；客户端 middleware 每次导航都执行（「regardless of whether there are loaders to run」）。
+ *      Data 模式运行时不需要 future flag，只需一段 declare module 打开 context 的类型。
+ *    - 两种写法都在导航提交前完成：检查完之前页面不会渲染，被拦下的地址也不会进历史栈（Example.test.tsx 里有断言）。
+ * 6. 提交与 pending【主流】：action 处理 <Form method="post">，useActionData 读 action 的返回值；
+ *    「When the action completes, all loader data on the page is revalidated」；
+ *    useNavigation().state（idle / loading / submitting）做加载提示；不跳转页面的提交用 useFetcher（19 题、31 题待新增）。
+ * 7. 错误处理【主流】：errorElement + useRouteError；loader 里 throw data('…', { status: 404 })，
+ *    用 isRouteErrorResponse 判断；至少给根路由配一个 errorElement。
+ * 8. 其它 Data 模式工具：useBlocker + useBeforeUnload 离开确认【主流】；handle + useMatches 做面包屑【主流】
+ *    （读 loaderData，UIMatch.data 已弃用）；路由级 lazy【主流·6.9 起】，按字段拆开的对象式 lazy【较新·7.5 起】；
+ *    loader 返回未 await 的 Promise 配合 <Await> 流式渲染【主流】（32 题，待新增）。
+ *    这些 hook 只能在 Data 路由下使用，在 <MemoryRouter> / <BrowserRouter> 里调用会报「must be used within a data router」。
+ * 9. 两种模式通用【主流】：NavLink 激活时默认 class="active" + aria-current="page"（按 URL 前缀判断，end 要求精确匹配）；
+ *    useSearchParams 的 setter 整体替换查询串；useNavigate；<Navigate replace />；相对路径 to="profile" 按路由层级解析。
+ * 10. 并排：声明式模式 + RequireAuth 三态【主流】（DeclarativeDemo.tsx）。v6 存量项目和面试最常见，
+ *    官方也认可「已有自己的数据层（如 TanStack Query，30 题）」时使用。<Routes> 的子元素只能是 <Route> 或 Fragment，
+ *    所以守卫包在 element 上；它在渲染时拦截，刷新后登录态要异步确认，必须有 checking 态。
  *
- * 最重要的区别：
- * - 组织方式的思维差异：React Router 把「URL → UI」也当作渲染逻辑的一部分——
- *   路由表就是一段 JSX，可以放进任何组件、可以条件渲染、可以拆分组合；
- *   Vue Router 的路由表是集中式的配置数据（数组对象），与组件树分离，先配置后安装。
- *   React 这边没有「安装路由插件」这一步：Router 只是包在最外层的一个普通 Provider 组件。
- * - 守卫的思维差异（面试高频题「React 里怎么做路由守卫」）：
- *   Vue 的守卫是集中式配置外挂的钩子（router.beforeEach），
- *   React 的守卫就是路由表里的一个普通组件 —— 因为 React 的路由表本身就是组件树。
- *   React Router 根本没有「全局导航钩子」这种东西（没有一一对应关系），
- *   别去找 beforeEach 的等价物：要拦哪条路由，就把哪条路由的 element 用 <RequireAuth> 包一层。
+ * 三、Vue 对照
+ * - createRouter({ history, routes }) 的配置数组 ↔ createBrowserRouter(routes)；createMemoryHistory() ↔ createMemoryRouter；
+ *   app.use(router) ↔ <RouterProvider router>。两边都是「先配置，再挂到应用上」。
+ * - router.beforeEach((to, from) => 返回值)【主流】↔ loader 里 throw redirect / middleware：都在导航提交之前执行、都能 await。
+ *   返回 false 取消，返回路由地址重定向，返回 undefined / true 放行；第三个参数 next() 是【旧写法】，
+ *   vue-router 5 在开发环境会警告（VUE_ROUTER_R0025）。meta.requiresAuth 会被子路由继承 ↔ 无 path 分组路由包住一批子路由。
+ * - 组件内取数 watch(() => route.params.id, 取数, { immediate: true }) ↔ loader + useLoaderData；
+ *   vue-router 5 的 vue-router/experimental 数据加载器【尝鲜】才和 loader 一样在导航之前取数。
+ * - <RouterLink> 默认加 router-link-active / router-link-exact-active（按路由记录判断）↔ NavLink 默认 active + aria-current（按 URL 前缀）。
+ * - useRouter().push / replace / back ↔ useNavigate；两边都没有「应用内没有上一页」的内置兜底。
+ * - onBeforeRouteLeave(() => false) ↔ useBlocker；component: () => import('./X.vue') ↔ 路由级 lazy；
+ *   同一个 <RouterView> 复用组件实例，要 watch 参数或加 :key ↔ 同位置复用，要加 key={id}；
+ *   <KeepAlive> ↔ <Activity>【较新·19.2 起】（32 题，待新增）。
+ * - 相对路径：vue-router 按「URL 路径」解析 to="notifications"，React Router 按「路由层级」解析。
+ *
+ * 四、关键区别（每条写明适用范围）
+ * 1. 拦截时机（最重要）：Data 模式（v6.4 起）的 loader / middleware 与 Vue Router 4 / 5 的 beforeEach 都在导航提交前执行，
+ *    可以 await、被拦的地址不进历史栈；声明式模式的 RequireAuth 在渲染中拦截，只能按当前状态判断，
+ *    跳走时要 replace，刷新时要 checking 态。
+ * 2. 「全局导航钩子」：Data 模式有 middleware（7.9 起；Data 模式无需 flag，Framework 模式在 v7 需开 future.v8_middleware，v8 默认开启）；
+ *    声明式模式没有对应物。
+ * 3. 守卫什么时候生效：Data 模式的 loader / middleware 与 Vue 的 beforeEach 只在导航时（Data 模式还包括 action 之后的重新验证）执行，
+ *    登录态在别处变化不会自动把人送走；声明式的 RequireAuth 是渲染条件，登录态一变，下一次渲染就跳走。
+ * 4. 组件实例复用两边一致：同一条路由、同一位置的组件会被复用。React 用 key={id} 或写对依赖，Vue 用 watch 或 :key。
+ * 5. 激活样式两边都默认加类名：React Router 按 URL 前缀（end 精确匹配），Vue Router 按路由记录。
+ * 6. 更新 query 两边都是整体替换：setSearchParams(对象) 与 router.push({ query }) 都要自己合并旧参数。
+ * 7. 路由表形态：声明式模式的 JSX 路由表只是写法，v6 起内部同样转成配置对象；这不是 React 与 Vue 的差异。
+ *
+ * 五、常见追问与回答要点
+ * - 三种模式怎么选？需要数据加载、pending 状态、离开确认这些能力，用 Data 或 Framework；
+ *   已有数据层（TanStack Query）又不需要这些能力时，声明式也是官方认可的选择。
+ * - loader 里 throw redirect 有什么坑？父子 loader 并行，父级拦截时子级的请求可能已经发出；
+ *   子路由的 loader 也 redirect 时，React Router 用最深一层的 redirect，守卫要多跳一次才生效（都能在日志面板里看到）。
+ *   middleware 在 next() 之前拦截，下游 loader 不会执行。
+ * - RequireAuth 为什么要三态？刷新时登录态要异步恢复，只有两态会把已登录的用户先当成未登录，送去登录页。
+ * - 路由参数变化时 state 会保留吗？会，同位置复用；要重置就加 key，或把参数写进 effect 依赖。
+ * - setSearchParams 为什么把参数弄丢了？它整体替换查询串；用函数形式在旧参数上改；同一次事件里连续调用不会叠加；
+ *   换筛选条件时记得重置 page。
+ * - redirect 和 navigate 有什么区别？redirect 返回一个带 Location 头的 Response，在 loader / action 里用；
+ *   navigate 是组件里的命令式跳转函数。
+ * - v6 → v7 → v8 的导入变化？v6 从 react-router-dom 导入【旧写法】；v7 推荐从 react-router 导入（react-router-dom 7.x 只是转发）；
+ *   v8 删除了 react-router-dom，RouterProvider 这类 DOM 相关导出从 react-router/dom 取；v6 已被官方宣布 EOL。
+ *
+ * 六、易错点
+ * - 在组件函数体里直接调用 navigate()：这是渲染期副作用。用 <Navigate />，或放进事件处理函数 / effect。
+ * - 渲染中跳走却忘了加 replace：用户在登录页按后退，又被推回登录页，来回弹。
+ * - 回跳地址只拼 pathname，把用户原本带的 query 丢了。
+ * - 把 router 放进 useState，或在组件里调用 createBrowserRouter。
+ * - setSearchParams({ status }) 把 page 等其它参数一起清掉。
+ * - 读 useMatches() 的 data（已弃用），应读 loaderData。
+ * - 以为「React 没有组件实例复用的问题」：参数变化时组件不会重新挂载。
+ * - 以为隐藏按钮、前端守卫就等于权限控制。
+ *
+ * 七、生产环境注意（本课演示做了哪些简化）
+ * - 演示简化：用 createMemoryRouter 嵌进学习站点，生产环境用 createBrowserRouter。RouterProvider 内部同样渲染一个 <Router>，
+ *   一棵组件树里不能嵌套两个 Router，所以本示例挂在独立的 React 根上（src/bridge/ReactIsolatedMount.tsx）。
+ * - 演示简化：登录态是内存里的模拟服务（demoAuth.ts）。真实项目在 loader / middleware 里 await 会话接口，
+ *   前端的登录态放在全局 store（16 题）或 TanStack Query（30 题）里。
+ * - 回跳地址必须校验：@/shared/safeRedirect 只放行站内路径；redirect() 遇到跨域的绝对地址会在浏览器里整页跳过去。
+ * - 前端权限只影响体验，后端要对每个请求鉴权（35 题，待新增）。
+ * - 至少配一个根 errorElement；找不到资源时 throw data(…, { status: 404 })。
+ * - 表单页用 useBlocker + useBeforeUnload；提交用 <Form> / useFetcher 拿 pending 状态，不再手写 submitting（19 题）。
+ * - 页面多了以后用路由级 lazy 拆包。
+ *
+ * 八、旧写法对照【旧写法】（只用于读懂存量代码）
+ * - 导入：v6 写 import { … } from 'react-router-dom'；v7 起从 'react-router' 导入（react-router-dom 7.x 只是转发）；v8 删除了这个包。
+ * - v5 的 <Switch>、把自定义 <PrivateRoute> 组件直接放进路由表：v6 起 <Routes> 的子元素只能是 <Route>，会直接报错。
+ * - v6.4 之前只有声明式模式；v6.4–6.x 做流式渲染要用 defer() 包一层，v7 起 loader 直接返回 Promise。
+ * - Framework 模式在 v7 要开 future.v8_middleware 才能用 middleware。
+ * - useMatches() 的 match.data → match.loaderData（v7 弃用，v8 删除）。
+ * - Vue：beforeEach(to, from, next) 三参数写法 → 返回值写法（vue-router 4 起推荐，5 在开发环境警告）。
+ *
+ * 九、新动向【尝鲜】
+ * - React Router v8（2026-06-17）：要求 Node 22.22+、React 19.2.7+；删除 react-router-dom；middleware 默认开启，
+ *   不再需要 Future 类型开关；官方同时宣布 v6 与 Remix v2 EOL。从 v7 升级前先开启 v8_* 系列 future flag。
+ * - <Link viewTransition> / navigate(to, { viewTransition: true }) 使用浏览器的 View Transitions API；
+ *   React 19.3 的 <ViewTransition> 也可做切换动画（19.2.8 不导出，本课代码不依赖；32 题，待新增）。
+ * - vue-router 5：文件路由并入核心（vue-router/vite）【较新】；vue-router/experimental 数据加载器【尝鲜】。
+ *
+ * 十、动手练习
+ * 1. 把「设置」的守卫从 loader 改成 middleware（参考「报表」）。可断言：未登录导航到 /settings/profile 后
+ *    router.state.location.pathname === '/login'，而且日志里没有「个人资料 loader」这一行。
+ * 2. 去掉 NoteDraft 上的 key 开关，改成在 OrderDetailPage 里用 useEffect 按订单 id 清空草稿，
+ *    对比两种写法：effect 版多一次渲染，并且会被 react-hooks/set-state-in-effect 规则拦下。
+ *
+ * 参考（2026-09-17 核对）：
+ * - reactrouter.com/7.18.4：start/modes、start/data/installation、start/data/route-object、start/data/data-loading、
+ *   start/data/actions、how-to/middleware、how-to/error-boundary、how-to/navigation-blocking、
+ *   api/data-routers/createBrowserRouter、api/data-routers/RouterProvider、api/hooks/useSearchParams、
+ *   api/hooks/useNavigate、api/components/NavLink、api/utils/redirect
+ * - remix.run/blog/react-router-v8；react-router CHANGELOG（6.9.0 lazy、7.5.0 对象式 lazy、7.8.2 / 7.9.0 middleware）
+ * - react.dev/learn/preserving-and-resetting-state
+ * - router.vuejs.org：guide/advanced/navigation-guards、guide/advanced/data-fetching、guide/advanced/lazy-loading
  */
-// verbatimModuleSyntax：只做类型用的导入必须带 type 关键字（这里用内联的 `type X` 写法）
-import {
-  createContext,
-  useContext,
-  useMemo,
-  useState,
-  type CSSProperties,
-  type ReactNode,
-} from 'react'
-import {
-  Link,
-  MemoryRouter,
-  Navigate,
-  NavLink,
-  Outlet,
-  Route,
-  Routes,
-  useLocation,
-  useNavigate,
-  useParams,
-  useSearchParams,
-} from 'react-router'
-import type { Order, OrderStatus } from '@/shared/types'
-import { ORDER_STATUS_TEXT } from '@/shared/types'
+import { useState } from 'react'
+import { RouterProvider } from 'react-router/dom'
+import { createDemoAuth } from './demoAuth'
+import { createDemoLog } from './demoLog'
+import { createDataRouter } from './dataRouter'
+import { DeclarativeDemo } from './DeclarativeDemo'
 
 /**
- * 本页使用的常量订单数据（不发请求，聚焦路由本身）。
- * 注意：数据、五个页面组件、路由表全写在这一个 .tsx 文件里 —— React 组件就是函数，
- * 一个文件放多个组件很常见；Vue 惯例一文件一组件，对照版把页面拆成了多个 .vue 文件。
+ * 主线的 router 在模块顶层创建：它不属于任何组件的 state，切到「并排」再切回来，
+ * 当前地址和登录态都还在 —— 这正是「router 在 React 之外」的表现。
+ * 声明式并排版的 <MemoryRouter> 是组件，卸载后状态就没了。
  */
-const ORDERS: Order[] = [
-  {
-    id: 'o1',
-    orderNo: 'SO-2026-0001',
-    customer: '张伟',
-    amount: 557,
-    status: 'paid',
-    createdAt: '2026-08-01',
-    items: [
-      { id: 'o1-1', name: '机械键盘', price: 299, quantity: 1 },
-      { id: 'o1-2', name: '无线鼠标', price: 129, quantity: 2 },
-    ],
-  },
-  {
-    id: 'o2',
-    orderNo: 'SO-2026-0002',
-    customer: '王芳',
-    amount: 1299,
-    status: 'pending',
-    createdAt: '2026-08-03',
-    items: [{ id: 'o2-1', name: '人体工学椅', price: 1299, quantity: 1 }],
-  },
-  {
-    id: 'o3',
-    orderNo: 'SO-2026-0003',
-    customer: '李娜',
-    amount: 89,
-    status: 'cancelled',
-    createdAt: '2026-08-05',
-    items: [{ id: 'o3-1', name: '鼠标垫', price: 89, quantity: 1 }],
-  },
-  {
-    id: 'o4',
-    orderNo: 'SO-2026-0004',
-    customer: '刘强',
-    amount: 2458,
-    status: 'paid',
-    createdAt: '2026-08-08',
-    items: [
-      { id: 'o4-1', name: '4K 显示器', price: 2199, quantity: 1 },
-      { id: 'o4-2', name: 'HDMI 线', price: 259, quantity: 1 },
-    ],
-  },
-  {
-    id: 'o5',
-    orderNo: 'SO-2026-0005',
-    customer: '陈静',
-    amount: 668,
-    status: 'pending',
-    createdAt: '2026-08-10',
-    items: [{ id: 'o5-1', name: '降噪耳机', price: 668, quantity: 1 }],
-  },
-]
+const dataRouter = createDataRouter({ auth: createDemoAuth(), log: createDemoLog(), delayMs: 400 })
 
-/**
- * NavLink 的 style / className 都支持「函数形式」，参数里有 isActive ——
- * 高亮逻辑写在 JS 里，这是 React「一切都是 JavaScript」的典型体现。
- * Vue 的 RouterLink 则是自动加 router-link-active 类，高亮逻辑写在 CSS 里。
- */
-const navStyle = ({ isActive }: { isActive: boolean }): CSSProperties => ({
-  fontWeight: isActive ? 700 : 400,
-})
-
-/** 列表页的状态筛选项（query 参数 ?status=xxx 的合法取值） */
-const FILTERS: Array<{ value: OrderStatus | 'all'; label: string }> = [
-  { value: 'all', label: '全部' },
-  { value: 'pending', label: ORDER_STATUS_TEXT.pending },
-  { value: 'paid', label: ORDER_STATUS_TEXT.paid },
-  { value: 'cancelled', label: ORDER_STATUS_TEXT.cancelled },
-]
-
-/* ══════════ 以下是「路由守卫（登录态拦截）+ 按钮级权限」小节 ══════════ */
-
-/**
- * 【本题第二个核心考点】React 里怎么做路由守卫？
- *
- * 先把这句话记死：
- *   Vue 的守卫是集中式配置外挂的钩子（router.beforeEach），
- *   React 的守卫就是路由表里的一个普通组件 —— 因为 React 的路由表本身就是组件树。
- *
- * Vue 老手最容易犯的错：满世界翻文档找 React Router 的 beforeEach / beforeEnter。
- * 它不存在，也不会有（没有一一对应关系）。原因不是 React Router 偷懒，而是模型不同：
- * 在 React 里「导航」不是一个可被拦截的独立事件，而是一次普通的重新渲染 ——
- * URL 变了 → <Routes> 重新匹配 → 渲染命中的 element。
- * 既然拦截点落在渲染这条链路上，做法自然就是：给 element 外面套一层普通组件，
- * 这层组件先判断登录态，不通过就渲染一个 <Navigate />（声明式地「跳走」），而不是渲染页面。
- *
- * 面试话术（两种主流做法，答出第二条是加分项）：
- * 1) 包装组件 RequireAuth（本例）—— v6/v7 声明式路由的标准答案，中后台最常见的写法；
- * 2) 数据路由 createBrowserRouter（v6.4+/v7）在 loader 里判断，未登录就 throw redirect('/login')，
- *    好处是跳转发生在渲染之前、不会先闪一下受保护页面
- *    （与文件底部注释提到的是同一套数据路由 API，本课不展开）。
- */
-
-/** 当前用户拥有的权限码 —— 真实项目里由登录接口返回，这里写死，用于演示按钮级权限 */
-const PERMISSIONS = ['order:read', 'order:delete']
-
-interface AuthValue {
-  loggedIn: boolean
-  login: () => void
-  logout: () => void
-  /** 按钮级权限判断：未登录一律 false */
-  can: (code: string) => boolean
-}
-
-/**
- * 登录态本身只是 Example 顶层的一个 useState（见文件底部），这里用一个极简 Context 把它送下去
- * （15 题讲过的工业惯例：createContext + 自定义 Hook + 缺 Provider 就 throw）。
- * 为什么不用 props 一层层传？因为 RequireAuth 要能包住任意 element，
- * 它的签名必须干净到只剩 children —— 这正是 Context 的经典用途。
- * Vue 对照：provide/inject，或者干脆一个模块级 reactive（Vue 版就是这么写的，见 vue/auth.ts）。
- */
-const AuthContext = createContext<AuthValue | null>(null)
-
-function useAuth(): AuthValue {
-  const ctx = useContext(AuthContext)
-  if (!ctx) {
-    throw new Error('useAuth() 必须在 <AuthContext value={...}> 内部使用')
-  }
-  return ctx
-}
-
-/**
- * 守卫组件：未登录渲染 <Navigate /> 跳登录页，已登录原样渲染被包住的内容。
- * 整个「守卫」就这几行 —— 它是一个再普通不过的组件，没有任何框架级的注册/安装动作。
- *
- * 四个细节都能在面试里展开讲：
- * - children 的类型是 ReactNode（13 题）；「已登录就 return children」——
- *   React 19 的类型允许函数组件直接返回 ReactNode；@types/react 18 及更早要写成 <>{children}</>。
- * - useLocation() 拿到当前 location（pathname / search / hash），把来路拼进 ?redirect=，
- *   登录成功后才跳得回用户原本想去的页面。Vue 对照：守卫回调参数 to.fullPath（自带 query）；
- *   React 这边要自己拼 location.pathname + location.search 才与之等价（下面就是这么写的），
- *   只拼 pathname 会把用户原本带着的 ?status=paid 之类的 query 丢掉。
- * - replace 必须加：不加的话历史里会留下「未登录时的 /settings」，用户在登录页按后退会回到
- *   /settings，守卫又立刻把他推回 /login，来回弹跳、退不出去。Vue 对照：beforeEach 的改道发生在
- *   导航「落地」之前，被拦下的 /settings 压根没进过历史，那边不需要显式写 replace ——
- *   守卫时机不同（导航前 vs 渲染时）带来的又一处差异。
- * - 没有「忘了收尾」的中间态：Vue 的 beforeEach 必须调用 next()（或 return 一个值），
- *   忘了调导航就一直挂起，是那边的经典坑；守卫既然是普通组件，就不存在这个坑 ——
- *   它要么返回 <Navigate />，要么返回 children，函数总得返回点什么（没有一一对应关系）。
- */
-function RequireAuth({ children }: { children: ReactNode }) {
-  const { loggedIn } = useAuth()
-  const location = useLocation()
-
-  if (!loggedIn) {
-    // 注意这是「渲染出一个跳转组件」，不是调用跳转函数：
-    // 声明式跳转天然满足「渲染期不能有副作用」的约束
-    // （在组件函数体里直接调 navigate() 是错的，那属于渲染期副作用，只能放事件回调或 useEffect）。
-    return (
-      <Navigate
-        to={`/login?redirect=${encodeURIComponent(location.pathname + location.search)}`}
-        replace
-      />
-    )
-  }
-
-  return children
-}
-
-/** 登录页（/login）：模拟登录后，按 query 里的 redirect 跳回原来想去的页面 */
-function LoginPage() {
-  const { loggedIn, login } = useAuth()
-  // 回跳地址就是一条普通 query 参数，读法和列表页筛选的 ?status= 一模一样
-  const [searchParams] = useSearchParams()
-  const navigate = useNavigate()
-
-  const redirect = searchParams.get('redirect') ?? '/orders'
-
-  const handleLogin = () => {
-    login()
-    // replace: true —— 登录页不该留在历史里（理由同 RequireAuth 里那条）。
-    // Vue 对照：router.replace(redirect)。
-    // 安全提示（面试加分项）：redirect 来自 URL，是用户可控输入，
-    // 真实项目必须校验它是站内相对路径，否则就是典型的「开放重定向」漏洞。
-    navigate(redirect, { replace: true })
-  }
-
-  return (
-    <div className="card stack">
-      <h3>登录</h3>
-      <p className="muted">
-        你被 RequireAuth 拦到了这里。登录成功后会跳回：<code>{redirect}</code>
-      </p>
-      <div className="row">
-        <button className="btn-primary" onClick={handleLogin}>
-          模拟登录
-        </button>
-      </div>
-      {loggedIn && <p className="success-text">已登录，现在可以进「设置」了</p>}
-    </div>
-  )
-}
-
-/* ══════════════════ 守卫小节结束 ══════════════════ */
-
-/** 订单列表页（/orders）：演示 useSearchParams 读写 query 参数 */
-function OrderListPage() {
-  // useSearchParams 返回 [当前 URLSearchParams, 更新函数]，签名风格与 useState 一致。
-  // Vue 对照：读 query 用 useRoute().query，改 query 用 useRouter().push({ query })——读写分离在两个对象上。
-  const [searchParams, setSearchParams] = useSearchParams()
-
-  // searchParams.get() 返回 string | null，URL 是用户可改的外部输入，必须自己收窄成合法值。
-  // Vue 的 route.query.status 类型更宽（vue-router 4 里是 string | null | (string | null)[]），同样要收窄。
-  const raw = searchParams.get('status')
-  const status: OrderStatus | 'all' =
-    raw === 'pending' || raw === 'paid' || raw === 'cancelled' ? raw : 'all'
-
-  // 派生数据直接在渲染时算（09 题讲过），不需要额外 state
-  const filtered = status === 'all' ? ORDERS : ORDERS.filter((o) => o.status === status)
-
-  // setSearchParams 会向 history 压入一条新记录（可后退），等价于点了 <Link to="/orders?status=paid">。
-  // Vue 对照：router.push({ path: '/orders', query: { status } })——用对象描述目标地址。
-  const changeStatus = (next: OrderStatus | 'all') => {
-    if (next === 'all') {
-      setSearchParams({}) // 清掉 query，回到 /orders
-    } else {
-      setSearchParams({ status: next })
-    }
-  }
-
-  return (
-    <div className="stack">
-      <p className="muted">
-        点筛选按钮观察 query 参数变化（当前 status=
-        {status}）；筛选状态存在 URL 里，刷新 / 分享 / 后退都不丢 —— 这是 query 优于组件 state 的场景
-      </p>
-      <div className="row">
-        {FILTERS.map((f) => (
-          <button
-            key={f.value}
-            className={status === f.value ? 'btn-primary' : ''}
-            onClick={() => changeStatus(f.value)}
-          >
-            {f.label}
-          </button>
-        ))}
-      </div>
-      <table>
-        <thead>
-          <tr>
-            <th>订单号</th>
-            <th>客户</th>
-            <th>金额</th>
-            <th>状态</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filtered.map((o) => (
-            <tr key={o.id}>
-              <td>
-                {/* Link 生成 <a> 但拦截点击、走客户端路由（不刷新页面）；
-                    to 是字符串路径，路径参数直接拼进 URL。Vue 对照：<RouterLink :to="`/orders/${o.id}`"> */}
-                <Link to={`/orders/${o.id}`}>{o.orderNo}</Link>
-              </td>
-              <td>{o.customer}</td>
-              <td>¥{o.amount}</td>
-              <td>
-                <span className={`badge badge-${o.status}`}>{ORDER_STATUS_TEXT[o.status]}</span>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  )
-}
-
-/** 订单详情页（/orders/:id）：演示 useParams 读路径参数 + useNavigate 后退 */
-function OrderDetailPage() {
-  // useParams 返回 Record<string, string | undefined>：路径里的 :id 段就是 params.id。
-  // 每次渲染都读到最新参数 —— /orders/o1 → /orders/o2 时组件重新渲染即可拿到新 id。
-  // Vue 对照：useRoute().params.id；但 Vue 复用组件实例、setup 不会重跑，
-  // 要用 computed / watch 跟踪参数变化 —— React 没有这个「实例复用坑」。
-  const { id } = useParams()
-
-  // useNavigate 返回命令式跳转函数：navigate('/orders') 去指定地址，navigate(-1) 后退一步。
-  // Vue 对照：useRouter().back() / router.push()。
-  const navigate = useNavigate()
-
-  // 按钮级权限用的判断函数（定义见上方「路由守卫」小节的 AuthValue / useAuth）
-  const { can } = useAuth()
-
-  const order = ORDERS.find((o) => o.id === id)
-
-  // URL 是外部输入，参数对应的数据可能不存在，详情页必须处理「找不到」分支
-  if (!order) {
-    return (
-      <div className="stack">
-        <p className="error-text">订单不存在：{id}</p>
-        <div className="row">
-          <button onClick={() => navigate(-1)}>← 返回上一页</button>
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <div className="stack">
-      <div className="row">
-        {/* navigate(-1) = 浏览器后退一步（等价 history.back()），带着列表页的筛选 query 一起回去 */}
-        <button onClick={() => navigate(-1)}>← 返回上一页</button>
-
-        {/* 按钮级权限：在 React 里它压根不是一个「新知识点」，
-            就是 05 题的条件渲染 —— 条件不成立时按钮根本不进 DOM
-            （比 disabled 更安全，也比用 CSS 隐藏更彻底，F12 里都翻不出来）。
-            Vue 对照：v-if="can('order:delete')"；真实 Vue 项目更常把它封装成自定义指令
-            v-permission="'order:delete'"，在指令的 mounted 钩子里 el.remove()。
-            React 没有「指令」这个概念（没有一一对应关系），要复用就抽成组件 ——
-            13 题的包装组件思路，写成 <Can code="order:delete">…</Can>。
-            于是：React 的路由守卫 = 包装组件，React 的按钮权限 = 条件渲染（+ 想复用时的包装组件），
-            同一套「组件即一切」的心智模型贯穿两端。 */}
-        {can('order:delete') && (
-          <button className="btn-danger" title="演示用，不真的删除">
-            删除
-          </button>
-        )}
-        {!can('order:delete') && (
-          <span className="muted">（未登录 → 没有 order:delete 权限，删除按钮整个不渲染）</span>
-        )}
-      </div>
-      <div className="card stack">
-        <h3>
-          {order.orderNo}{' '}
-          <span className={`badge badge-${order.status}`}>{ORDER_STATUS_TEXT[order.status]}</span>
-        </h3>
-        <p>
-          客户：{order.customer} ｜ 金额：¥{order.amount} ｜ 下单日期：{order.createdAt}
-        </p>
-        <table>
-          <thead>
-            <tr>
-              <th>商品</th>
-              <th>单价</th>
-              <th>数量</th>
-            </tr>
-          </thead>
-          <tbody>
-            {order.items.map((it) => (
-              <tr key={it.id}>
-                <td>{it.name}</td>
-                <td>¥{it.price}</td>
-                <td>{it.quantity}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  )
-}
-
-/**
- * 设置页布局（/settings）：演示嵌套路由。
- * 父路由的 element 渲染公共部分（子导航），命中的子路由渲染到 <Outlet /> 的位置。
- * Vue 对照：路由表里配 children，父组件模板里放 <RouterView /> —— Outlet 就是 React 版的 RouterView。
- */
-function SettingsLayout() {
-  return (
-    <div className="stack">
-      <div className="row">
-        {/* 嵌套路由里可以用相对路径：to="profile" 相对当前路由（/settings）解析成 /settings/profile。
-            Vue 的 RouterLink 惯用绝对路径或命名路由（相对路径支持有限）——没有一一对应的「相对 to」体验 */}
-        <NavLink to="profile" style={navStyle}>
-          个人资料
-        </NavLink>
-        <NavLink to="notifications" style={navStyle}>
-          通知设置
-        </NavLink>
-      </div>
-      {/* 子路由内容的渲染出口 */}
-      <Outlet />
-    </div>
-  )
-}
-
-/** 子路由一（/settings/profile） */
-function SettingsProfilePage() {
-  return (
-    <div className="card stack">
-      <h3>个人资料</h3>
-      <p>用户名：张伟</p>
-      <p>邮箱：zhangwei@example.com</p>
-      <p className="muted">这是 /settings/profile 子路由的内容，渲染在父路由的 Outlet 位置</p>
-    </div>
-  )
-}
-
-/** 子路由二（/settings/notifications） */
-function SettingsNotificationsPage() {
-  const [emailEnabled, setEmailEnabled] = useState(true)
-  return (
-    <div className="card stack">
-      <h3>通知设置</h3>
-      <label>
-        <input
-          type="checkbox"
-          checked={emailEnabled}
-          onChange={(e) => setEmailEnabled(e.target.checked)}
-        />{' '}
-        接收邮件通知（当前：{emailEnabled ? '开' : '关'}）
-      </label>
-      <p className="muted">
-        切到「个人资料」再切回来，勾选状态会重置 —— 子路由切换 = 组件卸载再挂载，两框架一致。
-        Vue 可以直接用 KeepAlive 包住 RouterView 缓存被切走的路由组件；React 19.2 内置了 Activity 组件
-        （mode 为 hidden 时卸载 effect、保留 state），是最接近 KeepAlive 的官方原语，
-        差别是 React 路由层没有开箱封装（本页保持普通的卸载重挂演示）。
-      </p>
-    </div>
-  )
-}
+type Mode = 'data' | 'declarative'
 
 export default function Example() {
-  /**
-   * 登录态：最简单的做法就是 Example 顶层一个 useState，再用上面那个极简 Context 送下去。
-   * 真实中后台里它一般住在全局 store（16 题 Zustand / Pinia）里，本题不为它引入 Zustand。
-   * Vue 对照：vue/auth.ts 里模块级的 reactive({ loggedIn: false })——
-   * Vue 可以 auth.loggedIn = true 就地改；React 必须走 setState 换新值（03 题的不可变更新）。
-   */
-  const [loggedIn, setLoggedIn] = useState(false)
-
-  /**
-   * Context 的 value 用 useMemo 保持引用稳定（17 题）：
-   * 不包 useMemo 的话，每次 Example 重渲染都会造一个新对象，
-   * 所有 useAuth() 的组件都跟着重渲染 —— 这是 Context 的经典性能坑。
-   * Vue 那边没有这个问题：注入的 reactive 是精准依赖追踪的（没有一一对应关系）。
-   */
-  const auth = useMemo<AuthValue>(
-    () => ({
-      loggedIn,
-      login: () => setLoggedIn(true),
-      logout: () => setLoggedIn(false),
-      can: (code) => loggedIn && PERMISSIONS.includes(code),
-    }),
-    [loggedIn],
-  )
+  const [mode, setMode] = useState<Mode>('data')
 
   return (
-    /**
-     * 本示例嵌在学习站点里，用 MemoryRouter 把路由状态放在内存（不碰浏览器地址栏，
-     * 避免与壳应用自身的路由冲突）；真实应用用 BrowserRouter —— 除了最外层容器不同，
-     * 其余 API（Routes/Route/Link/各种 hook）完全一样。initialEntries 指定初始地址。
-     *
-     * 版本说明：react-router v7 的声明式 API 与 v6 完全相同（面试主流问的就是这套）；
-     * v6.4+ 另有 createBrowserRouter 的「数据路由」（loader/action），是另一种组织方式，本课不展开。
-     *
-     * 补充一个硬规则：React Router 规定一棵组件树里只能有一个 <Router>，嵌套会直接报错
-     * "You cannot render a <Router> inside another <Router>"。学习站点的壳本身是 BrowserRouter，
-     * 所以本示例被挂进了一棵独立的 React 树（见 src/bridge/ReactIsolatedMount.tsx）。
-     * Vue Router 是 app 级插件（app.use(router)），同样是一个应用一个 router 实例。
-     */
-    <MemoryRouter initialEntries={['/orders']}>
-      {/* React 19 起 Context 本身就能当 Provider 用（15 题）；React 18 及更早写 <AuthContext.Provider value={...}>。
-          Provider 放在 <MemoryRouter> 内部：RequireAuth 同时要用 useAuth() 和 useLocation()，
-          两者的包裹顺序在这里可以任意，习惯上写成「路由在外、业务 Context 在内」 */}
-      <AuthContext value={auth}>
-        <div className="stack">
-          <nav className="row">
-            {/* NavLink 默认按「URL 前缀」判定激活（加 end 属性才要求精确匹配），
-                所以进入 /orders/o1 详情页时「订单」仍保持高亮；
-                Vue 的 router-link-active 基于路由记录匹配，/orders/:id 是兄弟路由，
-                详情页里「订单」不会高亮 —— 两边判定规则略有差异 */}
-            <NavLink to="/orders" style={navStyle}>
-              订单
-            </NavLink>
-            <NavLink to="/settings" style={navStyle}>
-              设置
-            </NavLink>
+    <div className="stack">
+      <div className="row" role="tablist" aria-label="路由模式">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mode === 'data'}
+          className={mode === 'data' ? 'btn-primary' : ''}
+          onClick={() => setMode('data')}
+        >
+          主线：Data 模式
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mode === 'declarative'}
+          className={mode === 'declarative' ? 'btn-primary' : ''}
+          onClick={() => setMode('declarative')}
+        >
+          并排：声明式模式
+        </button>
+      </div>
 
-            {/* 登录态显示 + 退出登录：方便反复演示守卫。
-                未登录时点上面的「设置」→ 被 RequireAuth 拦到 /login；
-                登录后再点「设置」→ 正常进入；此时点「退出登录」，如果人正停在 /settings，
-                RequireAuth 会在这次重渲染里立刻把你弹回登录页 ——
-                守卫是「持续生效的渲染条件」，不是「进入路由时跑一次的钩子」，
-                这是它与 beforeEach 的又一个实质差异（Vue 那边得自己 watch 登录态再手动 push）。 */}
-            <span className="muted">当前：{loggedIn ? '已登录' : '未登录'}</span>
-            {loggedIn && (
-              <button className="btn-ghost" onClick={() => setLoggedIn(false)}>
-                退出登录
-              </button>
-            )}
-          </nav>
-
-          {/* 路由表本身就是 JSX：URL 命中哪个 Route，它的 element 就渲染在这里。
-              Vue 对照：这些映射关系写在 router.ts 的 routes 数组里，模板里只留一个 <RouterView /> */}
-          <Routes>
-            <Route path="/orders" element={<OrderListPage />} />
-            {/* :id 是动态段，详情页里用 useParams 读取 */}
-            <Route path="/orders/:id" element={<OrderDetailPage />} />
-            {/* 登录页：一条再普通不过的路由，守卫把人往这儿送 */}
-            <Route path="/login" element={<LoginPage />} />
-            {/* 嵌套路由：子 Route 写在父 Route 标签内部，渲染进父 element 的 <Outlet />。
-                ★ 加守卫的全部动作就是下面这一处：把 element 用 <RequireAuth> 包一层。
-                  - 保护整个子树：包在父路由的 element 上（本例），/settings 及其所有子路由一起被拦；
-                  - 只保护某一个子页面：把 <RequireAuth> 挪到那个子 Route 的 element 上即可；
-                  - 守卫本身也能复用/组合：它就是个组件，可以再套 <RequireRole role="admin">，
-                    也可以做成布局路由 <Route element={<RequireAuth><Outlet /></RequireAuth>}> 一次罩住一批路由。
-                这种「拦截粒度随手可调」正是「路由表即组件树」带来的好处；
-                Vue 那边的对应做法是在集中式配置里给路由加 meta: { requiresAuth: true }，
-                再由全局 beforeEach 统一读 meta 判断 —— 守卫逻辑与路由声明分居两处。
-                另外注意 <RequireAuth> 是完全透明的一层：SettingsLayout 里的 <Outlet /> 照常工作，
-                子路由匹配由 <Route> 的结构决定，与 element 里额外夹了几层普通组件无关。 */}
-            <Route
-              path="/settings"
-              element={
-                <RequireAuth>
-                  <SettingsLayout />
-                </RequireAuth>
-              }
-            >
-              {/* index route = 父路径被精确访问时的默认内容；这里重定向到 profile。
-                  Vue 对照：children 里配 { path: '', redirect: '/settings/profile' } */}
-              <Route index element={<Navigate to="profile" replace />} />
-              <Route path="profile" element={<SettingsProfilePage />} />
-              <Route path="notifications" element={<SettingsNotificationsPage />} />
-            </Route>
-          </Routes>
-        </div>
-      </AuthContext>
-    </MemoryRouter>
+      {mode === 'data' ? <RouterProvider router={dataRouter} /> : <DeclarativeDemo />}
+    </div>
   )
 }

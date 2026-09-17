@@ -16,10 +16,11 @@ import { defineAsyncComponent, type Component as VueComponent } from 'vue'
 import {
   ALL_TOPICS,
   findTopic,
+  listReactSources,
+  listVueSources,
   loadReactExample,
-  loadReactSource,
   loadVueExample,
-  loadVueSource,
+  type SourceFile,
 } from './topicRegistry'
 import { VueMount } from '../bridge/VueMount'
 import { ReactIsolatedMount } from '../bridge/ReactIsolatedMount'
@@ -39,7 +40,7 @@ for (const { slug } of ALL_TOPICS) {
   if (vueLoader) vueExamples[slug] = defineAsyncComponent(vueLoader)
 }
 
-function SourceViewer({ load }: { load: () => Promise<string> }) {
+function SourceText({ load }: { load: () => Promise<string> }) {
   const [text, setText] = useState<string | null>(null)
   useEffect(() => {
     let cancelled = false
@@ -51,6 +52,34 @@ function SourceViewer({ load }: { load: () => Promise<string> }) {
     }
   }, [load])
   return <pre className="source-view">{text ?? '源码加载中…'}</pre>
+}
+
+/** 源码查看器：一题有多个文件时，上方列出文件名切换（入口 Example 排第一） */
+function SourceViewer({ files }: { files: SourceFile[] }) {
+  const [selectedPath, setSelectedPath] = useState(files[0].path)
+  const selected = files.find((file) => file.path === selectedPath) ?? files[0]
+  return (
+    <div>
+      {files.length > 1 && (
+        <div className="row source-tabs" role="tablist" aria-label="源码文件">
+          {files.map((file) => (
+            <button
+              key={file.path}
+              type="button"
+              role="tab"
+              aria-selected={file.path === selected.path}
+              className={file.path === selected.path ? 'btn-primary' : 'btn-ghost'}
+              onClick={() => setSelectedPath(file.path)}
+            >
+              {file.path}
+            </button>
+          ))}
+        </div>
+      )}
+      {/* key：换文件时重新挂载，文本 state 自然清空，不用在 effect 里手动重置 */}
+      <SourceText key={selected.path} load={selected.load} />
+    </div>
+  )
 }
 
 export default function TopicPage() {
@@ -82,8 +111,8 @@ function TopicPageContent({ slug }: { slug: string }) {
     )
   }
 
-  const reactSrcLoader = loadReactSource(slug)
-  const vueSrcLoader = loadVueSource(slug)
+  const reactSources = listReactSources(slug)
+  const vueSources = listVueSources(slug)
 
   return (
     <div className="topic-page">
@@ -101,15 +130,18 @@ function TopicPageContent({ slug }: { slug: string }) {
               <h2>
                 React <span className="pane-tag pane-tag-react">学习目标</span>
               </h2>
-              <code className="pane-path">src/topics/{slug}/react/Example.tsx</code>
+              <code className="pane-path">
+                src/topics/{slug}/react/Example.tsx
+                {reactSources.length > 1 && ` · 共 ${reactSources.length} 个文件`}
+              </code>
             </div>
-            {reactSrcLoader && (
+            {reactSources.length > 0 && (
               <button className="btn-ghost" onClick={() => setShowReactSrc((v) => !v)}>
                 {showReactSrc ? '隐藏源码' : '查看源码'}
               </button>
             )}
           </div>
-          {showReactSrc && reactSrcLoader && <SourceViewer load={reactSrcLoader} />}
+          {showReactSrc && reactSources.length > 0 && <SourceViewer files={reactSources} />}
           <div className="pane-body">
             {isolateReactRoot && reactLoader ? (
               <ReactIsolatedMount load={reactLoader} />
@@ -131,15 +163,18 @@ function TopicPageContent({ slug }: { slug: string }) {
               <h2>
                 Vue 3 <span className="pane-tag pane-tag-vue">你熟悉的对照</span>
               </h2>
-              <code className="pane-path">src/topics/{slug}/vue/Example.vue</code>
+              <code className="pane-path">
+                src/topics/{slug}/vue/Example.vue
+                {vueSources.length > 1 && ` · 共 ${vueSources.length} 个文件`}
+              </code>
             </div>
-            {vueSrcLoader && (
+            {vueSources.length > 0 && (
               <button className="btn-ghost" onClick={() => setShowVueSrc((v) => !v)}>
                 {showVueSrc ? '隐藏源码' : '查看源码'}
               </button>
             )}
           </div>
-          {showVueSrc && vueSrcLoader && <SourceViewer load={vueSrcLoader} />}
+          {showVueSrc && vueSources.length > 0 && <SourceViewer files={vueSources} />}
           <div className="pane-body">
             {vueComponent ? (
               <VueMount component={vueComponent} createPlugins={topic.vuePlugins} />
