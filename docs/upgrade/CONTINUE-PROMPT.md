@@ -133,8 +133,8 @@ T=src/topics/07-forms
 grep -rn "没有一一对应关系" $T                                   # 应为 0
 grep -rn "永远\|根本没有\|完全相同\|完全一样\|一定会" $T             # 逐处确认已加限定或已删除（「绝对地址」这类术语不算）
 grep -rno "[0-9][0-9] 题" $T | sort | uniq -c                     # 交叉引用逐条核对；31–35 在阶段 3 之前要带「待新增」
-# 检查改动和新增的文件没有 CRLF（仓库要求 LF），有输出就要处理
-node -e "const {execSync}=require('child_process');const fs=require('fs');for(const l of execSync('git status --porcelain -uall',{encoding:'utf8'}).split('\n')){const f=l.slice(3).trim();if(f&&fs.existsSync(f)&&fs.statSync(f).isFile()&&fs.readFileSync(f,'utf8').includes('\r\n'))console.log('CRLF:',f)}"
+# 检查改动和新增的文件没有 CRLF（仓库要求 LF），有输出就要处理；两个用户规格文件不归我们管，已跳过
+node -e "const {execSync}=require('child_process');const fs=require('fs');const skip=['course-upgrade-prompt.md','update-project.md'];for(const l of execSync('git status --porcelain -uall',{encoding:'utf8'}).split('\n')){const f=l.slice(3).trim();if(f&&!skip.includes(f)&&fs.existsSync(f)&&fs.statSync(f).isFile()&&fs.readFileSync(f,'utf8').includes('\r\n'))console.log('CRLF:',f)}"
 ```
 
 - 更新 PROGRESS.md：「每题状态」表加一行（状态、改动摘要、遗留），必要时加简短记录小节，并把「下一步」指到下一题。
