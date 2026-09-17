@@ -4,7 +4,7 @@
  * 均可展开查看源码。
  */
 import { Suspense, lazy, useEffect, useMemo, useState, type ComponentType } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router'
 import { defineAsyncComponent, type Component as VueComponent } from 'vue'
 import {
   findTopic,

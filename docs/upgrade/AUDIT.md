@@ -119,7 +119,7 @@
 | vite | 7.x 或 8.x | **保持 7.3.6，不为升级而升级**；v8 记为「已满足主流条件，可选升级」 | v8 首发 6 个月零 4 天、份额 43.6%、plugin-vue 6 / plugin-react 5.2 / vitest 4 都声明支持 ^8 → 按 §3.3 已够格。但项目现状正常，且 plugin-react 6（vite 8 专用）曾误处理 `.vue` 子模块（见 vite.config.ts 注释）；课件没有依赖 Vite 大版本的内容。若升级，用 plugin-react 5.2.0 + vite 8 |
 | typescript | 5.9.x 或 6.0.x | **保持 5.9.3** | typescript-eslint peer `<6.1.0` 排除 7.x；6.0 首发 5.8 个月、份额 17.1%，都未达标；v5 65.2% |
 | typescript-eslint | — | 保持 8.68.0（8.70.0 发布 9 天） | 满 30 天后可升到 8.69 / 8.70 |
-| eslint | — | **保持 9.x**（9.39.5）；v10 标【较新】 | v9 57.5%；v10 首发 7 个月但份额 16.6% < 30%。typescript-eslint、eslint-plugin-vue、react-hooks 都已声明支持 ^10，将来升级无阻碍 |
+| eslint | — | **保持 9.x**（9.39.5）；v10 标【较新】。**阶段 1 更正（2026-09-17）：ESLint v9.x 已于 2026-08-06 EOL**（eslint.org/version-support；npm 上 9.39.5 标 deprecated），本条结论待重新决定（PROGRESS.md 待决 D1-1） | v9 57.5%；v10 首发 7 个月但份额 16.6% < 30%。typescript-eslint、eslint-plugin-vue、react-hooks 都已声明支持 ^10，将来升级无阻碍 |
 | eslint-plugin-react-hooks | 7.x | **同意 7.1.1** | v7 43.1% 第一；其 `recommended` 预设内容见附录 A（决定是否需要单独装 React Compiler 的 lint 规则） |
 | vue | 3.5.x | **同意 3.5.42**；3.6 标【尝鲜】 | 3.6 仍是 rc.8 |
 | vue-router | 4.x API，安装 5.x | **同意：安装 5.3.1，课件只用 4.x / 5.x 共有的 API；文件路由【较新】、`vue-router/experimental` 数据加载器【尝鲜】** | v5 首发 7.5 个月、份额 35.1%（≥ 30%）、peer vue ^3.5.34 已满足；v4 自 2025-12-11 后没有发版。前提：附录 A 核实 v5 对非文件路由项目无破坏性变更（含 `next()` 是否仍可用） |
@@ -990,6 +990,7 @@
 | 5.11 | **同意**：阶段 0 文档单独提交 |
 | **5.12（新增）** | **18 题主线改为 Data 模式**（`createBrowserRouter` / 演示用 `createMemoryRouter` + `RouterProvider` + loader + `errorElement` + `lazy` + middleware 守卫【较新】），声明式 + `RequireAuth` 作并排版本并标「存量项目与面试最常见」。**规格 §6 的第 1 条「主线」相应调整，其余 12 条修改点不变。** |
 | **5.13（第二轮，2026-09-17）** | 用户答复「全部按建议执行」：AUDIT-ROUND2.md §6 的 D2-1～D2-8 全部按建议执行（严重级保留外延解读；22 题保留 effect 手写 + 三种生产改写；阶段 1 安装 `react-error-boundary`；切 `recommended` 只记录、阶段 2 处理；规格 §6 路由样板 5 条随 Data 主线调整）。两轮合并说明见附录 C |
+| **5.14（阶段 1 复核，2026-09-17）** | 用户四项均按建议：① 新装 / 升级的包按 §3.3 取「满 30 天的最新补丁」，已装在用的不降级 → vue-router **5.2.0**（不是 5.3.1）、@testing-library/react 16.3.2、@testing-library/dom 10.4.1、user-event 14.6.5、react-error-boundary 6.1.3、vitest 4.1.11；② jsdom 30.x 要求 Node ^22.22.2，本机 22.22.1 → 改装 **jsdom 29.1.1**；③ 新增 **@vue/test-utils 2.4.11** 为直接 devDependency；④ 切 `recommended` 后站点壳的 3 条命中先记录，阶段 2 开头单独 commit 修。执行中另发现：@testing-library/jest-dom 6.10.0 已被维护者 deprecated → 按其说明改装 **6.9.1**；**ESLint 9 已于 2026-08-06 EOL**（新待决 D1-1，未擅自升级）；vue-router 5.2.0 对 `next()` 发 R0025 弃用警告。全部记录见 PROGRESS.md「阶段 1 记录」 |
 
 **追加约束（用户 2026-09-16）**：第一轮审计偏重「查错」，对「缺什么」只做了一行覆盖检查，没有给缺失项定级、也没有质疑规格里的主线选择。阶段 1 之前先由另一个会话做第二轮「学习完整性」审计（prompt 见 `docs/upgrade/REAUDIT-PROMPT.md`），合并后再开工。
 
@@ -1014,7 +1015,7 @@
 | `@testing-library/react` + `@testing-library/dom` | ^16.3.3 + ^10 | React 组件测试（18 题「参数变化时 state 保留」、24 题批处理等） | react ^18‖^19 ✓ |
 | `@testing-library/vue` | ^8.1.0 | Vue 对照测试（可选：只给关键结论写） | vue >=3 ✓；两年无发版，若阶段 1 实测有问题改用 `@vue/test-utils` |
 | `@testing-library/user-event` | ^14.6.7 | 用户交互 | ✓ |
-| `@testing-library/jest-dom` | ^6.10.0 | DOM 断言（`toBeInTheDocument`） | dom >=10 <11 ✓；v7 不满 6 个月 |
+| `@testing-library/jest-dom` | ^6.10.0（**阶段 1 更正：6.10.0 已被维护者 deprecated，实装 6.9.1**，见 §5.0 的 5.14） | DOM 断言（`toBeInTheDocument`） | dom >=10 <11 ✓；v7 不满 6 个月 |
 | DOM 环境：`jsdom` ^30 **或** `happy-dom` ^20 | 二选一 | 测试 DOM | 都是 vitest peer `*`。建议 **jsdom**（Testing Library / TanStack / React Router 官方测试都用它，兼容性最稳）；happy-dom 更快、份额 88% 集中在 v20，也可 |
 
 测试文件位置（需你定）：建议 **与示例同目录**：`src/topics/<NN>/react/Example.test.tsx`、`src/topics/<NN>/vue/Example.test.ts`（注册表的 `import.meta.glob` 只匹配 `Example.tsx` / `Example.vue`，不会误加载测试；`tsconfig.include` 已含 `src`）。备选：`src/topics/<NN>/__tests__/`。`test` 脚本：`vitest run`；`check` 脚本改为 lint + typecheck + test + build。
@@ -1027,7 +1028,7 @@
 
 ### 5.4 `vue-router` 升 5.3.1、`pinia` 保持 3.0.4——建议同意
 
-依据 §2.2：v5 满足全部三个阈值且官方声明无破坏性变更；18 题 Vue 侧代码不用改（`createRouter` / `createMemoryHistory` / `beforeEach` 不变）。安装时若 npm 报 vue-router 5 的可选 peer（vite / pinia / @pinia/colada），以实际 `npm install` 输出为准，不额外装 `@pinia/colada`。pinia 4 等满 6 个月再评估。
+依据 §2.2：v5 满足全部三个阈值且官方声明无破坏性变更；18 题 Vue 侧代码不用改（`createRouter` / `createMemoryHistory` / `beforeEach` 不变）。**阶段 1 更正（2026-09-17）**：实装 5.2.0（30 天规则，见 §5.0 的 5.14）；代码确实能照常运行，但 `beforeEach` 里的 `next()` 写法会触发 dev 弃用警告 R0025，阶段 2 改 18 题时换成返回值写法。安装时若 npm 报 vue-router 5 的可选 peer（vite / pinia / @pinia/colada），以实际 `npm install` 输出为准，不额外装 `@pinia/colada`。pinia 4 等满 6 个月再评估。
 
 ### 5.5 ESLint：切换到 eslint-plugin-react-hooks 7 官方 `recommended` 预设，并把 react 目录下的 `.ts` 纳入 hooks 规则——建议同意，但分两步
 
@@ -1153,7 +1154,7 @@ ode_modules`；状态「核实」= 有一手证据，「待核实」= 未能证�
 |---|---|---|---|
 | 类型文件位置 | 4.6.x 起（tsup 重构）**没有 `dist/vue-router.d.ts`**；类型在 `dist/vue-router.d.mts`（re-export）+ `dist/router-CWoNjPRp.d.mts` | `ls vue-router/dist` | 核实 |
 | `NavigationGuard` 返回值 | `interface NavigationGuard { (to: RouteLocationNormalized, from: RouteLocationNormalizedLoaded, next: NavigationGuardNext): _Awaitable<NavigationGuardReturn>; }`；`type NavigationGuardReturn = void \| Error \| boolean \| RouteLocationRaw;`；`_Awaitable<T> = T \| PromiseLike<T>` | `router-CWoNjPRp.d.mts:376-378, 365, 145` | 核实 |
-| `next` 是否可选/遗留 | 类型上 `next` 是**第三个位置参数（非 `?:`）**，但 JS 可省略；文档："In previous versions of Vue Router, it was also possible to use a third argument `next`, this was a common source of mistakes and went through an RFC to remove it. However, it is still supported."；推荐返回值：`false` 取消 / 路由位置 重定向 / `undefined`·`true` 放行 / `Error` 触发 `router.onError` | `router-CWoNjPRp.d.mts:388-394`（`NavigationGuardNext` 重载）；https://router.vuejs.org/guide/advanced/navigation-guards.html | 核实 |
+| `next` 是否可选/遗留 | 类型上 `next` 是**第三个位置参数（非 `?:`）**，但 JS 可省略；文档："In previous versions of Vue Router, it was also possible to use a third argument `next`, this was a common source of mistakes and went through an RFC to remove it. However, it is still supported."；推荐返回值：`false` 取消 / 路由位置 重定向 / `undefined`·`true` 放行 / `Error` 触发 `router.onError`。**阶段 1 补充（2026-09-17，vue-router 5.2.0 实跑）**：仍可用，但 dev 控制台会发 `[VUE_ROUTER_R0025] The next() callback in navigation guards is deprecated.`（`vue-router/dist/useApi-CROJJdhE.js:223-224`），见 PROGRESS.md 1.6 | `router-CWoNjPRp.d.mts:388-394`（`NavigationGuardNext` 重载，4.6.4）；https://router.vuejs.org/guide/advanced/navigation-guards.html | 核实（4.6.4）；5.x 行为见补充 |
 | `createMemoryHistory` | `declare function createMemoryHistory(base?: string): RouterHistory;` | `vue-router.d.mts:25` | 核实 |
 | v5.0.0 发布与变化 | **2026-01-29** 发布。官方原话："Vue Router 5 is a _boring_ release, it merges unplugin-vue-router into the core package with no breaking changes."（唯一例外：IIFE 构建不再内置 `@vue/devtools-api`，因其 v8 移除 IIFE）。新增：文件式路由进核心（`vue-router/vite`）、数据加载器 `vue-router/experimental`（实验）、`vue-router/unplugin` 工具、`vue-router/volar/*`、查询参数默认可选（实验）、Route JSON schema | https://github.com/vuejs/router/releases/tag/v5.0.0；`npm view vue-router time` | 核实 |
 | v4→v5 迁移指南 | https://router.vuejs.org/guide/migration/v4-to-v5.html 存在："there are no breaking changes" for v4 users without file-based routing；unplugin 用户：移除 `unplugin-vue-router`，`unplugin-vue-router/vite`→`vue-router/vite`，`…/data-loaders/*`→`vue-router/experimental`，`unplugin-vue-router`→`vue-router/unplugin`，`…/volar/*`→`vue-router/volar/*`，删 `unplugin-vue-router/client` 引用，生成类型移到 `src/route-map.d.ts`。`/guide/migration/` 是 v3→v4 页；`/guide/migration/v5.html` 404 | WebFetch | 核实 |

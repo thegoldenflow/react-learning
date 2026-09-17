@@ -52,7 +52,7 @@ import {
   useNavigate,
   useParams,
   useSearchParams,
-} from 'react-router-dom'
+} from 'react-router'
 import type { Order, OrderStatus } from '@/shared/types'
 import { ORDER_STATUS_TEXT } from '@/shared/types'
 

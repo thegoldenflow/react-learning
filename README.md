@@ -17,9 +17,10 @@
 npm install        # 安装依赖
 npm run dev        # 启动 Vite 开发服务器，浏览器打开提示的地址即可
 npm run typecheck  # vue-tsc --noEmit，同时对 .tsx 和 .vue 做类型检查
-npm run lint       # ESLint（含 react-hooks 与 vue 插件规则）
+npm run lint       # ESLint（react-hooks 官方 recommended 预设 + vue 插件规则），警告也算失败
+npm test           # vitest run：Vitest（jsdom）+ Testing Library
 npm run build      # 先 typecheck 再 vite build
-npm run check      # lint + typecheck + build 一条命令
+npm run check      # lint + typecheck + test + build 一条命令
 ```
 
 > **编辑器建议**：VS Code 安装官方扩展 **「Vue (Official)」**（Vue 语言服务）。没有它，`.vue` 文件的导入在 `.ts`/`.tsx` 里拿不到类型提示；React 侧则开箱即用。
@@ -29,11 +30,12 @@ npm run check      # lint + typecheck + build 一条命令
 | 类别 | React 侧 | Vue 侧 |
 | --- | --- | --- |
 | 框架 | react 19 / react-dom 19 | vue 3.5 |
-| 路由 | react-router-dom 7 | vue-router 4 |
+| 路由 | react-router 7（从 `react-router` 导入） | vue-router 5 |
 | 全局状态 | zustand 5 | pinia 3 |
 | 服务端状态 | @tanstack/react-query 5 | @tanstack/vue-query 5（共用同一个 @tanstack/query-core） |
 | 构建 | Vite 7 + @vitejs/plugin-react + @vitejs/plugin-vue（同一个应用同时启用两个插件） | |
 | 类型 | TypeScript 5.9 + vue-tsc（统一检查 .tsx 与 .vue） | |
+| 测试 | Vitest 4 + @testing-library/react + user-event + jest-dom（jsdom） | @testing-library/vue + @vue/test-utils（同一份 vitest.config.ts） |
 
 ## 目录结构
 
@@ -53,6 +55,11 @@ src/
 │   ├── mockApi.ts               # 模拟 API（fetchUsers / fetchOrders / updateOrder …，支持 signal / failRate / delayMs）
 │   ├── products.ts              # 25 / 29 题共用的商品目录
 │   └── styles.css               # 全局样式与工具类
+├── test/                        # 测试基础设施（不属于知识点；配置见根目录 vitest.config.ts）
+│   ├── setup.ts                 # 每个测试文件运行前执行：给 expect 装上 jest-dom 断言
+│   ├── smoke.react.test.tsx     # 工具链冒烟测试（React 侧）
+│   ├── smoke.vue.test.ts        # 工具链冒烟测试（Vue 侧）
+│   └── fixtures/                # 冒烟测试用的最小组件
 └── topics/
     └── NN-slug/                 # 每题一个目录，NN 为两位编号
         ├── react/
@@ -419,7 +426,7 @@ src/
 
 **待完善**
 
-- 没有单元测试 / 端到端测试——项目没有 `test` 脚本，验证依赖 lint + typecheck + build + 逐题浏览器手测（见下节）。
+- 测试基建已接入（2026-09-17），但目前只有 `src/test/` 下的工具链冒烟测试；各题关键结论的测试还没写，也没有端到端测试，各题行为仍靠逐题浏览器手测（见下节）。
 - 没有 Suspense / `use()` 数据加载专题（30 题刻意不用 `useSuspenseQuery`，避免壳应用的 Suspense / ErrorBoundary 接管整个面板）。
 - 没有 SSR / 框架模式（Next.js、React Router 框架模式的 loader / action）内容。
 
@@ -427,12 +434,14 @@ src/
 
 | 命令 | 作用 | 结果 |
 | --- | --- | --- |
-| `npx eslint . --max-warnings=0` | ESLint（react-hooks + vue 插件规则），警告也视为失败 | 通过（0 错误、0 警告，2026-09-02） |
-| `npm run typecheck` | `vue-tsc --noEmit`，同时检查 .tsx 与 .vue | 通过（0 错误，2026-09-02） |
-| `npm run build` | typecheck + vite build | 通过（vite build 约 5 秒，产物在 `dist/`，2026-09-02） |
-| `npm ls @tanstack/query-core` | 确认 react-query 与 vue-query 共用同一份 query-core | 通过（两个包都解析到 `@tanstack/query-core@5.102.8`，第二份显示 deduped） |
+| `npm run lint` | `eslint . --max-warnings=0`：react-hooks 官方 recommended 预设 + vue 插件规则，警告也视为失败 | 通过（0 错误、0 警告，2026-09-17）。切换预设时已有的 16 处命中（8 道题 + 站点壳）记在根目录 `eslint-suppressions.json`，待逐处修复 |
+| `npm run typecheck` | `vue-tsc --noEmit`，同时检查 .tsx、.vue 与测试文件 | 通过（0 错误，2026-09-17） |
+| `npm test` | `vitest run`（jsdom） | 通过（2 个文件 6 条冒烟测试，2026-09-17） |
+| `npm run build` | typecheck + vite build | 通过（vite build 约 6 秒，产物在 `dist/`，2026-09-17） |
+| `npm run check` | lint + typecheck + test + build | 通过（2026-09-17） |
+| `npm ls @tanstack/query-core` | 确认 react-query 与 vue-query 共用同一份 query-core | 通过（两个包都解析到 `@tanstack/query-core@5.102.8`，第二份显示 deduped，2026-09-17） |
 
-项目没有 test 脚本，本次没有执行、也没有伪造任何测试结果；验证 = lint + typecheck + build + 逐题浏览器手测。
+测试目前只覆盖工具链本身（React / Vue 两侧各 3 条冒烟测试），各题的行为仍靠逐题浏览器手测验证。
 
 ## 附录
 

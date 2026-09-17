@@ -2,7 +2,7 @@
  * 壳应用（基础设施）：左侧知识点目录 + 右侧内容区。
  * 壳本身就是一个真实的 React Router 应用，可以顺便观察路由的实际用法（详见 18 题）。
  */
-import { NavLink, Route, Routes, Link } from 'react-router-dom'
+import { NavLink, Route, Routes, Link } from 'react-router'
 import { PHASES, RECOMMENDED_TOPICS } from './topicRegistry'
 import TopicPage from './TopicPage'
 

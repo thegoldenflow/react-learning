@@ -27,15 +27,15 @@ export default tseslint.config(
     },
   },
   {
-    // 只作用于 .tsx（React 代码）。绝不作用于 .vue/.ts：
-    // rules-of-hooks 会把 Vue composable（如 setup 里的 useXxxStore()）误判为 React Hook。
-    // 项目约定：React 代码一律 .tsx，Vue 代码一律 .vue/.ts。
-    files: ['**/*.tsx'],
-    plugins: { 'react-hooks': reactHooks },
-    rules: {
-      'react-hooks/rules-of-hooks': 'error',
-      'react-hooks/exhaustive-deps': 'warn',
-    },
+    // eslint-plugin-react-hooks 7 官方 recommended 预设：rules-of-hooks、exhaustive-deps，
+    // 外加 React Compiler 的规则（refs、set-state-in-effect、immutability、static-components 等）。
+    // 本项目不启用 React Compiler，但照样用这些规则检查代码。
+    // 作用范围：所有 .tsx，以及 React 侧目录（题目的 react/、壳 shell/、桥 bridge/）下的 .ts（自定义 Hook、store）。
+    // 不作用于 vue/ 目录下的 .ts：rules-of-hooks 会把 Vue composable（如 useXxxStore()）误判为 React Hook。
+    // 切换预设时已有的命中记录在根目录 eslint-suppressions.json（ESLint 批量抑制），
+    // 修掉一处后运行 `npx eslint . --prune-suppressions` 同步台账。
+    files: ['**/*.tsx', 'src/topics/*/react/**/*.ts', 'src/shell/**/*.ts', 'src/bridge/**/*.ts'],
+    ...reactHooks.configs.flat.recommended,
   },
   { languageOptions: { globals: globals.browser } },
 )

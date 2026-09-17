@@ -1,0 +1,55 @@
+{
+  "src/bridge/VueMount.tsx": {
+    "react-hooks/refs": {
+      "count": 1
+    }
+  },
+  "src/shell/TopicPage.tsx": {
+    "react-hooks/set-state-in-effect": {
+      "count": 1
+    },
+    "react-hooks/static-components": {
+      "count": 1
+    }
+  },
+  "src/topics/10-effects-and-lifecycle/react/Example.tsx": {
+    "react-hooks/set-state-in-effect": {
+      "count": 1
+    }
+  },
+  "src/topics/11-api-request-state/react/Example.tsx": {
+    "react-hooks/set-state-in-effect": {
+      "count": 1
+    }
+  },
+  "src/topics/12-dom-ref/react/Example.tsx": {
+    "react-hooks/refs": {
+      "count": 3
+    }
+  },
+  "src/topics/14-composable-and-custom-hook/react/Example.tsx": {
+    "react-hooks/set-state-in-effect": {
+      "count": 1
+    }
+  },
+  "src/topics/21-immutable-update/react/Example.tsx": {
+    "react-hooks/immutability": {
+      "count": 1
+    }
+  },
+  "src/topics/23-rendering-and-state-snapshot/react/Example.tsx": {
+    "react-hooks/immutability": {
+      "count": 2
+    }
+  },
+  "src/topics/24-batching-and-functional-updates/react/Example.tsx": {
+    "react-hooks/set-state-in-effect": {
+      "count": 1
+    }
+  },
+  "src/topics/27-async-race-and-cancellation/react/Example.tsx": {
+    "react-hooks/set-state-in-effect": {
+      "count": 3
+    }
+  }
+}
