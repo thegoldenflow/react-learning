@@ -18,7 +18,7 @@
  * - 防抖 composable：watch + setTimeout + onUnmounted 清理；定时器 id 就是 setup 作用域里的一个普通 let 变量
  *
  * 最重要的区别：
- * - Vue 的 composable 没有「只能顶层调用」的限制（响应式靠 Proxy 追踪，不靠调用顺序），
+ * - Vue 的 composable 没有「只能顶层调用」的限制（setup 只执行一次，状态存在返回的 ref / reactive 对象里，不靠调用顺序对应），
  *   但受「生命周期钩子必须在 setup 同步执行期间注册」的约束 —— 两个约束不同源，没有一一对应关系。
  * - React 的 hook 每次渲染整个重跑、返回普通值；Vue 的 composable 只在 setup 跑一次、返回 Ref 容器。
  * - 由此延伸出防抖实现的差异：Vue 的 setup 只跑一次，`let timer` 天然跨更新存活；
@@ -53,8 +53,8 @@ function WidthPanel({ title, threshold }: WidthPanelProps) {
   // 为什么禁止（面试必考）：React 不靠变量名识别状态，而是按【调用顺序】——
   // 「第 1 次 hook 调用对应第 1 个状态槽、第 2 次对应第 2 个……」。hook 一旦进了
   // 条件/循环/嵌套函数，前后两次渲染的调用顺序就可能错位，从错位处起所有 hook
-  // 都会拿到别人的状态。Vue 的 composable 没有这条限制（响应式靠 Proxy 追踪、
-  // 不靠顺序），但它受「生命周期钩子须在 setup 同步执行期间注册」的另一种约束 ——
+  // 都会拿到别人的状态。Vue 的 composable 没有这条限制（setup 只执行一次，状态存在返回的
+  // ref / reactive 对象里，不靠调用顺序对应），但它受「生命周期钩子须在 setup 同步执行期间注册」的另一种约束 ——
   // 两个约束不同源，没有一一对应关系。
 
   // 「窄/宽」是渲染期间算出的派生值，不需要 state（09 题）；Vue 版对应 computed

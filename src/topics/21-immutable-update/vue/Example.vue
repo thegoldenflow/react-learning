@@ -14,12 +14,12 @@
  * - 深嵌套更新繁琐是真实痛点，工业界常用 Immer（useImmer）「以可变写法生成不可变更新」（本课不引入）
  *
  * Vue 对应概念：
- * - reactive 对象直接 mutate：Proxy 拦截 set，写入那一刻就精准知道谁变了、只更新依赖它的地方
+ * - reactive 对象直接 mutate：Proxy 拦截 set，写入时就知道是哪个属性变了，读过它的组件重新执行渲染函数、再 patch DOM
  * - 没有「每层新引用」的负担：push / splice / 直接赋值都是惯用写法
  *
  * 最重要的区别：
  * - 变更检测的哲学：React 是「拉」—— 不监听数据，靠你换引用、它来比较发现变化；
- *   Vue 是「推」—— Proxy 在写入时就通知订阅者。这是两框架最根本的分歧：
+ *   Vue 是「推」—— 写入时（reactive 由 Proxy 拦截，ref 由 .value 的 setter 拦截）就通知读过它的 effect。这是两框架最根本的分歧：
  *   React 的不可变约定、Vue 的响应式系统，都源于这一设计选择。
  */
 import { reactive } from 'vue'
@@ -70,7 +70,7 @@ const order = reactive<Order>(structuredClone(INITIAL_ORDER))
 let nextItemSeq = 3
 
 // 模式一对照：React 要 { ...prev, customer: xxx } 造新对象；Vue 直接给字段赋值，
-// Proxy 拦截这次 set、只更新依赖 customer 的地方。
+// Proxy 拦截这次 set，触发读过 order.customer 的组件重新渲染（这里就是本组件）。
 function renameCustomer() {
   order.customer = nextCustomer(order.customer)
 }
@@ -115,7 +115,7 @@ function directMutate() {
 <template>
   <div class="stack">
     <p class="muted">
-      点按钮并观察下方 JSON：Vue 直接改同一个 reactive 对象即可，Proxy 精准触发更新；
+      点按钮并观察下方 JSON：Vue 直接改同一个 reactive 对象即可，Proxy 拦截写入并触发本组件重新渲染；
       「直接 mutate」按钮在 React 版里是点了没反应的反例，在这里完全正常
     </p>
 

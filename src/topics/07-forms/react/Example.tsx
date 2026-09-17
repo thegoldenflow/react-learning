@@ -25,8 +25,8 @@
  * - @submit.prevent 用修饰符声明式阻止默认行为
  * - 表单对象用 reactive 包住，直接改属性即可，无需展开复制
  * - 复杂表单 Vue 生态常用 VeeValidate / FormKit，定位类似 react-hook-form（同样不引入）
- * - 「受控 vs 非受控」这道二分题在 Vue 里基本不存在：v-model 太顺手，输入也不会重跑整个组件，
- *   没有「为了性能改用非受控」的动机 —— 没有一一对应关系
+ * - 「受控 vs 非受控」这道二分题在 Vue 里基本不存在：v-model 太顺手；输入时只有读了该字段的组件重跑渲染函数，
+ *   props 没变的子组件不会被连带重渲染，没有「为了性能改用非受控」的动机 —— 没有一一对应关系
  * - Vue 也没有 defaultValue 这个 prop：要「只给初始值」就写一个静态 value 属性；取 DOM 原始值同样可以
  *   用模板 ref 读 el.value，或在 @submit.prevent 里 new FormData(e.target as HTMLFormElement)
  *

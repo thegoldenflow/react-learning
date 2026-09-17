@@ -180,7 +180,7 @@ src/
 | Zustand | Pinia | Zustand 无需 Provider、import 即用，但订阅粒度靠手写 selector；Pinia 的 store 是响应式对象，「读了才依赖」全自动。 |
 | React Router（`<Routes>` / `useParams` / `useNavigate`） | Vue Router（路由表 / `useRoute` / `useRouter`） | React Router 的声明式路由就是 JSX 组件树的一部分；Vue Router 是集中式路由表配置。守卫思路也不同：React 常用包装组件 / loader，Vue 用导航守卫。 |
 | custom hook（`useXxx`） | composable（`useXxx`） | 写法惊人地像，但 custom hook 每次渲染都重新执行、受 Hooks 规则约束（顶层调用、不能进条件/循环）；composable 在 setup 里只执行一次，无此限制。 |
-| state 快照 + 重渲染（`UI = f(props, state)`） | 响应式更新（Proxy 依赖追踪） | React 每次 setState 都让组件函数整体重跑，本次渲染里的 state / props 是固定快照，setter 不会改当前闭包里的变量；Vue 的 setup 只跑一次，`.value` 永远读到最新值。更新队列、批处理、函数式更新、过期闭包全都由此而来（23 / 24 / 26 题）。 |
+| state 快照 + 重渲染（`UI = f(props, state)`） | 响应式更新（依赖追踪：reactive 用 Proxy，ref 用 getter / setter） | React 每次 setState 都让组件函数整体重跑，本次渲染里的 state / props 是固定快照，setter 不会改当前闭包里的变量；Vue 的 setup 只跑一次，`.value` 永远读到最新值。更新队列、批处理、函数式更新、过期闭包全都由此而来（23 / 24 / 26 题）。 |
 | `React.ChangeEvent<HTMLInputElement>` 等事件类型 | `Event` + `(e.target as HTMLInputElement)` | React 的合成事件带泛型，`e.target.value` 直接有类型；Vue 模板里 `@input` 拿到的是原生 `Event`，要自己断言 target——这正是 `v-model` 替你省掉的那一步（28 题）。 |
 | `useReducer` + 判别联合 Action | `reactive` + 类型化 action 函数（无内置对应） | React 把「所有修改收敛成一个纯函数」做成了内置 Hook，`never` 穷尽检查保证漏掉的 Action 在编译期报错；Vue 没有对应原语，日常写 `addItem()` 这类方法或 Pinia action，纯 reducer 风格也能手写（29 题）。 |
 | `useQuery` / `useMutation`（React Query） | `useQuery` / `useMutation`（Vue Query） | 两侧共用同一个 `@tanstack/query-core`，API 几乎逐字相同——它是生态库而非 React 核心 API；差别只在触发方式：React 靠重渲染把新的 queryKey 传进去，Vue 把 ref 放进 queryKey 由库自动监听（30 题）。 |
@@ -259,7 +259,7 @@ src/
 
 ## React 和 Vue 最重要的 11 个思维差异
 
-1. **不可变 vs 可变。** React 的 state 是普通 JS 值，没有 Proxy 包装，React 察觉不到你的修改——它得知变化的唯一途径是你调用 setter 并传入**新引用**（`Object.is` 对比）。Vue 用 Proxy 拦截读写，直接 `item.quantity++` 就能精准触发更新。这是两个框架一切差异的源头。
+1. **不可变 vs 可变。** React 的 state 是普通 JS 值，没有 Proxy 包装，React 察觉不到你的修改——它得知变化的唯一途径是你调用 setter 并传入**新引用**（`Object.is` 对比）。Vue 拦截读写（`reactive` 用 Proxy，`ref` 用 `.value` 的 getter / setter），直接 `item.quantity++` 就能触发读过它的组件重新渲染。这是两个框架一切差异的源头。
 
 2. **重新执行整个组件函数 vs 精准依赖追踪。** React 更新的最小单位是「组件函数整体重跑」：setState 后整个函数从头执行，产出新 JSX 再 diff。Vue 的 setup 只跑一次，之后靠依赖追踪只重跑真正依赖了变化数据的渲染副作用。理解「我写的每一行组件代码每次渲染都会重新执行」之后，闭包快照、useMemo、useCallback 的存在理由全都顺理成章（23 题用可点的实验证明）。
 

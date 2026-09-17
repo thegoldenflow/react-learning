@@ -26,8 +26,8 @@
  * - @submit.prevent 用修饰符声明式阻止默认行为
  * - 表单对象用 reactive 包住，直接改属性即可，无需展开复制
  * - 复杂表单 Vue 生态常用 VeeValidate / FormKit，定位类似 react-hook-form（同样不引入）
- * - 「受控 vs 非受控」这道二分题在 Vue 里基本不存在：v-model 太顺手，输入也不会重跑整个组件，
- *   没有「为了性能改用非受控」的动机 —— 没有一一对应关系
+ * - 「受控 vs 非受控」这道二分题在 Vue 里基本不存在：v-model 太顺手；输入时只有读了该字段的组件重跑渲染函数，
+ *   props 没变的子组件不会被连带重渲染，没有「为了性能改用非受控」的动机 —— 没有一一对应关系
  * - Vue 也没有 defaultValue 这个 prop：要「只给初始值」就写一个静态 value 属性；取 DOM 原始值同样可以
  *   用模板 ref 读 el.value，或在 @submit.prevent 里 new FormData(e.target as HTMLFormElement)
  *
@@ -102,7 +102,8 @@ function readText(formData: FormData, key: string): string {
 }
 
 // 这里要点破一个事实：React 侧那一整套「受控 vs 非受控」的取舍，在 Vue 世界里基本不成立 ——
-// v-model 又短又顺手，而且 Vue 不会因为一次输入就重跑整个组件（只更新用到该值的那几个节点），
+// v-model 又短又顺手；一次输入只让本组件的渲染函数重跑（setup 不重跑），patch 时只比对编译器标出的动态节点，
+// props 没变的子组件也不会被连带重渲染，
 // 所以没有「为了性能改用非受控」的动机。Vue 生产代码里几乎见不到有人刻意写非受控表单，
 // 「受控组件 / 非受控组件」这对概念本身就是 React 特有的，没有一一对应关系。
 // 下面这段纯粹是为了和 React 侧对照：Vue 同样能走「DOM 自己存值、提交时读一次」这条路。
@@ -194,7 +195,8 @@ function handlePeek() {
       </div>
     </form>
 
-    <!-- 和 React 一样 state 随按键实时更新；不同的是 Vue 不重跑整个组件，只更新这一行文本 -->
+    <!-- 和 React 一样 state 随按键实时更新，两边都会重新渲染本组件：React 重跑整个组件函数，
+         Vue 只重跑渲染函数（setup 不重跑），patch 时只比对编译器标出的动态节点，比如这一行文本 -->
     <p class="muted">
       实时 state：{{ JSON.stringify(form) }}
     </p>
@@ -218,7 +220,7 @@ function handlePeek() {
     <div class="card stack">
       <h3>非受控写法：快速新增联系人（对照上面的受控表单）</h3>
       <p class="muted">
-        Vue 里几乎没人这么写：v-model 太顺手，也不存在「每次按键都重跑整个组件」的成本，
+        Vue 里几乎没人这么写：v-model 太顺手，每次按键的更新成本也低（setup 不重跑，props 没变的子组件不会被连带重渲染），
         所以「受控 vs 非受控」这道 React 面试标配题，在 Vue 世界里基本不成立 —— 没有一一对应关系。
         下面纯粹是为了和 React 侧对照。
       </p>

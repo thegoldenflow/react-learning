@@ -13,12 +13,12 @@
  * - 深嵌套更新繁琐是真实痛点，工业界常用 Immer（useImmer）「以可变写法生成不可变更新」（本课不引入）
  *
  * Vue 对应概念：
- * - reactive 对象直接 mutate：Proxy 拦截 set，写入那一刻就精准知道谁变了、只更新依赖它的地方
+ * - reactive 对象直接 mutate：Proxy 拦截 set，写入时就知道是哪个属性变了，读过它的组件重新执行渲染函数、再 patch DOM
  * - 没有「每层新引用」的负担：push / splice / 直接赋值都是惯用写法
  *
  * 最重要的区别：
  * - 变更检测的哲学：React 是「拉」—— 不监听数据，靠你换引用、它来比较发现变化；
- *   Vue 是「推」—— Proxy 在写入时就通知订阅者。这是两框架最根本的分歧：
+ *   Vue 是「推」—— 写入时（reactive 由 Proxy 拦截，ref 由 .value 的 setter 拦截）就通知读过它的 effect。这是两框架最根本的分歧：
  *   React 的不可变约定、Vue 的响应式系统，都源于这一设计选择。
  */
 import { useRef, useState } from 'react'
@@ -129,7 +129,7 @@ export default function Example() {
    * 更隐蔽的坑：点完反例再点任意正常按钮，你会发现数量「凭空」多了 1 ——
    * 数据早就被改了，只是 UI 一直没跟上。数据与 UI 不同步、难以排查，正是 mutate 的危害。
    *
-   * Vue 版对照：一模一样的代码在 Vue 里是【正确写法】——Proxy 拦截 set，改完立即精准更新。
+   * Vue 版对照：一模一样的代码在 Vue 里是【正确写法】——Proxy 拦截 set，读过它的组件在下一个 tick 重新渲染。
    */
   const badMutate = () => {
     const first = order.items[0]

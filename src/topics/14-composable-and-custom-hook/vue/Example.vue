@@ -19,7 +19,7 @@
  * - 防抖 composable：watch + setTimeout + onUnmounted 清理；定时器 id 就是 setup 作用域里的一个普通 let 变量
  *
  * 最重要的区别：
- * - Vue 的 composable 没有「只能顶层调用」的限制（响应式靠 Proxy 追踪，不靠调用顺序），
+ * - Vue 的 composable 没有「只能顶层调用」的限制（setup 只执行一次，状态存在返回的 ref / reactive 对象里，不靠调用顺序对应），
  *   但受「生命周期钩子必须在 setup 同步执行期间注册」的约束 —— 两个约束不同源，没有一一对应关系。
  * - React 的 hook 每次渲染整个重跑、返回普通值；Vue 的 composable 只在 setup 跑一次、返回 Ref 容器。
  * - 由此延伸出防抖实现的差异：Vue 的 setup 只跑一次，`let timer` 天然跨更新存活；
@@ -32,7 +32,7 @@ import WidthPanel from './WidthPanel.vue'
 const showB = ref(true)
 
 // React 版在 WidthPanel 里放了一段被注释掉的「条件调用 hook」违规代码（eslint 会报错）——
-// Vue 没有那条规则：composable 放进 if 里调用也不会错乱（响应式靠 Proxy 追踪，不靠调用顺序）。
+// Vue 没有那条规则：composable 放进 if 里调用也不会错乱（setup 只执行一次，状态存在返回的 ref / reactive 对象里，不靠调用顺序对应）。
 // 但 Vue 有自己的约束：composable 内部若用了 onMounted 等生命周期钩子，就必须在 setup
 // 【同步执行期间】调用（不能放进 setTimeout / await 之后）。两个约束不同源，没有一一对应关系。
 

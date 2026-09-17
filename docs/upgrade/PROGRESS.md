@@ -9,7 +9,7 @@
 |---|---|---|---|---|
 | 0 | 审计（只读） | **完成。** 两轮审计均完成；用户 2026-09-17 答复「全部按建议执行」（AUDIT-ROUND2.md §6 D2-1～8，记录在 AUDIT.md §5.13）；两轮合并规则写在 AUDIT.md 附录 C | `docs/upgrade/AUDIT.md`（含 §5.13、§5.14、附录 C）、`docs/upgrade/REAUDIT-PROMPT.md`、`docs/upgrade/AUDIT-ROUND2.md` | 两轮审计与合并说明均已提交（d550e27、1efc217） |
 | 1 | 依赖与工具链调整 | **完成（2026-09-17）**：commit「阶段 1：依赖与工具链调整」（34cd734）+「阶段 1 补充：ESLint 9 → 10（D1-1）」 | package.json / package-lock.json、vitest.config.ts、eslint.config.js + eslint-suppressions.json、tsconfig.json、src/test/、4 处 react-router 导入、README 事实行 | 复核口径与全部记录见下文「阶段 1 记录」；版本决定见 AUDIT.md §5.0 的 5.14、5.15 |
-| 2 | 逐主题修改（先改 18 路由样板） | **进行中**（分支 `phase-2-topics`）：前置 commit（壳修复，2.0）与 **18 路由样板**（2.1）已完成，**样板风格已确认**（AUDIT.md §5.0 的 5.16）。**下一步：按 `docs/upgrade/CONTINUE-PROMPT.md` 在新会话继续**，先做 2-A（Vue 响应式措辞批量修正），再按 2-B → 2-C 逐题改 | 每题一个 commit | 样板已确认，其余题不再逐题停 |
+| 2 | 逐主题修改（先改 18 路由样板） | **进行中**（分支 `phase-2-topics`）：前置 commit（壳修复，2.0）、**18 路由样板**（2.1，风格已确认，AUDIT.md §5.0 的 5.16）、**2-A Vue 响应式措辞批量修正**（2.2，措辞见「统一措辞」）已完成。**下一步：2-B 主线题，从 07 表单开始**（顺序 07 → 19 → 11 → 30 → 14 → 16 → 20 → 26），做法见 `docs/upgrade/CONTINUE-PROMPT.md` | 每题一个 commit | 样板已确认，其余题不再逐题停 |
 | 3 | 补充新主题 | 未开始 | | 按阶段 0 确认的清单 |
 | 4 | 一致性检查 + CHANGELOG | 未开始 | `docs/upgrade/CHANGELOG.md` | |
 
@@ -186,6 +186,38 @@
 4. 每条关键结论都配自动化测试（React 18 条、Vue 7 条），测试文件和示例放同目录。
 5. 引用未来新题时写「（32 题，待新增）」。
 6. 模拟服务可注入延迟（页面上 300–400ms 方便观察，测试里 0）。
+
+### 2.2 阶段 2-A：Vue 响应式措辞批量修正（2026-09-17）
+
+- **范围**：先按接续 prompt 跑 `grep -rn "Proxy\|属性级\|粒度" src/topics`，再用「精准 / 精确通知 / 重跑整个 / 不重跑 / 只更新 / 那几个节点 / 最小更新范围」补搜，逐处判断。改了 15 个文件 45 处：03（react 3、vue 3）、07（react 1、vue 4）、14（react 2、vue 2）、15（react 1、vue 1）、21（react 3、vue 4）、23（react 6、vue 10）、26（vue 2）、29（vue 1）、README 2。最终措辞见下文「统一措辞」。
+- **审计点名的三条**：R2-03-8（03 react :17、:312-313，vue 同句）、R2-21-8（21 react :16、vue :73）、R2-23-7（23 react :16、vue :18、:76）已改。
+- **审计没列、这次补搜发现的同类错误**：07 题 4 处「Vue 输入不会重跑整个组件 / 只更新用到该值的那几个节点」（实际会重跑本组件的渲染函数，靠 patch flags 只比对动态节点）；14 题 3 处「响应式靠 Proxy 追踪，不靠调用顺序」（composable 不受调用顺序约束的原因是 setup 只执行一次、状态在返回的 ref / reactive 对象里）；23 题「Proxy 发现值没变」（`count` 是 ref，靠 setter 里的 `hasChanged`）、区块三标题「脱离了 Proxy」和控制台文案；21 题「改完立即精准更新」（DOM 在下一个 tick 更新）；29 题「被精准通知」。
+- **判断为正确、没有改**：「props 是响应式 Proxy」（23 题 3 处；props 是 `shallowReactive`）；reactive 对象、从 reactive 数组取出的对象被 Proxy 拦截（21 题 react :74、vue :95，22 题两处，29 题 :66）；15 题「依赖追踪是属性级的」（说的是追踪，后半句「谁读了谁更新」是组件级）；16 / 17 题「组件级精准更新」「订阅粒度」（与统一措辞一致，17 题的「根本不会更新」留给 17 题重写）；README :264「只重跑真正依赖了变化数据的渲染副作用」。
+- **README**：只改同一错误的两处（对照表 :183「Proxy 依赖追踪」、思维差异第 1 条 :262「Vue 用 Proxy 拦截读写…精准触发更新」），叙述章节其余内容仍留阶段 4。
+- **按 5.16 没做**：「没有一一对应关系」残留和绝对化用词（这次改到的句子里有的也原样保留，逐题清零）；12 题 3 处「改 .value 视图立即更新」属于「时机」一行，12 题改写时处理。
+- **验证**：lint 0 / typecheck 0 / 36 条测试 / build 全部通过；改动文件无 CRLF。改动只涉及注释和几处模板文案（07、21、23 Vue 侧），vue-tsc 与构建都编译了模板，没有另做浏览器验证。
+
+## 统一措辞（各题改写时照用）
+
+### Vue 响应式（2-A 定稿，2026-09-17）
+
+**依据**：
+- vuejs.org/guide/extras/reactivity-in-depth：「In Vue 3, Proxies are used for reactive objects and getter / setters are used for refs」；「each component instance creates a reactive effect to render and update the DOM」。
+- vuejs.org/guide/essentials/reactivity-fundamentals：「Non-primitive values are turned into reactive proxies via `reactive()`」；「when a ref is mutated, it will trigger a re-render for components that are tracking it」；「Vue buffers them until the "next tick" in the update cycle to ensure that each component updates only once no matter how many state changes you have made」。
+- vuejs.org/guide/extras/rendering-mechanism：「When a dependency used during mount changes, the effect re-runs. This time, a new, updated Virtual DOM tree is created」；「When this component needs to re-render, it only needs to traverse the flattened tree instead of the full tree」。
+- 源码（vue 3.5.42）：`@vue/reactivity/dist/reactivity.cjs.js:1517-1555`（`RefImpl`：`get value()` 里 track，`set value()` 先 `hasChanged` 再 trigger）、`:1496`（`toReactive`：对象交给 `reactive()`）、`:1459`（`createReactiveObject` 里 `new Proxy`）、`:1093`（reactive 的 set 同样先 `hasChanged`）；`@vue/shared/dist/shared.cjs.js:86`（`hasChanged = !Object.is`）；`@vue/runtime-core/dist/runtime-core.cjs.js:6317`（每个组件实例 `instance.effect = new ReactiveEffect(componentUpdateFn)`，调度走 `queueJob`）、`:4835`（`shouldUpdateComponent`：props 没变的子组件跳过更新）、`:4940`（组件 props 是 `shallowReactive`）。
+
+| 要说的事 | 这样写 | 不要这样写 |
+|---|---|---|
+| 实现方式 | `reactive()` 返回原对象的 Proxy；`ref()` 靠 `.value` 的 getter / setter（读时追踪、写时触发）；`ref` 装对象或数组时，内部用 `reactive()` 转成 Proxy，所以 `items.value.push()`、`item.quantity++` 是 Proxy 拦截的 | 「ref 是 Proxy」「ref / reactive 是 Proxy 容器」；泛指时写「Vue 用 Proxy 拦截读写」 |
+| 泛称 | 「ref / reactive」「响应式数据」「响应式容器」 | 「Proxy 里的数据」 |
+| 普通变量改了不更新视图 | 「它不是 ref / reactive，响应式系统追踪不到」 | 「不在 Proxy 里」「脱离了 Proxy」 |
+| 赋相同的值 | 「ref 的 setter / reactive 的 set 用 `Object.is` 比较，值没变不触发」 | 对 ref 写「Proxy 发现值没变」 |
+| 更新单位 | 依赖追踪记到具体属性；写入后被触发重新执行的是读过它的 effect —— 组件的 render effect（每个组件实例一个）、computed、watch。组件 render effect 重跑 = 重新执行这个组件的渲染函数（setup 不重跑）、生成新的虚拟 DOM 再 patch；编译器标出的动态节点（patch flags / tree flattening）让 patch 只比对会变的部分；props 没变的子组件不跟着重渲染 | 「属性级更新」「只更新依赖它的地方 / 用到它的那几个节点」「Vue 不重跑整个组件」「粒度比 React 精细得多」 |
+| 与 React 对比 | 两边的更新单位都是组件：React 从调用 setState 的组件开始，默认连同它渲染出的子组件一起重新执行（memo 可跳过）；Vue 只重跑读过这份数据的组件的渲染函数，props 没变的子组件不跟着重渲染 | 不带范围的「Vue 细粒度、React 粗粒度」 |
+| 时机 | 数据立刻变；DOM 更新异步批量，在下一个 tick 执行，同一轮里每个组件只更新一次 | 「改 .value 视图立即更新」「改完立即精准更新」 |
+| 更细粒度的方向 | 逐个绑定直接更新 DOM、不经过组件级虚拟 DOM，是 Vapor Mode（Vue 3.6 RC）的方向【尝鲜】 | 把 Vapor 的行为说成 Vue 3.5 的现状 |
+| 本来就对、不用改 | 「props 是响应式 Proxy」（`shallowReactive`）；reactive 对象、从 reactive 数组里取出的对象由 Proxy 拦截；「依赖追踪是属性级的」（说的是追踪，不是更新） | — |
 
 ## 每题状态（阶段 2 起填写）
 

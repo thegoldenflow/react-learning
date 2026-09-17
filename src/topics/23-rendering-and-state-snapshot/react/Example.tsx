@@ -12,15 +12,15 @@
  * - UI = f(props, state)：渲染必须是纯函数，同样的 props 与 state 必得同样的 UI（区块四）
  *
  * Vue 对应概念：
- * - setup 只执行一次；重跑的只有模板编译出来的渲染函数，而且由响应式系统精确触发
- * - ref / reactive 是长期存活的 Proxy 容器，count.value 每次都是现读现取 —— 没有「快照」这回事
- * - count.value++ 之后立刻就能读到新值；改一个不在 Proxy 里的普通变量同样不更新视图，
+ * - setup 只执行一次；重跑的只有模板编译出来的渲染函数（组件的 render effect），由它读过的响应式数据变化触发
+ * - ref / reactive 是长期存活的响应式容器（reactive 是 Proxy，ref 靠 .value 的 getter / setter），count.value 每次都是现读现取 —— 没有「快照」这回事
+ * - count.value++ 之后立刻就能读到新值；改一个不是 ref / reactive 的普通变量同样不更新视图，
  *   但原因不同：不是「没有 setter」，而是「脱离了依赖追踪」
  * - onUpdated：组件因响应式变化重新渲染之后触发，可以拿来观察「渲染函数重跑了」
  * - 「渲染快照」「setter 不改局部变量」「函数式更新」这些在 Vue 里都没有一一对应关系
  *
  * 最重要的区别：
- * - Vue 依靠响应式系统追踪依赖：渲染时读到谁就依赖谁，改 Proxy 里的数据 → 精确通知依赖它的地方重跑；
+ * - Vue 依靠响应式系统追踪依赖：渲染时读到谁就依赖谁，改 ref / reactive 里的数据 → 读过它的组件重新执行渲染函数；
  *   React 不追踪任何东西：调用 setter → 重新执行整个组件函数 → 用返回的新 JSX 与旧的 diff，得到新 UI。
  * - 所以千万不要把 React 解释成「直接修改变量后自动刷新」—— 改变量什么都不会发生。
  *   React 里 UI 变化的唯一入口是「调用 setter → 新一轮函数执行」。
@@ -157,7 +157,7 @@ export default function Example() {
    * 它得知变化的唯一途径是你调用 setter。
    *
    * Vue 侧 let localCopy = count.value 写在 setup 里，只执行一次：改它同样不更新视图，
-   * 但原因是「普通变量不在 Proxy 里、脱离了依赖追踪」，而且它不会被重置（setup 不重跑）——
+   * 但原因是「普通变量不是 ref / reactive、脱离了依赖追踪」，而且它不会被重置（setup 不重跑）——
    * 现象相似、机制不同，没有一一对应关系。
    */
   let localCopy = count
@@ -179,7 +179,7 @@ export default function Example() {
    * 面试怎么答「setState 是同步还是异步」：setter 调用本身是同步的，但它不会同步改本次渲染的变量；
    * 它排队一次更新，React 在事件结束后统一处理并重新执行组件函数 —— 用「快照」而不是「异步」来解释才准确。
    *
-   * Vue 侧：count.value++ 之后立刻读 count.value 就是新值。setup 只跑一次、渲染函数从 Proxy 现读，
+   * Vue 侧：count.value++ 之后立刻读 count.value 就是新值。setup 只跑一次、渲染函数从 ref 现读，
    * Vue 根本没有「本次渲染的 count」这个概念 —— 没有一一对应关系。
    */
   const handleAdd = () => {

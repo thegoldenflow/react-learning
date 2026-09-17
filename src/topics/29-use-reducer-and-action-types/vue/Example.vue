@@ -64,7 +64,7 @@ type Action =
  *   Vue     apply(items: CartItem[], action: Action): void              // 【原地修改】传进来的数组，不返回
  *
  * 为什么 Vue 可以原地改：items 是 reactive 代理，push / splice / 直接赋值都会被 Proxy 拦截，
- * 用到它的模板与 computed 被精准通知；React 没有依赖追踪、只认「引用变没变」（Object.is），
+ * 读过它的组件渲染函数与 computed 被触发重新执行；React 没有依赖追踪、只认「引用变没变」（Object.is），
  * 所以 reducer 必须返回新引用（21 题）。两边写法的差异，根源就是 03 题讲的「可变 + 依赖追踪」vs「不可变 + 换引用」。
  *
  * 它不是纯函数（改了参数），但它【确定性 + 不读任何外部状态】：同一串 action 从空数组开始 apply 一遍，

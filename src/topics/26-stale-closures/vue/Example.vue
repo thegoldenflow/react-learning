@@ -69,7 +69,7 @@ const SAVE_DELAY_MS = 2000
  *
  * Vue 侧同样四个按钮，但「坏」的那两个在 Vue 里【写不出来】—— 除非你手动把 count.value 拷进一个普通变量。
  * 所以 Vue 的对照组是「现读 count.value」（永远新鲜）vs「点击时拷的 snapshot」（这才会过期）：
- * - setTimeout(() => save(count.value))：回调 2 秒后执行，那一刻从 Proxy 上现读，就是最新值 —— 这是 Vue 的默认行为；
+ * - setTimeout(() => save(count.value))：回调 2 秒后执行，那一刻通过 ref 的 .value 现读，就是最新值 —— 这是 Vue 的默认行为；
  * - const snapshot = count.value; setTimeout(() => save(snapshot))：你亲手把值定格在点击那一刻 —— 这才是 React 坏例子的等价物。
  *
  * 理解这一点就理解了整题：React 的坏例子不是「写错了」，而是 React 的闭包天然就是这份 snapshot ——
@@ -81,7 +81,7 @@ const count = ref(0)
 const saveLog = ref<string[]>([])
 
 // React 侧要 setLines(prev => [...prev, line]) 造新数组（并且必须函数式更新，否则过期的 log 会丢行）；
-// Vue 直接 push，Proxy 会拦截到 —— 而且 saveLog 本身也是长期存活的容器，回调里 push 永远不会「过期」。
+// Vue 直接 push，Proxy 会拦截到（ref 装的数组在内部被 reactive() 转成了 Proxy）—— 而且 saveLog 本身也是长期存活的容器，回调里 push 永远不会「过期」。
 function pushSave(line: string) {
   saveLog.value.push(line)
 }

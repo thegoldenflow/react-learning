@@ -19,8 +19,8 @@
  * 最重要的区别：
  * - React Context 以「value 的引用」为粒度判定变化：引用一变，所有 useContext 的组件整体重渲染，
  *   所以才需要 useMemo 包 value
- * - Vue 的 provide 传的是响应式对象（setup 只执行一次，对象只创建一次），更新粒度是
- *   「谁读了哪个属性谁更新」——两边的更新粒度模型没有一一对应关系
+ * - Vue 的 provide 传的是响应式对象（setup 只执行一次，对象只创建一次），依赖记到属性，
+ *   重新渲染的是读过该属性的组件 ——两边的更新粒度模型没有一一对应关系
  */
 import {
   createContext,

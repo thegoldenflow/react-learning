@@ -14,14 +14,15 @@
  *
  * Vue 对应概念：
  * - ref() / reactive() 创建响应式数据，直接改（item.quantity++）就能触发更新
- * - Vue 用 Proxy 拦截读写：渲染时「读」到谁就依赖谁，「写」时精准通知用到它的地方更新
+ * - Vue 的响应式：reactive() 返回 Proxy，ref() 靠 .value 的 getter / setter（装对象时内部再用 reactive() 转成 Proxy）；
+ *   渲染时「读」到哪个属性就记下依赖，「写」时触发读过它的组件重新执行渲染函数（每个组件实例一个 render effect），再 patch DOM
  * - Vue 没有「渲染快照」：count.value 每次都从响应式对象上重新读，连写两次 count.value++ 真的加 2；
  *   因此 Vue 里没有与「函数式更新 setX(prev => ...)」对应的东西（没有一一对应关系）
  * - Vue 也没有 useReducer 的对应物（没有一一对应关系）：直接改 ref / reactive 即可，
  *   逻辑复杂时抽成 composable 或 Pinia action（见 16 题）
  *
  * 最重要的区别：
- * - Vue：可变数据 + 自动依赖追踪 ——「改了就更新」，框架帮你找到最小更新范围；
+ * - Vue：可变数据 + 自动依赖追踪 ——「改了就更新」，框架帮你找到读过这份数据、需要重新渲染的组件；
  * - React：不可变数据 + 显式 setState ——「换了引用才更新」，更新方式是整个组件函数重跑。
  *   把 Vue 的「直接改对象」习惯带进 React 是新手第一大坑，本题注释请逐条读完。
  * - 由此派生：正因为 React 是「快照 + 不可变更新」，才需要函数式更新来绕开过期闭包、
@@ -309,8 +310,10 @@ export default function Example() {
    * 面试考点：为什么 setState 会触发重新渲染？
    * setItems(next) → React 用 Object.is(next, 旧值) 对比 → 引用不同 → 标记组件脏 →
    * 重新执行整个 Example 函数，拿到新 JSX，diff 后更新 DOM。
-   * Vue 则是 Proxy 依赖追踪：改哪个属性，只有依赖那个属性的渲染副作用会重新执行，
-   * 粒度比 React「整个组件函数重跑」精细得多。
+   * Vue 则是依赖追踪（reactive 用 Proxy，ref 用 .value 的 getter / setter）：依赖记到具体属性，
+   * 改了之后重新执行的是读过它的组件的渲染函数（组件级 render effect），再 patch DOM。
+   * 两边的更新单位都是组件，区别在范围：React 默认连同子组件一起重新执行（memo 可以跳过），
+   * Vue 只重跑读过这份数据的组件，props 没变的子组件不跟着重渲染。
    */
   const [items, setItems] = useState<CartItem[]>(INITIAL_ITEMS)
 

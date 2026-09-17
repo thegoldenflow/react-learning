@@ -13,17 +13,17 @@
  * - UI = f(props, state)：渲染必须是纯函数，同样的 props 与 state 必得同样的 UI（区块四）
  *
  * Vue 对应概念：
- * - setup 只执行一次（本文件顶部的 console.log 只打印一次）；重跑的只有模板编译出来的渲染函数，
- *   而且由响应式系统精确触发 —— onUpdated 每次组件更新后触发，用它观察「渲染函数重跑了」
- * - ref / reactive 是长期存活的 Proxy 容器，count.value 每次都是现读现取 —— 没有「快照」这回事：
+ * - setup 只执行一次（本文件顶部的 console.log 只打印一次）；重跑的只有模板编译出来的渲染函数（组件的 render effect），
+ *   由它读过的响应式数据变化触发 —— onUpdated 每次组件更新后触发，用它观察「渲染函数重跑了」
+ * - ref / reactive 是长期存活的响应式容器（reactive 是 Proxy，ref 靠 .value 的 getter / setter），count.value 每次都是现读现取 —— 没有「快照」这回事：
  *   count.value++ 之后立刻就能读到新值（区块二）
- * - 改一个不在 Proxy 里的普通变量（let localCopy）同样不更新视图，但原因不同：
+ * - 改一个不是 ref / reactive 的普通变量（let localCopy）同样不更新视图，但原因不同：
  *   不是「没有 setter」，而是「脱离了依赖追踪」；它也不会像 React 那样每帧被重置（区块三）
  * - 子组件的 props 是响应式 Proxy，异步回调里读 props.count 永远是最新值；只有手动拷贝出来的普通值才会「过期」（区块四）
  * - 「渲染快照」「setter 不改局部变量」「函数式更新」这些在 Vue 里都没有一一对应关系
  *
  * 最重要的区别：
- * - Vue 依靠响应式系统追踪依赖：渲染时读到谁就依赖谁，改 Proxy 里的数据 → 精确通知依赖它的地方重跑；
+ * - Vue 依靠响应式系统追踪依赖：渲染时读到谁就依赖谁，改 ref / reactive 里的数据 → 读过它的组件重新执行渲染函数；
  *   React 不追踪任何东西：调用 setter → 重新执行整个组件函数 → 用返回的新 JSX 与旧的 diff，得到新 UI。
  * - 所以千万不要把 React 解释成「直接修改变量后自动刷新」—— 那是 Vue 改【响应式数据】时的模型，不是 React 的
  *   （Vue 改普通变量同样不会刷新，见区块三）。
@@ -51,7 +51,7 @@ const count = ref(0)
 const threshold = ref(5)
 
 // 页面日志：放在 ref 里而不是模块级变量，切题 / 重挂载都不会串。
-// React 侧必须 setLogs(prev => [...prev, message]) 造新数组；Vue 直接 push，Proxy 会拦截到。
+// React 侧必须 setLogs(prev => [...prev, message]) 造新数组；Vue 直接 push，Proxy 会拦截到（ref 装的数组在内部被 reactive() 转成了 Proxy）。
 const logs = ref<string[]>([])
 
 function log(message: string) {
@@ -73,7 +73,7 @@ onUpdated(() => {
  *
  * count.value++ 之后紧接着读 count.value，读到的就是新值 —— 这一行代码在 React 里是
  * setCount(count + 1) 后读 count 仍是旧值。差异的根源：
- * React 的 count 是本次函数执行里的常量快照；Vue 的 count 是长期存活的 Proxy 容器，.value 现读现取。
+ * React 的 count 是本次函数执行里的常量快照；Vue 的 count 是长期存活的 ref 容器，.value 的 getter 现读现取。
  * 视图更新是「另一件事」：Vue 会在本轮同步代码跑完后异步刷新 DOM（nextTick，24 题详讲），
  * 但数据本身立刻就变了。
  *
@@ -92,7 +92,7 @@ function setTo(value: number) {
 /**
  * ★ 区块三：直接改普通变量，视图不更新 —— 但原因和 React 不同。
  *
- * let localCopy = count.value 只在 setup 里执行一次，拷出来的是一个普通 number，不在任何 Proxy 里。
+ * let localCopy = count.value 只在 setup 里执行一次，拷出来的是一个普通 number，不是 ref / reactive。
  * localCopy += 1 之后视图不动，是因为响应式系统【追踪不到】它，没人通知渲染函数重跑（onUpdated 也不会打印）。
  * React 侧 localCopy 不更新是因为「没有 setter 就没有新渲染」—— 现象一样，机制两回事，没有一一对应关系。
  *
@@ -110,7 +110,7 @@ let localCopy = count.value
 function mutateLocalCopy() {
   localCopy += 1
   // 只写控制台：往响应式的 logs 里 push 会触发重渲染，模板会顺带画出新值，实验就被污染了（见上方注释）
-  console.log(`[23-Vue] localCopy += 1 → localCopy 现在是 ${localCopy}，视图不更新：它是普通数字，不在 Proxy 里，响应式系统追踪不到`)
+  console.log(`[23-Vue] localCopy += 1 → localCopy 现在是 ${localCopy}，视图不更新：它是普通数字，不是 ref / reactive，响应式系统追踪不到`)
 }
 
 /**
@@ -181,7 +181,7 @@ function toggleThreshold() {
         </button>
       </div>
       <p class="muted">
-        连点两次「设为 5」：第二次赋同样的值，Proxy 发现值没变，不会触发任何更新（onUpdated 不打印）——
+        连点两次「设为 5」：第二次赋同样的值，ref 的 setter 用 Object.is 发现值没变，不会触发任何更新（onUpdated 不打印）——
         和 React 的 Object.is 跳过是同一个结论：同样的数据没有理由产生不同的 UI。
       </p>
     </div>
@@ -236,7 +236,7 @@ function toggleThreshold() {
 
     <!-- ---------------- 区块三 ---------------- -->
     <div class="card stack">
-      <h3>区块三：改普通变量同样不更新视图 —— 但原因是「脱离了 Proxy」</h3>
+      <h3>区块三：改普通变量同样不更新视图 —— 但原因是「脱离了响应式系统」</h3>
       <p class="muted">
         打开控制台，连点几次「localCopy += 1」：控制台里的 localCopy 在涨，页面不动、也没有「组件更新」
         （响应式系统追踪不到普通变量，什么都没被触发）。
