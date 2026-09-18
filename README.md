@@ -88,7 +88,7 @@ src/
 | 01 | `01-component-and-jsx` | 组件与 JSX | 组件是返回 JSX 的函数（名字大写）、JSX 编译成 `jsx()` 调用、几条 JSX 硬规则、组件必须纯（StrictMode 调用两次）、不要在组件里定义组件，对照 Vue 的 SFC、模板语法与插槽 |
 | 02 | `02-props` | Props | props 是组件函数唯一的参数：类型与解构默认值（只对 undefined 生效）、只读快照与回调上浮、不要把 props 复制进 state、继承原生属性 + `{...rest}` 透传与 ref 作为 prop，对照 Vue 的 defineProps、响应式 props 解构与透传属性 |
 | 03 | `03-state` | State 与 useState | 为什么局部变量不行、setter 只影响下一次渲染（快照、函数式更新、Object.is 跳过）、对象 / 数组整体替换、惰性初始化、state 的结构（存 id、status 代替多个布尔值）、多状态收敛到 useReducer、两个常见报错，对照 ref / reactive 与 setup 只执行一次 |
-| 04 | `04-events` | 事件处理 | onClick 与事件对象、处理函数的定义与传参，对照 @click 与 $event |
+| 04 | `04-events` | 事件处理 | 传函数不要调用、合成事件与 nativeEvent（17 起委托到 root 容器）、捕获与冒泡、preventDefault 与 stopPropagation、Vue 修饰符的 JS 写法、onWheel 是被动监听，对照 v-on、修饰符与原生事件 |
 | 05 | `05-conditional-rendering` | 条件渲染 | 三元表达式与 && 的用法及陷阱（误渲染 0），对照 v-if / v-else-if |
 | 06 | `06-list-and-key` | 列表渲染与 key | .map() 渲染列表、key 为什么必须稳定唯一、index 作 key 的坑、用 key 强制重置组件状态，对照 v-for |
 
@@ -195,7 +195,7 @@ src/
 
 **03 State 与 useState** —— 课件升级阶段 2 重写（2026-09-18，文件头按十段模板）。七个区块：① 为什么需要 state：局部变量点 3 下日志是 1、2、3，界面一直是 0，重渲染后又从 1 开始；同一个计数器渲染两次，state 各管各的；② setter 只影响下一次渲染：set 之后立刻读还是旧值、`setCount(count + 1)` 连写两次只加 1 而 `setCount(c => c + 1)` 加 2、设成同一个值被 `Object.is` 跳过（组件刚因自己的 state 更新重渲染过时，React 可能还会调用一次组件函数）；③ 对象 / 数组整体替换：购物车的 map / filter / 展开，以及「❌ 原地 +1」—— 界面不动，下次别的重渲染才「突然」变（lint 拦不住经 `find()` 拿到的对象再改）；④ 惰性初始化：`useState(createX())` 每次渲染都调用，`useState(() => createX())` 只调一次（StrictMode 开发期 2 次）；⑤ state 的结构：选中项存对象会过期、存 id 跟着列表走，两个布尔值会出现「发送中且已发送」的不可能状态、一个 `status` 不会；⑥ 多个互相牵制的字段收进 `useReducer`（reducer 导出到 `.ts` 单独测试）；⑦ 两个常见报错：`onClick={handleClick()}` 触发「Too many re-renders」、`setFn(fn)` 把函数当更新函数调用。Vue 侧：`<script setup>` 的普通变量一直活着但不触发渲染、改完立刻读到新值而 DOM 到 `nextTick` 才变、`setup` 只执行一次所以没有惰性初始化、存同一个响应式对象在原地修改时不过期但列表换新后同样脱节、渲染中改数据在开发构建里报 Maximum recursive updates exceeded。React 24 条 + Vue 14 条测试。这是 Vue 开发者思维转换的第一关（机制在 23 / 24 题，过期闭包在 26 题，useReducer 完整模式在 29 题）。
 
-**04 事件处理** —— `onClick={fn}` 传函数引用、需要传参时套一层箭头函数、合成事件对象。对照 `@click` 与 `$event`；React 没有事件修饰符（`.stop` / `.prevent`），要自己调 `e.stopPropagation()` / `e.preventDefault()`。
+**04 事件处理** —— 课件升级阶段 2 重写（2026-09-18，文件头按十段模板）。六个区块：① 绑定与传参：`onClick={fn}` 传函数、传参包箭头函数、回调 prop 以 on 开头，以及写成 `onClick={removeItem(item.id)}` 的列表 —— 渲染时就被删光（更新会收敛，所以不报错）；② 事件对象：点按钮里的图标，`e.target` 是图标、`e.currentTarget` 是按钮、`e.nativeEvent.currentTarget` 是 root 容器，`setTimeout` 里 `currentTarget` 已是 `null`；③ 事件传播：React 捕获 / 冒泡处理函数和原生监听器放在同一份日志里比先后，勾选后在按钮里 `stopPropagation` 看挡住了谁，外加 `onScroll` 不冒泡、`onFocus` 冒泡；④ 默认行为：`preventDefault` 只拦跳转、事件照样冒泡，`<form onSubmit>` 拦提交，`e.target !== e.currentTarget` 实现 `.self`；⑤ Vue 修饰符的 React 写法：`.once`、`.enter` / `.esc` / `.ctrl.enter.exact`（排除输入法组字）、鼠标按键与右键菜单；⑥ `onWheel` 是被动监听，`preventDefault` 拦不住，要用 `addEventListener(…, { passive: false })`。Vue 侧：模板里的「调用」会被编译成函数、`v-on` 直接绑在元素上（和原生监听器按 DOM 顺序交错）、修饰符的实现、`@click.right` 被改写成 `contextmenu`、`@wheel.prevent` 直接生效、组件事件不冒泡。React 22 条 + Vue 15 条测试。
 
 **05 条件渲染** —— 三元表达式、`&&` 短路及其经典陷阱（`count && <X/>` 会把 0 渲染出来）。React 的「条件渲染」就是普通 JS 控制流，没有 `v-if` 指令。
 
@@ -381,7 +381,7 @@ src/
 | 01 | JSX 是什么、浏览器能直接运行吗、编译成什么？为什么 React 17 之后不用 `import React`？组件名为什么必须大写？「组件必须是纯函数」是什么意思、StrictMode 为什么调用两次？调用组件函数等于更新 DOM 吗？为什么不能在组件里定义组件？ |
 | 02 | props 为什么是只读的、直接改会怎样（开发构建 / 生产构建）？默认值传 `null` 和 `undefined` 有什么区别？为什么不要把 props 复制进 state？如何让自定义组件支持 `disabled`、`aria-*` 等全部原生属性（对比 Vue 的 `$attrs` 自动透传）？`ComponentPropsWithRef` 和 `WithoutRef` 的区别？React 19 的「ref 作为 prop」与 `forwardRef`？key 是 prop 吗？ |
 | 03 | 为什么不能用普通变量存会变的数据？setState 是同步还是异步、之后立刻读是什么值？`setCount(count+1)` 连写两次为什么只加 1、一定要用函数式更新吗？设成同一个值会重渲染吗？为什么直接修改 state 不会触发更新？`useState(expensive())` 有什么问题？两个布尔值 `isSending` / `isSent` 有什么问题？什么时候该从 useState 升级到 useReducer？class 的 `setState` 和 Hooks 的 setter 有什么区别？ |
-| 04 | React 的合成事件（SyntheticEvent）是什么？`onClick={fn()}` 和 `onClick={fn}` 有什么区别？ |
+| 04 | `onClick={fn()}` 和 `onClick={fn}` 有什么区别？内联箭头函数每次渲染都是新函数有问题吗？React 的合成事件是什么、监听器挂在哪（React 17 改了什么）？`e.currentTarget` 和 `e.nativeEvent.currentTarget` 为什么不同？捕获和冒泡的顺序？`stopPropagation` 与 `preventDefault` 的区别，能挡住 `document` 上的监听吗？Vue 的 `.self` / `.once` / `.exact` 在 React 里怎么写？为什么 `onWheel` 里 `preventDefault` 没用？ |
 | 05 | `condition && <Component/>` 有什么陷阱？条件渲染 null / false 时组件会发生什么？ |
 | 06 | key 的作用是什么？为什么不能用 index 作 key？key 变化时组件会发生什么（卸载旧 Fiber、state 与 effect 全部丢弃）？如何用 key 重置子组件状态？ |
 | 07 | 受控组件和非受控组件的区别是什么？各适用什么场景？`value` 不配 `onChange`、初始值给 `undefined` 分别会怎样？`onChange` 和原生 `change` 一样吗？`useId` 为什么不用自增计数器？为什么 react-hook-form 性能好？ |

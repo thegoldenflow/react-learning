@@ -49,7 +49,7 @@ export const PHASES: TopicPhase[] = [
       {
         slug: '04-events',
         title: '事件处理',
-        summary: 'onClick 与事件对象、处理函数的定义与传参，对照 @click 与 $event。',
+        summary: '传函数不要调用、合成事件与 nativeEvent、捕获与冒泡、preventDefault 与 stopPropagation、Vue 修饰符的 JS 写法、onWheel 是被动监听，对照 Vue 的 v-on、修饰符与原生事件。',
       },
       {
         slug: '05-conditional-rendering',

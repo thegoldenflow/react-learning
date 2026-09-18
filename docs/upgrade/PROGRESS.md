@@ -9,7 +9,7 @@
 |---|---|---|---|---|
 | 0 | 审计（只读） | **完成。** 两轮审计均完成；用户 2026-09-17 答复「全部按建议执行」（AUDIT-ROUND2.md §6 D2-1～8，记录在 AUDIT.md §5.13）；两轮合并规则写在 AUDIT.md 附录 C | `docs/upgrade/AUDIT.md`（含 §5.13、§5.14、附录 C）、`docs/upgrade/REAUDIT-PROMPT.md`、`docs/upgrade/AUDIT-ROUND2.md` | 两轮审计与合并说明均已提交（d550e27、1efc217） |
 | 1 | 依赖与工具链调整 | **完成（2026-09-17）**：commit「阶段 1：依赖与工具链调整」（34cd734）+「阶段 1 补充：ESLint 9 → 10（D1-1）」 | package.json / package-lock.json、vitest.config.ts、eslint.config.js + eslint-suppressions.json、tsconfig.json、src/test/、4 处 react-router 导入、README 事实行 | 复核口径与全部记录见下文「阶段 1 记录」；版本决定见 AUDIT.md §5.0 的 5.14、5.15 |
-| 2 | 逐主题修改（先改 18 路由样板） | **进行中**（分支 `phase-2-topics`）：前置 commit（壳修复，2.0）、**18 路由样板**（2.1，风格已确认，AUDIT.md §5.0 的 5.16）、**2-A Vue 响应式措辞批量修正**（2.2，措辞见「统一措辞」）、**2-B 的 07 表单**（2.3）、**19 异步提交**（2.4）、**11 API 请求状态**（2.5）、**30 TanStack Query**（2.6）、**14 自定义 Hook**（2.7）、**16 全局状态**（2.8）、**20 错误边界**（2.9）、**26 过期闭包**（2.10）已完成，**2-B 全部完成**；2-C 的 **01 组件与 JSX**（2.11）、**02 Props**（2.12）、**03 State**（2.13）已完成。**下一步：2-C 的 04 事件处理**（之后按编号 05 → 06 → …），做法见 `docs/upgrade/CONTINUE-PROMPT.md` | 每题一个 commit | 样板已确认，其余题不再逐题停 |
+| 2 | 逐主题修改（先改 18 路由样板） | **进行中**（分支 `phase-2-topics`）：前置 commit（壳修复，2.0）、**18 路由样板**（2.1，风格已确认，AUDIT.md §5.0 的 5.16）、**2-A Vue 响应式措辞批量修正**（2.2，措辞见「统一措辞」）、**2-B 的 07 表单**（2.3）、**19 异步提交**（2.4）、**11 API 请求状态**（2.5）、**30 TanStack Query**（2.6）、**14 自定义 Hook**（2.7）、**16 全局状态**（2.8）、**20 错误边界**（2.9）、**26 过期闭包**（2.10）已完成，**2-B 全部完成**；2-C 的 **01 组件与 JSX**（2.11）、**02 Props**（2.12）、**03 State**（2.13）、**04 事件处理**（2.14）已完成。**下一步：2-C 的 05 条件渲染**（之后按编号 06 → 08 → …），做法见 `docs/upgrade/CONTINUE-PROMPT.md` | 每题一个 commit | 样板已确认，其余题不再逐题停 |
 | 3 | 补充新主题 | 未开始 | | 按阶段 0 确认的清单 |
 | 4 | 一致性检查 + CHANGELOG | 未开始 | `docs/upgrade/CHANGELOG.md` | |
 
@@ -608,6 +608,49 @@
 
 **验证**：`npm run check` 通过（lint 0 / typecheck 0 / 测试 346 条 / build）；03 的 38 条测试无 act 警告、无 stderr（故意触发的报错都 spy 并断言；Vue 的未处理拒绝用 process.on('unhandledRejection') 收住）。浏览器用临时 5174 服务器（完成后已停掉并还原 launch.json；面板隐藏）：React 七个区块 —— 局部变量日志 1、2、3 且界面 0、重渲染后从 1 开始，A / B 计数器互不影响；快照日志「setCount(1) 之后立刻读 count = 0」、A 只 +1、B +2；「❌ 原地 +1」后界面不动、点另一行 + 后突然变 2、合计 6；惰性初始化 StrictMode 下首次 2 / 2，输入一次后 4 / 2；选中项存对象停在 × 1、存 id 显示 × 3；两个布尔值同时显示「发送中…」「已发送 ✓」；reducer 输入 9 报库存、输入 5 成功；Too many re-renders 被边界接住（唯一一条 console.error 是这个预期的报错）、formatter 被改坏后显示 typeof = string。Vue 六个区块 —— 普通变量点 3 次显示 0、重渲染后显示 3；改完立刻读 1、DOM 上还是 0、nextTick 后 1；A / B 都 +2；列表换新后存对象停在 × 2、存 id 显示 × 12；init 调用 1 次。源码查看器 React 12 个、Vue 9 个文件；无横向溢出。复核后的修改只动注释、测试名与说明文字，重跑 lint / typecheck / 测试。
 
+### 2.14 04 事件处理（2026-09-18，2-C 第四题）
+
+**蓝本与依据**：AUDIT-ROUND2.md §5 的 04 大纲；问题表 = R2-04-1～11 + AUDIT.md §3 的 04 各行（:243 合成事件 17 起的变化、:244 passive、:245「渲染中 setState 触发死循环警告」、:246 vue「$event 就是原生 DOM 事件对象」的前提）。核实：1 个只读文档研究代理（13 组 46 小项、173 段引文脚本逐字校验全部通过：44 确认、2 修正、2 查无；另做了 3 条故意改错的反向测试）+ 主会话读源码（react-dom 事件系统、@types/react 事件类型、@vue/runtime-dom 的 patchEvent / 修饰符守卫、@vue/compiler-dom 的 v-on 变换、react-router 的 shouldProcessLinkClick）+ 主会话一次性探针（React 5 组、Vue 2 组、捕获阶段 stopPropagation 1 组，结果见下）+ MDN（keydown 的输入法组字、auxclick、localStorage 以外的几页）+ 1 个反驳式复核代理（见下）。
+
+**结构（React 10 个文件，Vue 9 个文件）**
+- `react/Example.tsx`：十段文件头 + 六个区块的入口。
+- `react/BindingDemo.tsx`【区块一】：`onClick={handleCountClick}`（读 clientX）、`OrderRow` 子组件用 `onRemove` 回调 prop（`(e) => onRemove(item.id, e.shiftKey)`）、「❌ 挂载写成 onClick={removeItem(item.id)} 的列表」（渲染时就删光）。
+- `react/EventObjectDemo.tsx`【区块二】：点按钮里的图标，表格列出 type / target / currentTarget / nativeEvent.currentTarget（root 容器）/ eventPhase / isTrusted，以及 setTimeout 里读到的值（currentTarget 为 null）。
+- `react/PropagationDemo.tsx`【区块三】：外层 / 中层 onClickCapture + onClick、按钮 onClick（可勾选 stopPropagation），再挂原生捕获 / 冒泡监听与 document 监听，同一份日志比先后；附「哪些事件在 React 里不冒泡」（onScroll 不冒泡、外层 onScrollCapture 能收到、onFocus 冒泡）。
+- `react/DefaultActionDemo.tsx`【区块四】：链接 preventDefault（显示原生 defaultPrevented，照样冒泡）、只 stopPropagation 的勾选框（照样勾上）、`<form onSubmit>` + preventDefault（回车也走这里）、`e.target !== e.currentTarget`（.self）。
+- `react/ModifiersDemo.tsx`【区块五】：.once（state 标记 / ref 标记）、Enter / Ctrl + Enter（exact）/ Esc 与输入法组字判断、鼠标按键与 onContextMenu。
+- `react/PassiveWheelDemo.tsx`【区块六】：onWheel + preventDefault（拦不住）vs ref + addEventListener(…, { passive: false })（缩放）。
+- `react/demoKit.ts` + `react/LogPanel.tsx`：日志 store、describeTarget。
+- Vue 侧：`BindingDemo.vue` + `OrderRow.vue`（emit + $event.shiftKey）、`EventObjectDemo.vue`、`PropagationDemo.vue`（.capture / 勾选 stop + 原生监听器 + @scroll / @focus / @focusin）、`DefaultActionDemo.vue`、`ModifiersDemo.vue`（.once、.enter.exact、.ctrl.enter.exact、.esc、@contextmenu.prevent）、`PassiveWheelDemo.vue`（@wheel.prevent）、`Example.vue`（精简头）。
+- 壳：注册表 04 题 summary；README 04 题目录行、说明段、面试题行。
+- 测试：React 22 条、Vue 15 条。
+
+**问题表处理**：R2-04-1 委托到 root 容器（源码 listenToAllSupportedEvents / nonDelegatedEvents / portal，区块二实测 nativeEvent.currentTarget）；R2-04-2 传播模型（三阶段原文、和原生监听器混用的完整顺序、onScroll / onScrollEnd 只在目标、onFocus / onLoad 在 React 里冒泡、onMouseEnter 没有捕获阶段、onScrollCapture 能在外层收到）；R2-04-3 处理函数是放副作用的地方 + 读到那次渲染的 state；R2-04-4 命名约定、回调 prop 代替传播、内联箭头与 useCallback；R2-04-5 Vue 修饰符逐个给出 JS 写法（.self / .once / .enter / .esc / .ctrl.exact / 鼠标键 / .capture / .passive）+ Vue 侧可运行；R2-04-6 onChange 像原生 input（五）+ 表单用 onSubmit（二-6 给出真实理由）；R2-04-7 旧写法（document 委托、事件池与 persist、onScroll 冒泡、class this 绑定、keyCode 系列）+ passive 滚轮（区块六）；R2-04-8 事件类型全家（MouseEvent / KeyboardEvent / ChangeEvent / SubmitEvent / WheelEvent / SyntheticEvent / MouseEventHandler / FormEvent 弃用，类型层测试）；R2-04-9 19.3 的事件相关条目【尝鲜】；R2-04-10 可点击 div 标「演示简化」、七写生产做法；R2-04-11 模板残留清零、「与原生一致」加限定、「死循环警告」改成实测结论。第一轮 :243 / :244 落实；:245（渲染中 setState 的真实表现）以第一轮为准：更新会收敛，不报错（测试覆盖）；:246（$event 的前提）已加。
+
+**待核实项结论**：
+- P-04-1（被动事件）：react-dom 19.2.8 addTrappedEventListener 对 touchstart / touchmove / wheel 用 { passive: true } 注册（:19251-19270）；react.dev 参考页没有写，出处是 React 17 changelog「Keep onTouchStart, onTouchMove, and onWheel passive.」；jsdom 与 Chrome 实测 onWheel 里 preventDefault 后原生 defaultPrevented 为 false。
+- P-04-2（onScrollEnd）：react.dev common 页没有 onScrollEnd 条目；源码 scrollend 与 scroll 同样只派发给目标（:19411-19413）。课件只写源码结论。
+- P-04-3（渲染中 setState）：onClick={removeItem(id)} 写在列表里时渲染期更新会收敛，不报错、不打印任何东西，列表直接为空（测试覆盖）；不收敛的写法才抛 Too many re-renders（03 题）。
+- P-04-4（React 17 正式版原文）：正式版博客「In React 17, React will no longer attach event handlers at the document level under the hood.」（比 RC 多了 under the hood）；事件池、onScroll、focusin、捕获阶段的正文只在 RC 博客，正式版只有 changelog。
+- P-04-5（合成事件 stopPropagation 与原生监听器）：onClick 里调用时，root 容器里面元素上的原生监听器早已执行，document / window 收不到，root 容器上后挂的原生监听器照样执行（要 stopImmediatePropagation）；onClickCapture 里调用时，root 里面的原生监听器全都收不到（测试覆盖）。
+
+**本次新发现（审计没写到）**：
+1. 和原生监听器混用时的完整顺序（jsdom 与 Chrome 一致）：window / document 捕获 → React 的 onXxxCapture（root 容器的捕获监听）→ 容器里面元素的原生捕获 → 目标与冒泡路径上的原生监听 → React 的 onXxx（root 容器的冒泡监听）→ document / window 冒泡。
+2. nonDelegatedEvents（scroll、scrollend、load、cancel、close、invalid、toggle、beforetoggle、媒体事件）在 root 上只挂捕获，冒泡监听挂在元素本身；所以 onScroll、onLoad 的 nativeEvent.currentTarget 是元素本身（复核实测）。
+3. 在 items.map 回调里写 onClick={removeItem(id)}，eslint-plugin-react-hooks 7.1.1 的 set-state-in-render 不报（只认组件体里无条件的 setState）；TypeScript 会报。
+4. 表单：输入框回车时浏览器（与 user-event）会先对提交按钮派发 click，所以按钮 onClick 不会漏；真正的问题是 onClick 跑在约束校验之前（必填为空时 onClick 照样触发、onSubmit 不触发），requestSubmit() 也不经过按钮（测试覆盖）。审计里「只绑按钮 onClick 回车就漏了」的说法不成立（复核实测）。
+5. 字符串形式的处理函数 onClick="…"：开发环境 console.error「Expected `onClick` listener to be a function, instead got a value of `string` type.」
+6. 合成事件的 preventDefault 会无条件把合成事件自己的 defaultPrevented 设成 true（:3384-3386），原生默认动作有没有真的被拦住要看 e.nativeEvent.defaultPrevented（被动监听时两者不一致）。
+7. Vue：@click.right / @click.middle 被 @vue/compiler-dom 改写成 contextmenu / mouseup（compiler-dom.cjs.js:362-370）；修饰符守卫按书写顺序执行（withModifiers :1832-1843）；.once / .capture / .passive 是 addEventListener 的选项（parseName :660-672）；按键修饰符只比较 event.key，不看 isComposing。
+8. Vue：v-on 直接在元素上 addEventListener，Vue 的监听器与原生监听器按 DOM 顺序交错，同一元素上先注册的先执行（Vue 在挂载时注册，比 onMounted 里加的早）；.stop 不挡同一元素上的其他监听器。
+9. Vue：没声明 emits 的中间组件，根节点是子组件时，给它的监听器会一路透传，祖父组件「收到」孙组件的 emit（看起来像冒泡，其实是透传，复核实测）；根节点是 div 时收不到。
+10. react-router 7.18.3 的 Link 只处理「没按修饰键的左键点击、target 为 _self」（shouldProcessLinkClick，chunk-BV7QT456.mjs:7428-7435）。
+11. MDN keydown：组字结束那一下 isComposing 可能已经是 false、keyCode 仍是 229 —— 判断要写 isComposing || keyCode === 229。
+
+**复核代理提出、已改的 28 条（要点）**：表单理由讲错（回车会对提交按钮派发 click，onClick 不会漏）→ 改成「onClick 跑在校验之前、requestSubmit 不经过按钮」并补测试；「容器上给每种原生事件各挂一个捕获一个冒泡」与源码不符 → 补 nonDelegatedEvents 与 portal；Vue 组字判断只看 isComposing → 补 keyCode 229 与测试；「八；35 题」→「二-8、七」；「nativeEvent.currentTarget 是 root 容器」「处理函数总在 root 上执行」补委托事件前提；速答「除 onScroll 外都传播」补 onScrollEnd / onMouseEnter；透传补单根前提与「根节点是组件时继续透传」的反例测试；注释里不存在的 @click="removeItem(item.id)" 改指 OrderRow.vue；「onClick="fn()"（01 题）」→ 本课实测报错原文；「03 题八」讲 this 不成立 → 改成「class 组件的其他写法见 03 题八」；「root 捕获最先触发」补 window / document 更早；「接口和原生事件一样」加限定；v-model 补 checkbox / radio / select 与标签；「Vue 完全跟原生一致」去绝对化；行号 :1818-1843、charCode / keyCode / which 的顺序；可点击 div 补「演示简化」（React self-area、Vue 各处）；链接测试改用原生 defaultPrevented 与 fireEvent 返回值；表单测试改成在 document 上读原生 submit 的 defaultPrevented（Vue 侧补回车路径）；捕获阶段 stopPropagation 测试补外层原生捕获与 document；补 stopImmediatePropagation（P-04-5）与测试；五补「onChange 和原生 change 一样吗」；区块四改用勾选框演示「只 stopPropagation 默认动作照样发生」；二-7 补 onScrollCapture（两侧演示与测试）；练习 2 补组字断言；SubmitEvent 的 target 例外；类型层测试注明由 typecheck 验证；一处 JSDoc 缩进。
+
+**验证**：`npm run check` 通过（lint 0 / typecheck 0 / 测试 383 条 / build）；04 的 37 条测试无 act 警告、无 stderr。浏览器用临时 5174 服务器（完成后已停掉并还原 launch.json；面板隐藏，滚动 / 焦点用手动派发事件验证）：React 六个区块 —— 计数与点击位置、Shift 删除只减一件、❌ 列表一挂载就空、事件对象表格（nativeEvent.currentTarget 是 <div id="root">，setTimeout 里 currentTarget 为 null）、传播日志与测试顺序完全一致（勾选 stop 后停在「React 按钮 onClick」）、onScroll 1 / 外层 0 / onFocus 1、链接 preventDefault 冒泡计数 1、requestSubmit 被拦住且路径没变、.self、.once / ref 标记、按键（Ctrl+Shift+Enter 与组字回车被忽略）、右键 contextmenu defaultPrevented、onWheel 原生 defaultPrevented false / passive: false 的为 true 且缩放 110%；Vue 六个区块同样逐项通过（Vue 监听器与原生监听器交错顺序与测试一致、@focusin 1、@wheel.prevent defaultPrevented true）。捕获到的 console.error / warn 为 0。复核后的修改（勾选框、onScrollCapture 计数、链接文案）由测试覆盖，未再开浏览器。源码查看器 React 10 个、Vue 9 个文件；无横向溢出。
+
 ## 统一措辞（各题改写时照用）
 
 ### Vue 响应式（2-A 定稿，2026-09-17）
@@ -747,6 +790,22 @@
 | Vue 渲染中改数据 | 「开发构建在同一个任务重复排队超过 100 次时报 Maximum recursive updates exceeded；生产构建没有这项检查」 | 「Vue 会无限循环」「Vue 也抛 Too many re-renders」 |
 | reactive 的限制 | 「只能装对象类型、不能整体替换（和原来的引用断开）、解构出原始类型的属性会断开追踪；所以官方推荐 ref() 为首选」 | 「reactive 解构就失去响应性」（不说原始类型）、「reactive 换掉就和模板断开」 |
 
+### 事件（04 定稿，2026-09-18）
+
+| 要说的事 | 这样写 | 不要这样写 |
+|---|---|---|
+| 委托位置 | 「React 17 起大多数事件的监听器挂在 root 容器上（16 及以前是 document）；scroll、load、媒体事件这类在元素本身，portal 里的在 portal 容器」 | 「React 所有事件都委托到 root」「React 把事件绑在 document 上」（不带版本） |
+| nativeEvent.currentTarget | 「以 onClick 为例是 root 容器」 | 不带事件类型的「是 root 容器」 |
+| 合成事件与原生 | 「接口基本遵循同一套 DOM 标准，少数属性没有（KeyboardEvent 的 isComposing 要从 e.nativeEvent 读）」 | 「和原生事件完全一样」 |
+| 传播 | 「多数事件都会传播；onScroll / onScrollEnd 只在目标上（外层用 onScrollCapture），onMouseEnter / onMouseLeave 没有捕获阶段、从离开的元素传到进入的元素；onFocus / onBlur / onLoad 在 React 里冒泡」 | 「React 事件都会冒泡」「除 onScroll 外都冒泡」（不提其他例外） |
+| stopPropagation 挡住谁 | 「onClick 里调用：挡 React 树里后面的 onClick 和 root 容器之外（document / window）的监听器，root 里面元素上的原生监听器早已执行；onClickCapture 里调用：root 里面的也收不到；同一节点上的其他监听器要 stopImmediatePropagation」 | 「stopPropagation 挡住所有监听器」 |
+| 表单为什么用 onSubmit | 「提交按钮的 onClick 跑在浏览器约束校验之前（必填为空也执行），requestSubmit() 也不经过按钮；回车时浏览器会对提交按钮派发 click，所以 onClick 本身不会漏」 | 「只绑按钮 onClick，回车提交就漏了」 |
+| onWheel / onTouchStart / onTouchMove | 「react-dom 用 { passive: true } 注册，处理函数里 preventDefault 拦不住（看 e.nativeEvent.defaultPrevented）；要拦就 ref + addEventListener(…, { passive: false })」 | 「onWheel 里 preventDefault 就能阻止滚动」「看 e.defaultPrevented 判断拦没拦住」 |
+| 渲染时调用处理函数 | 「onClick={fn(id)} 在渲染时就执行；更新会收敛时列表直接变空、不报错，不收敛时抛 Too many re-renders」 | 「一定报死循环警告」 |
+| Vue 修饰符 | 「守卫函数按书写顺序执行（Order matters）；.once / .capture / .passive 是 addEventListener 选项；按键修饰符只比较 event.key，不看输入法组字」 | 「Vue 的修饰符和 React 一一对应」 |
+| Vue 组件事件 | 「emit 不冒泡；没声明 emits 的监听器透传到单根组件的根元素，根节点是组件时继续往下透传（看起来像冒泡，其实是透传）」 | 「Vue 组件事件会冒泡」、不带单根前提的「自动透传」 |
+| 输入法组字 | 「判断 e.isComposing \|\| e.keyCode === 229（MDN ③，React 里 isComposing 从 e.nativeEvent 读）」 | 只判断 isComposing |
+
 ## 每题状态（阶段 2 起填写）
 
 | 题号 | 主题 | 状态 | 改动摘要 | 遗留问题 |
@@ -756,6 +815,7 @@
 | 01 | 组件与 JSX | **完成** | 四个区块：资料卡（UserCard 两个独立实例、JSX 当值传、className / style / Fragment）、JSX 编译成什么（automatic vs classic 编译结果、style 补 px 实测、Fragment key）、组件必须纯（茶杯例子 + StrictMode）、不要在组件里定义组件；Vue 侧 SFC + 具名插槽、:class / :style、compiler-sfc 编译输出；React 17 条 + Vue 5 条测试；了结 P-01-1～5。详见 2.11 | 17 题改写时补 Compiler 小节并回头核对 01 的引用；多根组件的 attrs 透传已在 02 补上（2.12）；28 题改写时补「组件返回类型 / FunctionComponent 签名」；19.3 升级后核 Fragment ref 的类型；33 / 35 新增后回填交叉引用 |
 | 02 | Props | **完成** | 四个区块：props 的类型、解构与默认值（默认值实验表：没传 / undefined / null / 空串 / 无值写法）、props 只读与回调上浮（开发构建 TypeError、onAmountChange、快照）、不要把 props 复制进 state（useState 镜像 vs 直接读、initialPrice + 换 key）、接收原生属性（ComponentPropsWithRef + {...rest}、className / style 合并、ref 作为 prop）；Vue 侧 3.5 响应式 props 解构、布尔转型、改 props 只警告、props 是响应式对象、inheritAttrs + useAttrs、多根组件、组件 ref + defineExpose；React 20 条 + Vue 13 条测试；了结 P-02-1～5。详见 2.12 | 12 题改写时补：ref 回调与清理函数、useImperativeHandle、RefObject / MutableRefObject、useRef 必传参数、组件 ref + defineExpose（02 已写「12 题改写时补」，12 改完回头改成「见 12 题」）；28 题改写时补：ReactNode 与 ReactElement 的取舍、全局 JSX → React.JSX、useRef 必传参数、Vue 泛型组件 generic（同上）；17 题改写时核对 02 的「默认值新引用让 memo 失效」；19.3 升级后核 forwardRef 是否标弃用；35 新增后回填交叉引用 |
 | 03 | State 与 useState | **完成** | 七个区块：为什么需要 state（局部变量 vs useState、state 属于实例）、setter 只影响下一次渲染（快照、A / B、设成当前值）、对象 / 数组整体替换（原地改 + 同一个引用被跳过）、惰性初始化（调用次数面板）、state 的结构（存 id vs 存对象、status vs 两个布尔值）、useReducer（reducer 导出单测）、两个常见报错（Too many re-renders、函数存进 state）；Vue 侧普通 let 变量、DOM 在 nextTick 才变、setup 只执行一次、存同一个响应式对象 / 副本 / id、渲染中改数据的 Maximum recursive updates；React 24 条 + Vue 14 条测试；了结 P-03-1～3。详见 2.13 | 21 题改写时补：深嵌套拍平（03 二-10 已写原文，21 只讲了 Immer）与 Vue 侧 reactive 的三条限制 / ref 首选（R2-21-9；03 已写，21 可指回 03）；17 题改写时补 Compiler 小节（03 九已写「17 题改写时补」）；33 / 34 / 35 新增后回填交叉引用；19.3 升级后无需改（本课没用到 19.3 的 API） |
+| 04 | 事件处理 | **完成** | 六个区块：绑定与传参（传函数不要调用、回调 prop 以 on 开头、❌ 列表渲染时就删光）、事件对象（target / currentTarget / nativeEvent.currentTarget 是 root 容器、setTimeout 里 currentTarget 为 null）、事件传播（React 捕获 / 冒泡与原生监听器同一份日志比先后、stopPropagation 挡住谁、onScroll 不冒泡 / onScrollCapture / onFocus 冒泡）、默认行为（preventDefault 只拦默认动作、只 stopPropagation 的勾选框、form onSubmit、.self）、Vue 修饰符的 React 写法（.once、按键与 .exact、输入法组字、鼠标键与右键菜单）、onWheel 是被动监听；Vue 侧 v-on 直接绑元素（与原生监听器交错）、修饰符实现、@click.right 改写成 contextmenu、@wheel.prevent 生效、组件事件不冒泡与透传反例；React 22 条 + Vue 15 条测试；了结 P-04-1～5。详见 2.14 | 17 题改写时补 Compiler 对内联处理函数的记忆化（04 九已写「17 题改写时补」）；07 题可补「提交按钮 onClick 跑在校验之前」的一句（04 二-6 已有测试）；31 / 34 / 35 新增后回填交叉引用；19.3 升级后核 onFullscreenChange 与 submitter |
 | 20 | 错误边界 | **完成** | 手写 class 边界主线（fallback / onError / onReset / resetKeys）+ react-error-boundary 可运行并排；「接得住 / 接不住」8 个按钮 + useTransition 同步 / async、顶层 startTransition、lazy 缓存；createRoot 小根演示 onCaughtError / onUncaughtError 与整棵界面被移除；Vue 侧 ErrorBoundary.vue、捕获面、出错组件的两种表现、传播规则与 errorHandler；React 15 条 + Vue 12 条测试；了结 P-20-1～5。详见 2.9 | 31 / 32 / 33 / 34 新增后回填交叉引用；18 题可补一句 RouterProvider onError（7.11 起）与 throw data 404 |
 | 16 | 全局状态（Zustand） | **完成** | Zustand 5 主线五个区块（selector 与 useShallow + Profiler 渲染计数 / 组件外读写 + subscribe + 异步 action + persist 与 migrate / Context + useReducer 并排 / createStore + Context 每实例一份 / RTK 只读对照）；Vue 侧 Pinia setup store + 迷你持久化插件 + 模块级 reactive；React 19 条 + Vue 15 条测试；了结 P-16-1、3～6（P-16-2 仍是推论）。详见 2.8 | P-16-2（Compiler 与订阅粒度）留给 17 题；33 / 34 / 35 新增后回填交叉引用；首次打开会触发一次 Vite 依赖重新预构建（新发现 9） |
 | 14 | 自定义 Hook 与 Composable | **完成** | useSyncExternalStore 主线（useWindowWidth + getServerSnapshot + useDebugValue）+ Effect 订阅并排 + subscribe 稳定性实验；useInterval（useEffectEvent）与「回调进依赖」反例；防抖搜索（派生 loading，lint 抑制已清）+ let timer 坑；React 12 条 + Vue 8 条测试；了结 P-14-1～5。详见 2.7 | tearing 没有做可视化演示（P-14-3，只讲原理）；32 / 33 / 34 新增后回填交叉引用（03 题 :64「10、14 题」那句已随 03 重写删除，2.13） |
