@@ -9,7 +9,7 @@
 |---|---|---|---|---|
 | 0 | 审计（只读） | **完成。** 两轮审计均完成；用户 2026-09-17 答复「全部按建议执行」（AUDIT-ROUND2.md §6 D2-1～8，记录在 AUDIT.md §5.13）；两轮合并规则写在 AUDIT.md 附录 C | `docs/upgrade/AUDIT.md`（含 §5.13、§5.14、附录 C）、`docs/upgrade/REAUDIT-PROMPT.md`、`docs/upgrade/AUDIT-ROUND2.md` | 两轮审计与合并说明均已提交（d550e27、1efc217） |
 | 1 | 依赖与工具链调整 | **完成（2026-09-17）**：commit「阶段 1：依赖与工具链调整」（34cd734）+「阶段 1 补充：ESLint 9 → 10（D1-1）」 | package.json / package-lock.json、vitest.config.ts、eslint.config.js + eslint-suppressions.json、tsconfig.json、src/test/、4 处 react-router 导入、README 事实行 | 复核口径与全部记录见下文「阶段 1 记录」；版本决定见 AUDIT.md §5.0 的 5.14、5.15 |
-| 2 | 逐主题修改（先改 18 路由样板） | **进行中**（分支 `phase-2-topics`）：前置 commit（壳修复，2.0）、**18 路由样板**（2.1，风格已确认，AUDIT.md §5.0 的 5.16）、**2-A Vue 响应式措辞批量修正**（2.2，措辞见「统一措辞」）、**2-B 的 07 表单**（2.3）、**19 异步提交**（2.4）、**11 API 请求状态**（2.5）、**30 TanStack Query**（2.6）已完成。**下一步：2-B 的 14 自定义 Hook**（其后 16 → 20 → 26，再做 2-C），做法见 `docs/upgrade/CONTINUE-PROMPT.md` | 每题一个 commit | 样板已确认，其余题不再逐题停 |
+| 2 | 逐主题修改（先改 18 路由样板） | **进行中**（分支 `phase-2-topics`）：前置 commit（壳修复，2.0）、**18 路由样板**（2.1，风格已确认，AUDIT.md §5.0 的 5.16）、**2-A Vue 响应式措辞批量修正**（2.2，措辞见「统一措辞」）、**2-B 的 07 表单**（2.3）、**19 异步提交**（2.4）、**11 API 请求状态**（2.5）、**30 TanStack Query**（2.6）、**14 自定义 Hook**（2.7）已完成。**下一步：2-B 的 16 全局状态**（其后 20 → 26，再做 2-C），做法见 `docs/upgrade/CONTINUE-PROMPT.md` | 每题一个 commit | 样板已确认，其余题不再逐题停 |
 | 3 | 补充新主题 | 未开始 | | 按阶段 0 确认的清单 |
 | 4 | 一致性检查 + CHANGELOG | 未开始 | `docs/upgrade/CHANGELOG.md` | |
 
@@ -322,6 +322,41 @@
 
 **验证**：`npm run check` 通过（lint 0 / typecheck 0 / 135 条测试 / build）；30 的 36 条测试连跑 3 次稳定，无 act 警告、无 stderr（只有上面第 8 条的 stdout）。浏览器用临时 5174 服务器（完成后已停掉并还原 launch.json）：两侧六个区块渲染；StrictMode 日志（React 列表 2 次 + 取消 1 次，Vue 1 次）；keepPreviousData 翻页（isPlaceholderData true、「下一页」禁用、之后换成第 2 页）；模拟断网 → paused → 恢复（见新发现 6）；乐观·改缓存立即「已支付」→ 失败回滚、日志「存了 5 份快照」；乐观·variables「已支付（待确认）」→ 成功后离开待支付列表；只重取正在使用的查询；依赖查询 pending + idle → fetching → 成功；两侧 Suspense fallback / 错误边界（onErrorCaptured）/ 重试；Vue 不解构的坑显示「请求中」；切到 18 / 11 再回来两侧都「在线」；源码查看器 React 8 个、Vue 13 个文件。捕获到的 console.error 1 条：React 开发环境对区块四故意触发的、被错误边界接住的错误的默认报告（页面上已注明）；console.warn 0 条。
 
+### 2.7 14 自定义 Hook 与 Composable（2026-09-17）
+
+**蓝本与依据**：AUDIT-ROUND2.md §5 的 14 大纲 + §3.4 主线判定（订阅浏览器 API 用 `useSyncExternalStore`，`useEffect` + `setState` 订阅作并排；防抖仍用 Effect）；问题表 = R2-14-1～11 + AUDIT.md §3 的 14 各行（:435 按附录 C 由第二轮覆盖为「uSES 主线」、:436 set-state-in-effect、:437 Vue 冗余 controller、:438 `.ts` Hook 不在 lint 范围（阶段 1 已解决）、:440 交叉引用、:443 ahooks 命名）。核实工作流：文档 13 条 + 源码 / npm 9 组，各配一个反驳式复核代理，全部确认或只修正行号 / 细节。
+
+**结构（React 8 个文件，Vue 9 个文件）**
+- `react/Example.tsx`：十段文件头 + 三个区块的入口。
+- `react/useWindowWidth.ts`【主线】：`useSyncExternalStore` + 模块级 `subscribe` + 返回原始值的 `getSnapshot` + 返回 null 的 `getServerSnapshot` + `useDebugValue`。
+- `react/useWindowWidthEffect.ts`【并排·18 之前的写法 · 简单场景仍可用】。
+- `react/WindowWidthDemo.tsx`【区块一】：两个面板同时显示主线与并排的值；卸载面板 B（状态放在独立子组件里，不牵动实验组件）；subscribe 稳定性计数实验（计数显示在兄弟组件里，避免「重渲染 → 重订 → 计数 → 重渲染」绕圈）。
+- `react/useInterval.ts` + `react/IntervalDemo.tsx`【区块二】：`useEffectEvent` 版与「回调进依赖」反例并排；步长、暂停、「干扰：每 300ms 重渲染」开关。
+- `react/useDebouncedValue.ts` + `react/DebouncedSearchDemo.tsx`【区块三】：防抖搜索（请求态从「结果属于哪个关键词」派生，Effect 体里不再同步 setState，lint 抑制已清）+ 请求次数日志；「let timer」反例与 useRef 修法对照。
+- Vue 侧：`useWindowWidth.ts`（初始值 null、onMounted 读 window，服务端渲染安全）、`WidthPanel.vue`、`useInterval.ts`（MaybeRefOrGetter + toValue + onWatcherCleanup）、`IntervalDemo.vue`、`useDebouncedValue.ts`（toValue + onWatcherCleanup）、`DebouncedUserSearch.vue`（删掉冗余的 controller + onUnmounted）、`LetTimerDemo.vue`（Vue 里 let timer 是对的）、`Example.vue`（精简头 + 三个区块）。
+- 壳：注册表 14 题 summary；README 14 题目录行、说明段、面试题行。`eslint-suppressions.json` 删掉 14 题一条，剩 **11 条 / 6 个文件**（10 / 12 / 21 / 23 / 24 / 27）。
+- 测试：React 12 条、Vue 8 条（全仓库 15 个文件 155 条）。Vue 测试文件用了几个探针组件，加了文件级 `eslint-disable vue/one-component-per-file`。
+
+**问题表处理**：R2-14-1 主线改为 uSES（定位原文、两类场景、getSnapshot / subscribe 稳定性、并发一致性、迁移示范、生态引用、Effect 版标「18 之前的写法」）；R2-14-2 getServerSnapshot 返回 null + 服务端渲染测试，Vue 侧按官方「DOM 副作用放 onMounted」改写；R2-14-3 set-state-in-effect 改为派生 loading；R2-14-4 useEffectEvent 可运行区块 + 四条 Caveats；R2-14-5 useCallback 建议原文 + useDebugValue 示范；R2-14-6 useMount / useEffectOnce / useUpdateEffect 反模式原文；R2-14-7 Hooks 规则 6 条原文 + 两条报错文案测试 + use() 例外原文 + 「不调用 Hook 不要用 use 前缀」；R2-14-8 toValue / MaybeRefOrGetter、VueUse 对照；R2-14-9 重复 6 处的模板句清零；R2-14-10「永远不需要重跑」改为 StrictMode 说明；R2-14-11 全文成熟度标签，useDebouncedValue 标「自己实现」。第一轮 :437 冗余 controller 已删（watcher 停止时清理函数也会执行，有源码与测试）；:440 两处交叉引用已改（「10 题专讲竞态」→ 竞态专题 27 题；「交给 TanStack Query」→ 防抖后的值放进 queryKey）；:443 ahooks `useDebounce` / `useDebounceFn` 已核实存在。
+
+**待核实项结论**：
+- P-14-1：use-sync-external-store 包的开发版提示原文「If you wish to support React 16 and 17, import from 'use-sync-external-store/shim' instead.」（README 本身没写）；peer 支持 react ^16.8 到 ^19，有原生 API 时 shim 直接用原生的。写进「八」。
+- P-14-2：you-might-not-need-an-effect「Subscribing to an external store」完整原文已引（示例是 navigator.onLine + online / offline 事件）。
+- P-14-3（tearing 能否稳定复现）：**没有做可视化演示**，只讲原理并引用 useSyncExternalStore Caveats 原文与 react-dom 源码的 `isRenderConsistentWithExternalStores`。注意：React 18 发布博客里**没有 tearing 这个词**，课件没有把它归到博客名下。
+- P-14-4：按主线判定 §3.4 执行（生态依据：zustand 5.0.15 `esm/react.mjs:5-13`、TanStack `useBaseQuery.js:30` 直接调用 `React.useSyncExternalStore`）。
+- P-14-5：set-state-in-effect 规则页把「Setting loading state synchronously」列为常见违例，Valid 示例是 ref 取值与渲染期计算；「异步回调里 setState 合法」没有单独示例，只能从 Invalid 示例注释和插件源码文案推出，课件按此措辞。
+
+**本次新发现（审计没写到）**：
+1. 「Vue 的 let timer 搬进 React」这个坑，eslint-plugin-react-hooks 7 的 recommended 预设能直接拦下：`react-hooks/immutability` 在赋值处报「Cannot reassign variable after render completes」、在 `onChange={handleChange}` 处报「Cannot modify local variables after render completes」（2026-09-17 实测）。课件保留反例，两处 eslint-disable 并写明原因。
+2. getSnapshot 未缓存时开发环境只是 console.error「The result of getSnapshot should be cached to avoid an infinite loop」（react-dom-client.development.js:8130），真正抛错的是随后的「Maximum update depth exceeded」（测试证明）。
+3. eslint-plugin-react-hooks 7.1.1 的 Hook 判定是 `/^use[A-Z0-9]/`，单独的 `use` 也算（isHookName，:54894）。
+4. React 18 发布博客注明 useSyncExternalStore「is intended to be used by libraries, not application code」，而 learn 页和参考页都用应用层的 useOnlineStatus 示范它；课件两层意思都写。
+5. Vue 侧 `ref(null)` + onMounted 的写法纯客户端也会先渲染一次「未知」（测试证明），React 的 uSES 纯客户端渲染时直接读 getSnapshot。
+6. 测试写法：同一个 act 里推进一大段 fake timers 时，React 不会在定时器之间重渲染，「回调进依赖被一再重置」看不出来，要按 100ms 一步分别 act；resize 会让 subscribe 实验组件重渲染并重订，数 addEventListener 时基准要取在操作前一刻。
+7. 浏览器面板隐藏时，视口模拟改了 innerWidth 却不派发 resize 事件（没有渲染帧），验证时手动派发一次。
+
+**验证**：`npm run check` 通过（lint 0 / typecheck 0 / 155 条测试 / build）；14 的 20 条测试连跑两次稳定，无 act 警告、无 stderr。浏览器用临时 5174 服务器（完成后已还原视口、停掉服务器、还原 launch.json）：两侧三个区块渲染；StrictMode 下 subscribe 实验从 2 / 2 开始，点 3 次后变成 2 / 5；视口改为 700 并派发 resize 后两侧面板都变成 700px、「窄」；卸载面板 B 后 A 照常更新；React 侧 let timer 触发 3 次、useRef 1 次，Vue 侧 let timer 1 次；防抖搜索只按「张伟」发请求（React 侧开发环境多一次被取消的空关键词请求，页面已注明）。捕获到的 console.error / console.warn 为 0。
+
 ## 统一措辞（各题改写时照用）
 
 ### Vue 响应式（2-A 定稿，2026-09-17）
@@ -368,16 +403,28 @@
 | 包名 | @tanstack/react-query（v4 起）；旧名 React Query | 「React Query」当现名 |
 | Vue 响应式参数 | 「把 ref 或 getter 放进 queryKey / enabled」（官方 reactivity 指南）；返回值是一组 ref，要解构 | 「vue-query 返回 reactive 对象」 |
 
+### 自定义 Hook 与订阅外部数据源（14 定稿，2026-09-17）
+
+| 要说的事 | 这样写 | 不要这样写 |
+|---|---|---|
+| 订阅浏览器 API / 第三方 store | 主线 useSyncExternalStore【主流·18.0 起】；useEffect + setState 订阅标「18 之前的写法 · 简单场景仍可用」 | 「useState + useEffect 是订阅外部系统的标准组合」 |
+| tearing | 「并发渲染中途外部数据变化，同一屏读到不同版本（社区叫 tearing）」，官方依据引 useSyncExternalStore Caveats「every component on screen is reflecting the same version of the store」 | 说成 React 18 博客里的原话 |
+| getSnapshot 不稳定 | 开发环境 console.error「should be cached」，随后无限重渲染报「Maximum update depth exceeded」 | 「getSnapshot 不稳定会直接抛错」 |
+| Hook 命名 | 官方：use + 大写字母；lint 实际判定 /^use[A-Z0-9]/ | 「use 前缀只是风格」 |
+| 接收回调 | useEffectEvent【较新·19.2 起】包一层，18 用 latest ref（26 题） | 回调直接进依赖，或用 eslint-disable 去掉依赖 |
+| Vue 对应 | composable + ref + onMounted / onUnmounted；Vue 没有 useSyncExternalStore 这类 API，也不需要 | 「没有一一对应关系」 |
+
 ## 每题状态（阶段 2 起填写）
 
 | 题号 | 主题 | 状态 | 改动摘要 | 遗留问题 |
 |---|---|---|---|---|
 | 18 | 路由（React Router） | **完成（样板已确认）** | Data 模式主线（loader / action / middleware 守卫 / errorElement / lazy / useBlocker / 面包屑）+ 声明式 RequireAuth 三态并排；十段文件头；React 18 条 + Vue 7 条结论测试；Vue 守卫改为返回值写法；safeRedirect 共享实现；源码查看器支持多文件（5.10）。详见 2.1 | 32 / 34 / 35 题新增后回填交叉引用 |
+| 14 | 自定义 Hook 与 Composable | **完成** | useSyncExternalStore 主线（useWindowWidth + getServerSnapshot + useDebugValue）+ Effect 订阅并排 + subscribe 稳定性实验；useInterval（useEffectEvent）与「回调进依赖」反例；防抖搜索（派生 loading，lint 抑制已清）+ let timer 坑；React 12 条 + Vue 8 条测试；了结 P-14-1～5。详见 2.7 | tearing 没有做可视化演示（P-14-3，只讲原理）；32 / 33 / 34 新增后回填交叉引用；03 题 :64「10、14 题会再遇到快照」留给 03 题改写时核对 |
 | 30 | TanStack Query 与服务端状态 | **完成** | v5 主线六个区块（queryKey 与缓存 + status × fetchStatus + 保留上一页 + 断网 / mutation 三种更新方式 / enabled / useSuspenseQuery / 缓存观察窗 / loader 分工）；key 工厂 + queryOptions；React 22 条 + Vue 14 条测试；了结 P-30-1～8、M-8。详见 2.6 | mutation 回调改名的起始版本待核实；31 / 32 / 33 / 34 新增后回填交叉引用；27 题「queryFn({ signal }) 把这一整套自动化了」缺「读了 signal 才取消」的前提，27 题改写时处理 |
 | 11 | API 请求状态 | **完成** | Effect 手写主线（判别联合 + 派生 pending + 取消 + 重试 + 保留旧数据）+ 四种方案速查；lint 抑制已清（M-6 / P-11-2 了结）；React 7 条 + Vue 7 条测试。详见 2.5 | 32 题新增后回填交叉引用；P-11-1 / P-11-3 / P-11-5 留给 30 / 18 / 32 与阶段 4 |
 | 19 | 异步提交与防重复 | **完成** | 手写 submitting 主线（防重复三道关 + 错误分层 + a11y）+ React 19 Actions 可运行并排；共享 mockApi 加 `ApiFieldError`；React 10 条 + Vue 7 条测试；了结 P-19-1/3/4、M-3 与「12.」的待核实。详见 2.4 | 31 / 35 题新增后回填交叉引用；P-19-2（回车与 disabled）无法核实，已从课件去掉 |
 | 07 | 表单与受控组件 | **完成** | 受控、非受控两条主线（各一个可运行表单）+ TextField（useId、ref 作为 prop、aria）+ onChange / v-model 触发时机实验；十段文件头；React 19 条 + Vue 13 条结论测试；FormEvent → SubmitEvent；更正审计「Vue 无 useId」。详见 2.3 | 31 / 32 / 34 / 35 题新增后回填交叉引用；「SubmitEvent.submitter 是否随 19.3 发布」待核实 |
-| 其余 01–30 | — | 未开始 | — | 10 / 12 / 14 / 21 / 23 / 24 / 27 有 lint 抑制待清（共 12 条，1.4；11 题那条已在 2.5 清掉） |
+| 其余 01–30 | — | 未开始 | — | 10 / 12 / 21 / 23 / 24 / 27 有 lint 抑制待清（共 11 条，1.4；11、14 题的已在 2.5、2.7 清掉） |
 
 ## 遗留 / 待核实
 

@@ -1,31 +1,34 @@
 /**
  * Composable：useWindowWidth（对照 React 版 react/useWindowWidth.ts）。
  *
- * composable = 以 use 开头的普通函数。use 前缀在 Vue 只是社区约定；
- * React 那边是 lint 强制的硬规则（eslint 靠前缀识别 hook 并检查 Hooks 规则）。
- * 与 React 相同的是「逻辑复用、状态独立」：每次调用都创建全新的 ref 和全新的事件订阅。
+ * composable = 利用组合式 API 封装、复用有状态逻辑的函数；名字以 use 开头是约定（React 那边是 lint 识别 Hook 的依据）。
+ * 和 React 一样「共享逻辑、不共享状态」：每次调用都创建新的 ref 和新的事件监听。
+ *
+ * React 用 useSyncExternalStore 订阅外部数据源；Vue 没有专门的 API，也不需要 ——
+ * 官方 composables 文档的 useMouse 示例就是这个写法：onMounted 里加监听、onUnmounted 里移除、把值写进 ref。
+ * ref 本身就是「可变的值 + 订阅」，没有 React 并发渲染里的 tearing 问题。
+ *
+ * 为什么初始值是 null、到 onMounted 才读 window：官方文档要求服务端渲染时「DOM 相关的副作用放在挂载后的钩子里」，
+ * setup 里直接读 window 在服务端会报错。对应 React 版 getServerSnapshot 返回 null。
+ * 代价是纯客户端应用首次渲染会先显示一次「未知」（React 的 useSyncExternalStore 在纯客户端渲染时直接读 getSnapshot，没有这一帧）；
+ * 只做客户端渲染的项目可以直接 ref(window.innerWidth)。
  */
-import { onMounted, onUnmounted, ref } from 'vue'
-import type { Ref } from 'vue'
+import { onMounted, onUnmounted, ref, type Ref } from 'vue'
 
-export function useWindowWidth(): Ref<number> {
-  // React 版是 useState(() => window.innerWidth) 惰性初始化；
-  // Vue 的 setup 只执行一次，直接读一次初始值即可，不存在「每次渲染白算」的问题。
-  const width = ref(window.innerWidth)
-
-  const handleResize = () => {
+export function useWindowWidth(): Ref<number | null> {
+  const width = ref<number | null>(null)
+  const update = () => {
     width.value = window.innerWidth
   }
 
-  // React 版用一个 useEffect 表达「挂监听 + cleanup 卸监听」；Vue 拆成 onMounted / onUnmounted。
-  // 注意 Vue 侧的约束：这两个钩子必须在 setup【同步执行期间】注册，
-  // 所以 composable 不能放进 setTimeout、await 之后再调用 —— 这与 React 的
-  // 「顶层调用、顺序稳定」是不同源的两种约束，没有一一对应关系。
-  // （React 版还提到 StrictMode 开发期双跑 effect 来检验 cleanup —— Vue 没有对应机制。）
-  onMounted(() => window.addEventListener('resize', handleResize))
-  onUnmounted(() => window.removeEventListener('resize', handleResize))
+  // 生命周期钩子要在 setup 同步执行期间注册（它要找到当前组件实例），所以 composable 不能放进 setTimeout 或 await 之后调用。
+  // 这是 Vue 这一侧的限制；React 的限制是「顶层调用、顺序稳定」，两者原因不同（React 文件头「三」）。
+  onMounted(() => {
+    update()
+    window.addEventListener('resize', update)
+  })
+  onUnmounted(() => window.removeEventListener('resize', update))
 
-  // 返回 Ref 容器（引用不变、.value 在变）—— React 版返回普通 number，
-  // 因为组件每次渲染会重新执行整个 hook。使用侧记得 .value（模板里自动解包）。
+  // 返回 Ref 容器（引用不变、.value 在变）：setup 只执行一次，必须交出一个能持续追踪的容器
   return width
 }

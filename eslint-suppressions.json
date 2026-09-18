@@ -9,11 +9,6 @@
       "count": 3
     }
   },
-  "src/topics/14-composable-and-custom-hook/react/Example.tsx": {
-    "react-hooks/set-state-in-effect": {
-      "count": 1
-    }
-  },
   "src/topics/21-immutable-update/react/Example.tsx": {
     "react-hooks/immutability": {
       "count": 1

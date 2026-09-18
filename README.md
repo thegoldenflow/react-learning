@@ -108,7 +108,7 @@ src/
 | --- | --- | --- | --- |
 | 12 | `12-dom-ref` | useRef 与 DOM | DOM ref、用 ref 保存可变值；修改 ref 为什么不触发重新渲染，对照 template ref |
 | 13 | `13-slots-and-children` | children 与组件组合 | children、具名 props 传 JSX、render props，对照 slot / 具名 slot |
-| 14 | `14-composable-and-custom-hook` | 自定义 Hook | 状态逻辑复用、手写防抖 Hook、Hooks 规则（不能放进条件/循环），对照 composable |
+| 14 | `14-composable-and-custom-hook` | 自定义 Hook | 共享逻辑不共享状态、Hooks 规则；订阅浏览器 API 用 useSyncExternalStore（Effect 订阅并排）、接收回调用 useEffectEvent、手写防抖与 let timer 坑，对照 composable |
 | 15 | `15-context` | Context 跨层传值 | createContext / useContext 解决什么问题、可能引发的重渲染，对照 provide/inject |
 | 16 | `16-global-state` | 全局状态（Zustand） | Zustand store 与组件局部状态的取舍，对照 Pinia |
 | 17 | `17-performance-hooks` | useMemo 与 useCallback | memoization 什么时候有价值、为什么不能无脑用，对照 Vue 的 computed 缓存 |
@@ -219,7 +219,7 @@ src/
 
 **13 children 与组件组合** —— `children`、具名 props 传 JSX、render props 三板斧，对应 Vue 的默认/具名/作用域插槽。工业界现状：组合（composition）是 React 组件库（如 Radix、shadcn/ui）的通用设计语言，比继承和配置项更主流。
 
-**14 自定义 Hook** —— 把「state + effect」逻辑抽成 `useXxx` 复用：`useWindowWidth`（两个实例验证「复用的是逻辑不是状态」）和 `useDebouncedValue`（防抖搜索，配合 10 题的 AbortController 收口）；Hooks 规则（只能在顶层调用）及其由来。手写防抖是自定义 Hook 这个考点最经典的现场手写题——注意定时器为什么不能用普通变量存：Vue 的 setup 只跑一次，`let timer` 天然跨渲染存活，React 每次渲染重跑函数体会把它重置。工业界现状：真实项目多用 lodash.debounce / ahooks，但面试考手写版。
+**14 自定义 Hook** —— 三类最常见的自定义 Hook：① 订阅浏览器 API：`useWindowWidth` 主线用 `useSyncExternalStore`【主流·18 起】（模块级 `subscribe`、返回原始值的 `getSnapshot`、返回 null 的 `getServerSnapshot`、`useDebugValue`），`useEffect` + `setState` 订阅作并排（18 之前的写法），两个面板验证「共享逻辑不共享状态」，另有 subscribe 引用是否稳定的计数实验；② 接收回调：`useInterval` 用 `useEffectEvent`【较新·19.2】，和「回调进依赖」的反例并排，打开「干扰」能看到反例的定时器被一再重建、停住不动；③ 防抖：手写 `useDebouncedValue` + 防抖搜索（loading 派生、不在 Effect 里同步 setState），以及「Vue 的 `let timer` 搬进 React 就失效」的对照实验（recommended 预设的 `react-hooks/immutability` 会直接拦下）。文件头讲清 Hooks 规则 6 条与报错文案、getSnapshot / subscribe / getServerSnapshot 的要求、不要造 `useMount`。Vue 侧用 composable（ref + onMounted / onUnmounted，服务端渲染安全）、`toValue` + `onWatcherCleanup`，并演示 setup 只跑一次带来的差别。React 12 条、Vue 8 条结论测试（含 Rendered more / fewer hooks、getSnapshot 未缓存死循环、缺 getServerSnapshot 服务端报错）。
 
 **15 Context 跨层传值** —— createContext / Provider / useContext 解决 props 逐层透传；Context 值变化会让所有消费者重渲染，因此工业界惯例是「低频全局值」（主题、当前用户、国际化）用 Context，高频共享状态交给 16 题的方案。
 
@@ -391,7 +391,7 @@ src/
 | 11 | 一个完整的数据请求要处理哪些状态？为什么不用三个布尔？官方为什么不推荐在 Effect 里取数、替代方案各解决什么？`fetch` 拿到 404 会进 catch 吗？TanStack Query 的 `status` 和 `fetchStatus` 有什么区别？ |
 | 12 | useRef 和 useState 的区别？修改 ref.current 为什么不触发重渲染？useRef 有哪些典型用途？ |
 | 13 | children 是什么？什么是 render props？React 如何实现 Vue 作用域插槽的效果？ |
-| 14 | 自定义 Hook 和普通函数有什么区别？Hooks 为什么不能写在条件/循环里（Hooks 规则的原理）？手写一个防抖 Hook（定时器 id 为什么不能用普通变量存？卸载时为什么要 clearTimeout？防抖和节流的区别）。 |
+| 14 | 自定义 Hook 共享的是什么？Hooks 为什么不能写在条件 / 循环里（报什么错）？useSyncExternalStore 是干什么的、和 useEffect 订阅有什么区别（getSnapshot 为什么要稳定、服务端快照是什么）？自定义 Hook 接收回调怎么处理依赖？手写一个防抖 Hook（定时器 id 为什么不能用普通变量存？防抖和节流的区别）？为什么不写 useMount？ |
 | 15 | Context 解决什么问题？Context value 变化时哪些组件会重渲染，如何优化？ |
 | 16 | Zustand / Redux / Context 如何选型？Zustand 的 selector 起什么作用？什么状态应该放全局、什么放局部？ |
 | 17 | useMemo 和 useCallback 分别缓存什么？什么时候该用、什么时候是负优化？React.memo 和它们如何配合？ |

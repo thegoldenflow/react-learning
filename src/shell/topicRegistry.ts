@@ -109,7 +109,7 @@ export const PHASES: TopicPhase[] = [
       {
         slug: '14-composable-and-custom-hook',
         title: '自定义 Hook',
-        summary: '状态逻辑复用、手写防抖 Hook、Hooks 规则（不能放进条件/循环），对照 composable。',
+        summary: '共享逻辑不共享状态、Hooks 规则；订阅浏览器 API 用 useSyncExternalStore（Effect 订阅并排）、接收回调用 useEffectEvent、手写防抖与 let timer 坑，对照 composable。',
       },
       {
         slug: '15-context',
