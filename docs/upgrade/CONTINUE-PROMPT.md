@@ -2,7 +2,7 @@
 
 > **用法**：在新会话里发送「读 `docs/upgrade/CONTINUE-PROMPT.md`，按它继续执行」。
 > **一次只开一个会话**执行本文件：`PROGRESS.md`、`eslint-suppressions.json`、README、注册表、`src/shared/` 是共享文件，并行会互相覆盖。
-> 本文件写于 2026-09-17，2026-09-18 第五次更新（完成 26 与 2-C 的 01 之后），可以反复使用：每个会话都从 `docs/upgrade/PROGRESS.md` 的「下一步」接着做。两者冲突时以 PROGRESS.md 为准。
+> 本文件写于 2026-09-17，2026-09-18 第六次更新（完成 2-C 的 02 之后），可以反复使用：每个会话都从 `docs/upgrade/PROGRESS.md` 的「下一步」接着做。两者冲突时以 PROGRESS.md 为准。
 
 ---
 
@@ -10,7 +10,7 @@
 
 你是资深前端工程师兼技术讲师，在继续升级 `D:\code\AI\learning\react`：一个「学 React（Vue 3 对照版）」学习站点，每题一个 React 示例（主教学文件，大量中文注释）+ 一个 Vue 3 对照。读者熟悉 Vue、在系统学 React 并准备面试。目标：**学得对、学的是主流、面试能用、上生产不踩坑**。
 
-阶段 0（两轮审计）、阶段 1（依赖与工具链）已完成；阶段 2 的 18 路由样板已完成并**经用户确认**，随后已完成 2-A（Vue 响应式措辞）、2-B 全部八题（**07、19、11、30、14、16、20、26**），以及 2-C 的第一题 **01**。你要做的是：**接着 2-C 从 02 往下做**（按编号），然后阶段 3 新题 31–35 → 阶段 4 一致性检查与交付文档。
+阶段 0（两轮审计）、阶段 1（依赖与工具链）已完成；阶段 2 的 18 路由样板已完成并**经用户确认**，随后已完成 2-A（Vue 响应式措辞）、2-B 全部八题（**07、19、11、30、14、16、20、26**），以及 2-C 的 **01、02**。你要做的是：**接着 2-C 从 03 往下做**（按编号），然后阶段 3 新题 31–35 → 阶段 4 一致性检查与交付文档。
 
 ## 1. 开工前按顺序读
 
@@ -19,14 +19,14 @@
 3. `docs/upgrade/AUDIT.md` §5.0 决定表（5.1–5.16）和附录 C（两轮审计怎么合起来用）。
 4. `docs/upgrade/AUDIT-ROUND2.md` §3（主线判定）和 §6（D2 决定）。
 5. **样板**：`src/topics/18-routing/` 下全部文件，以及 PROGRESS.md 的 2.1 节。风格、深度、注释密度、测试写法都照它来。
-6. **已完成各题的成品**（同样是样板，越往后写法越接近现在的节奏）：`src/topics/07-forms/`、`19-async-submit/`、`11-api-request-state/`、`30-tanstack-query-server-state/`、`14-composable-and-custom-hook/`、`16-global-state/`、`20-error-handling/`、`26-stale-closures/`、`01-component-and-jsx/`，以及 PROGRESS.md 的 2.3–2.11 节（每节都写了「问题表处理」「待核实项结论」「新发现」「复核代理提出、已改的 N 条」「验证」几块，新题照这个格式记录）。最新的 26、01 两题最能代表现在的做法：研究代理核实事实（文档原文 / 源码与 npm）→ 主会话读源码 + 一次性探针测试 → 写代码与测试 → 写文件头 → 反驳式复核代理逐条复核（26 题 28 条、01 题 32 条，都是实打实的问题，这一步不要省）→ 修正后提交。
-7. PROGRESS.md 的「**统一措辞**」一节（Vue 响应式、表单与事件类型、服务端状态 / TanStack Query、自定义 Hook 与订阅外部数据源、全局状态、错误边界、过期闭包与 useEffectEvent 七张表）：这些说法已定稿，后续各题直接照用，不要再自己另起一套。
+6. **已完成各题的成品**（同样是样板，越往后写法越接近现在的节奏）：`src/topics/07-forms/`、`19-async-submit/`、`11-api-request-state/`、`30-tanstack-query-server-state/`、`14-composable-and-custom-hook/`、`16-global-state/`、`20-error-handling/`、`26-stale-closures/`、`01-component-and-jsx/`、`02-props/`，以及 PROGRESS.md 的 2.3–2.12 节（每节都写了「问题表处理」「待核实项结论」「新发现」「复核代理提出、已改的 N 条」「验证」几块，新题照这个格式记录）。最新的 26、01、02 三题最能代表现在的做法：研究代理核实事实（文档原文 / 源码与 npm）→ 主会话读源码 + 一次性探针测试 → 写代码与测试 → 写文件头 → 反驳式复核代理逐条复核（26 题 28 条、01 题 32 条、02 题 22 条，都是实打实的问题，这一步不要省）→ 修正后提交。
+7. PROGRESS.md 的「**统一措辞**」一节（Vue 响应式、表单与事件类型、服务端状态 / TanStack Query、自定义 Hook 与订阅外部数据源、全局状态、错误边界、过期闭包与 useEffectEvent、Props 八张表）：这些说法已定稿，后续各题直接照用，不要再自己另起一套。
 
 然后：`git status`（只应有两个未跟踪的规格文件）、`git log --oneline -5`、跑一次 `npm run check` 确认基线是绿的。
 
-## 2. 当前状态（2026-09-18 第五次更新）
+## 2. 当前状态（2026-09-18 第六次更新）
 
-- 分支：`phase-1-toolchain`（34cd734 工具链、b7bcb90 ESLint 10）→ `phase-2-topics`：0e2874b 壳修复、4252967 **18 样板**、c03ae3b / 622bec1 文档、ccfd3db **2-A 统一 Vue 响应式措辞**、111ddfa **07 表单**、b9cc7b1 **19 异步提交**、659c24d **11 请求状态**、6358cbc 接续 prompt、5c04d9e **30 TanStack Query**、61281d7 **14 自定义 Hook**、d869301 接续 prompt、1eb2d3f **16 全局状态**、036fdba **20 错误边界**、301022e 接续 prompt（第四次）、ae5047c **26 过期闭包**、1e3394e **01 组件与 JSX**，之后是本 prompt 的第五次更新。2026-09-18 已按用户要求把 `phase-2-topics` push 到 origin（github.com/thegoldenflow/react-learning）；**没有开 PR**。除非用户明确要求，不要自己推送、开 PR 或合并。
+- 分支：`phase-1-toolchain`（34cd734 工具链、b7bcb90 ESLint 10）→ `phase-2-topics`：0e2874b 壳修复、4252967 **18 样板**、c03ae3b / 622bec1 文档、ccfd3db **2-A 统一 Vue 响应式措辞**、111ddfa **07 表单**、b9cc7b1 **19 异步提交**、659c24d **11 请求状态**、6358cbc 接续 prompt、5c04d9e **30 TanStack Query**、61281d7 **14 自定义 Hook**、d869301 接续 prompt、1eb2d3f **16 全局状态**、036fdba **20 错误边界**、301022e 接续 prompt（第四次）、ae5047c **26 过期闭包**、1e3394e **01 组件与 JSX**、85bba93 接续 prompt（第五次）、8348eea **02 Props**，之后是本 prompt 的第六次更新。2026-09-18 已按用户要求把 `phase-2-topics` push 到 origin（github.com/thegoldenflow/react-learning），push 到 85bba93 为止，02 与本次更新还没 push；**没有开 PR**。除非用户明确要求，不要自己推送、开 PR 或合并。
 - 依赖基线：React 19.2.8、react-router 7.18.3（从 `react-router` 导入，`RouterProvider` 从 `react-router/dom`）、vue 3.5.42、vue-router 5.2.0、pinia 3.0.4、zustand 5.0.15、@tanstack/*-query 5.102.8、react-error-boundary 6.1.3、ESLint 10.8.1、Vitest 4.1.11 + jsdom 29.1.1 + Testing Library（React / Vue）+ @vue/test-utils 2.4.11、TypeScript ~5.9.3、Vite 7.3.6。
 - 已确认的样板风格（5.16）：
   1. 完整十段文件头只写在 `react/Example.tsx`；`vue/Example.vue` 写题目信息 + Vue 侧要点，并指向 React 文件；
@@ -36,7 +36,7 @@
   5. 引用还没建的新题写「（32 题，待新增）」；
   6. 模拟服务可注入延迟（页面上几百毫秒，测试里 0）。
 - 其余已定决定（详见 AUDIT.md §5.0）：不启用 React Compiler（手写记忆化是主线，编译器作【较新】小节）；新增 31–35，36（样式方案）/ 37（表单工程化，需装 react-hook-form + zod）可选、放最后问用户；01–30 不重编号；Redux Toolkit 并入 16（只讲概念，不装依赖）；工程化与 StrictMode 并入 README + 10 / 23；心智模型总结和面试总索引是阶段 4 文档；「严重」按外延解读（D2-1）；22 题保留 effect 手写，在「七、生产环境注意」写三种生产改写（D2-2）；新装或升级依赖取「满 30 天的最新补丁」，已装在用的不降级（5.14）。
-- 当前数字（2026-09-18 第五次更新）：`没有一一对应关系` 79 处 / 38 个文件；`永远` 89 处、`根本没有` 3、`完全相同` 6、`完全一样` 7；`eslint-suppressions.json` 剩 **11 条 / 6 个文件**（10 / 12 / 21 / 23 / 24 / 27）。全量测试 275 条、23 个测试文件。
+- 当前数字（2026-09-18 第六次更新）：`没有一一对应关系` 72 处 / 34 个文件；`永远` 78 处、`根本没有` 2、`完全相同` 5、`完全一样` 7；`eslint-suppressions.json` 剩 **11 条 / 6 个文件**（10 / 12 / 21 / 23 / 24 / 27）。全量测试 308 条、25 个测试文件。
 - **已经积累的可复用做法**（前面各题实测过，后面各题优先照用）：
   1. **请求 / 提交类状态尽量派生，不要在 Effect 体里同步 setState**：把「结果属于哪一次参数」（参数指纹）记进结果，`pending` 由它算出来。一次解决三件事：不碰 `set-state-in-effect` 规则、过期响应不会被当成当前结果（等价官方 ignore 标记）、切换参数时旧数据能留着不闪（等价 `placeholderData: keepPreviousData`）。见 11 题。
   2. **可复现的演示开关**代替随机失败：`failRate: 开关 ? 1 : 0`、`delayMs` 作为组件 prop（页面几百毫秒、测试 20ms；要断言「加载中 / 提交中」这种中间态时用 300ms，20ms 在全量测试里会先结束）。
@@ -62,7 +62,10 @@
   22. **两题交叠做**（复核代理一跑 15–25 分钟，可以在它复核上一题时开始下一题的研究和代码，并发仍不超过 2 个代理）：提交前一题时，先把 README / 注册表里下一题的那几行临时还原成 HEAD 版本（先把完整文件拷到 scratchpad），`git stash push --include-untracked -- <下一题目录>`，跑 `npm run check`，按路径提交，再 `stash pop` 并恢复那几行。注意两点：stash 期间别让子代理读那个目录（01 题的复核代理就读到过旧文件）；**下一题自己提交前必须再跑一次完整 check**（01 题的测试文件在 stash 期间藏着一个类型错误，是复核代理发现的）。
   23. **React 开发期报错的断言**：console.error 收到的是格式串加参数（例如格式串「Invalid DOM property %s. Did you mean %s?」加上 class、className 两个参数），先拼成完整句子再比对（01 题的 `errorTexts(): string[]`；返回类型要写，否则推成 any、typecheck 报 TS7006）。同一个标签名的「unrecognized tag」报错整个进程只报一次。
   24. **反驳式复核代理的 prompt 要点**：给它研究材料的路径，让它写脚本逐条核对引文（允许去掉 markdown 标记与「…」省略）、源码行号、实测结论（自己重跑）、交叉引用（去被引用的题目录里看）、成熟度标签、统一措辞表，并对照审计大纲列出遗漏；输出 JSON（id / file / line / category / severity / problem / evidence / suggestion），主会话用 node 拍平阅读。
-  25. **交叉引用只指向已经存在的内容**：被引用的题还没改写、里面没有那段内容时，写「NN 题改写时补」并在 PROGRESS 该题的「遗留」里记一笔（01 题：17 的 Compiler 小节、02 的多根 attrs、28 的组件返回类型）。
+  25. **交叉引用只指向已经存在的内容**：被引用的题还没改写、里面没有那段内容时，写「NN 题改写时补」并在 PROGRESS 该题的「遗留」里记一笔（01 题：17 的 Compiler 小节、28 的组件返回类型；02 题：12 的 ref 回调 / useImperativeHandle / defineExpose、28 的 ReactElement / React.JSX / 泛型组件）。被引用的题改写完成后，回头把「NN 题改写时补」改成「见 NN 题」（02 做完时已把 01 的两处「02 题改写时补」改掉）。
+  26. **生产构建的行为用 node + jsdom 一次性脚本量**（02 题）：在 scratchpad 写 .cjs，开头设 `process.env.NODE_ENV = 'production'`，用绝对路径 require 仓库的 jsdom、react / react-dom/client（或 vue），手写 `act = async fn => { await fn(); await new Promise(r => setTimeout(r, 50)) }`（生产包没有 act）；jsdom 的 window / document / Element / Node 挂到 global（navigator 是只读 getter，别挂）。同一脚本传 development 跑一遍做对照。
+  27. **类型层结论写成测试**（02 题）：`import { expectTypeOf } from 'vitest'` + `// @ts-expect-error`，由 `npm run typecheck`（vue-tsc 检查测试文件）来验证；tsconfig 开了 noUnusedLocals，被 @ts-expect-error 标注的声明要在后面用一下，否则「声明未使用」这个错误就能让 @ts-expect-error 成立、证明不了想证明的错误。验证方法：临时删掉指令跑一次 vue-tsc 看真实报错（先把文件备份到 scratchpad，别用 /tmp 与 scratchpad 两个路径混着还原）。
+  28. **Vue 侧 lint 的几个现成规则**（02 题）：`vue/no-mutating-props`（教学反例用行尾 `// eslint-disable-line vue/no-mutating-props -- 原因`，上一行放 `// @ts-expect-error`）；`vue/require-default-prop`（解构的可选非布尔 prop 要给默认值）；`vue/no-setup-props-reactivity-loss` 对 3.5 解构后的 `ref(price)` 不报，别预先写 disable（会变成 Unused eslint-disable directive 警告，--max-warnings=0 下失败）。
 
 ## 3. 还要做的事（按这个顺序）
 
@@ -92,7 +95,7 @@
 
 ### 3.3 阶段 2-C：其余题（每题 1 个 commit，按编号）
 
-`01 → 02 → 03 → 04 → 05 → 06 → 08 → 09 → 10 → 12 → 13 → 15 → 17 → 21 → 22 → 23 → 24 → 25 → 27 → 28 → 29`。**01（1e3394e，见 PROGRESS 2.11）已完成，从 02 开始做。** 做每一题前先看 PROGRESS「每题状态」表里其他题留给它的遗留（例如 01 题留给 02 的「多根组件的 attrs 透传」、留给 17 的 Compiler 小节、留给 28 的组件返回类型；26 题留给 10 的「场景二修法三 latest ref」、留给 14 的 19.2.x memo / forwardRef bug 一句）。
+`01 → 02 → 03 → 04 → 05 → 06 → 08 → 09 → 10 → 12 → 13 → 15 → 17 → 21 → 22 → 23 → 24 → 25 → 27 → 28 → 29`。**01（1e3394e，见 PROGRESS 2.11）、02（8348eea，见 PROGRESS 2.12）已完成，从 03 开始做。** 做每一题前先看 PROGRESS「每题状态」表里其他题留给它的遗留（例如 01 题留给 17 的 Compiler 小节、留给 28 的组件返回类型；02 题留给 12 的 ref 回调与清理 / useImperativeHandle / RefObject / defineExpose、留给 28 的 ReactElement / React.JSX / 泛型组件；26 题留给 10 的「场景二修法三 latest ref」、留给 14 的 19.2.x memo / forwardRef bug 一句；03 题：14 题留下「03 题 :64『10、14 题会再遇到快照』改写时核对」）。
 各题要并入的散点知识点见 AUDIT.md §4.3「散点知识点并入现有题」表（04 合成事件变化、05 `<Activity>` 一句、12 ref 回调清理 / `useImperativeHandle` / `forwardRef` 旧写法 / `useTemplateRef`、15 `use(Context)`、17 Compiler 小节、24 `flushSync` caveat、28 React 19 类型变化等）。第一轮里「以第一轮为准」的条目清单在附录 C，逐条核对。
 
 ### 3.4 阶段 3：新题 31–35（新分支 `phase-3-new-topics`，从 `phase-2-topics` 末端切出）
@@ -197,6 +200,7 @@ node -e "const {execSync}=require('child_process');const fs=require('fs');const 
 - 20 题已核实的事实（详见 PROGRESS 2.9）：react-dom 19.2.8 默认 onCaughtError = console.error（传了回调就不打印），onUncaughtError = reportError + 开发环境 console.warn；被接住的错误不触发 window 的 error 事件（Component 页「bubble up to window」是旧行为）；事件处理函数错误在 executeDispatch 里 try / catch 后交给 reportError，其他监听照常执行；只有 useTransition 返回的 startTransition 的错误进边界，顶层 startTransition 不进；lazy 失败被缓存，重置边界不会重新下载；act 里没接住的错误由 act 重新抛出、不调 onUncaughtError。Vue：模板上的事件处理函数（含 async 被拒绝）、watch 回调进 onErrorCaptured；渲染函数里抛错的组件渲染成空注释，computed 在更新前抛错时 info 是 'component update' 且界面停在上一次；onUnmounted 里模板 ref 已是 null。`<RouterProvider onError>` 7.11.0 起稳定；react-error-boundary 6.1.3（6.0 起只发 ESM，6.1.4 修了 throw null 重置）。
 - 26 题已核实的事实（详见 PROGRESS 2.10）：useEffectEvent 19.2.0 起（react 18.3.1 / 19.0 / 19.1 稳定版都没有导出；实验期名字 experimental_useEvent → experimental_useEffectEvent；RFC useEvent 2022-09 搁置）；eslint-plugin-react-hooks 6.1.0 起识别（5.x 与误发的 6.0.0 不识别）；参考页 Caveats 四条（第 1 条是「顶层调用」，「not reactive、不写进依赖」出自 learn 页与 useEffect 页）；react-dom 19.2.8 每次渲染返回新的包装函数、共用一个 ref，更新时新回调在这次提交的 before-mutation 写入（早于 insertion / layout / passive），运行时只拦渲染期调用（生产错误码 440），onClick 里调用照常执行；**19.2.x 的 memo()（不带比较函数）/ forwardRef 组件里 Effect Event 一直调用第一次渲染的回调，19.3.0 修复（#34831）**；latest ref 用 useEffect 同步有窗口期（本组件 layout effect、子组件 Effect 读到旧值）；react.dev 挑战题「Read the latest state」用 ref 在事件处理函数里保存最新值（官方没有给 latest ref 命名）；exhaustive-deps 的依赖比较在渲染阶段（updateEffectImpl）；JSX 事件派发时读 DOM 节点上最近一次提交的 props（getListener）；Vue watch 回调在 effect.run() 之后调用所以不登记依赖，watchEffect 里读 logRef.value 会被收成依赖；Vue 3.5.42 把解构出来的 prop 直接传给 watch 时 compileScript 抛错（文档写的是 warning）；react.dev 有三处 Pitfall 写成 eslint-ignore-next-line（ESLint 没有这个指令）；npm 上周下载（2026-09-18）React 18 / 19.0 / 19.1 合计 30.45%。
 - 01 题已核实的事实（详见 PROGRESS 2.11）：小写组件名的两条开发期报错原文；class / for / tabindex / onclick / ariaLabel 的报错原文；style 传字符串抛错原文；style 数字补 px 的规则（0 与 unitlessNumbers 不补，含 aspectRatio / lineClamp / scale）；返回 undefined 18.0 起不报错（CHANGELOG「Components can now render undefined」）；开发环境 JSX 编译成 jsxDEV（vite 的 jsxDev: !isProduction），生产是 jsx() / jsxs()；新 JSX 转换 2020 年「is not required」→ 19「now required」；StrictMode 参考页四项开发期行为与双调用范围；Fragment Refs 在 19.3 转正（本仓库 19.2.8 没有 FragmentInstance）；Vue :style 数字不补单位（jsdom 与 Chrome 都丢掉 width: 48）；compiler-sfc 的实际编译带静态提升与 -1 CACHED；Vue 在渲染函数里现场创建组件对象同样每次重建；lint 对渲染期突变只拦重新赋值（globals）和属性赋值（immutability），arr.push() 拦不住。
+- 02 题已核实的事实（详见 PROGRESS 2.12）：开发构建 props 被浅冻结（react-jsx-dev-runtime.development.js:193），函数组件拿到的就是 element.props，赋值抛「TypeError: Cannot assign to read only property 'amount' of object '#<Object>'」；生产构建赋值成功、不重渲染、子组件自己重渲染时读到改过的值、父组件重渲染后恢复；Vue 开发构建 setup 拿 shallowReadonly(props)，赋值警告「[Vue warn] Set operation on key "amount" failed: target is readonly.」、值不变，生产构建赋值成功并重渲染、父组件传同样的值时界面一直停在改过的值；读 props.key 报「X: `key` is not a prop. …」（整页只报一次）；展开含 key 的对象报「A props object containing a "key" prop is being spread into JSX …」；读 element.ref 报「Accessing element.ref was removed in React 19. …」（升级指南文案不同）；函数组件 defaultProps 在 jsx() 路径静默忽略、createElement 路径仍合并（`<C {...p} key="k" />` 编译成 createElement）；propTypes 静默忽略；forwardRef 19.2.8 可用无提示、@types/react 19.2.18 / 19.3.0 没标 @deprecated；@types/react 的 ComponentProps JSDoc 建议用 WithRef / WithoutRef；data-* 不在 ComponentProps 类型里；Vue 3.5 propsDestructure 默认开启、给解构 prop 赋值编译报错「Cannot assign to destructured props as they are readonly.」、解构默认值后 vue-tsc 去掉 undefined；布尔 prop 缺省 false；没关 inheritAttrs 又手动 v-bind="attrs" 时 class 重复、同一监听器去重；多根组件没绑 $attrs 警告「Extraneous non-props attributes (…) … fragment or text or teleport root nodes.」；useAttrs 文档说不能 watch，3.5.42 实测 watch getter 会触发（3.2 #4161）；react.dev 没有「无值属性 = true」的原文（出处 legacy JSX In Depth）；表单里没写 type 的 <button> 是提交按钮（MDN）。
 - 18 题已核实、可以直接引用的 React Router 事实：同一次导航里父子 loader 并行（`defaultDataStrategy` 里的 `Promise.all`）；多个 loader 同时 redirect 时最深一层优先（`findRedirect` 从后往前找）；middleware 不调用 `next()` 会自动继续，`next()` 只能调用一次；Data 模式专有 hook 在非 Data 路由下会抛「must be used within a data router」；redirect 到跨域绝对地址会整页跳转；memory history 只有第一条记录的 key 是 `"default"`。vue-router 5 的 memory history 不记录 `back`。
 
 ## 7. 会话结束前（或上下文快满时）
