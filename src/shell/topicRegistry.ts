@@ -44,7 +44,7 @@ export const PHASES: TopicPhase[] = [
       {
         slug: '03-state',
         title: 'State 与 useState',
-        summary: 'useState 的读与写、不可变更新、渲染快照与函数式更新，以及多状态收敛到 useReducer。',
+        summary: '为什么需要 state、setter 只影响下一次渲染（快照、函数式更新、Object.is 跳过）、对象 / 数组整体替换、惰性初始化、state 的结构与 useReducer、两个常见报错，对照 Vue 的 ref / reactive 与 setup 只执行一次。',
       },
       {
         slug: '04-events',

@@ -9,7 +9,7 @@
 |---|---|---|---|---|
 | 0 | 审计（只读） | **完成。** 两轮审计均完成；用户 2026-09-17 答复「全部按建议执行」（AUDIT-ROUND2.md §6 D2-1～8，记录在 AUDIT.md §5.13）；两轮合并规则写在 AUDIT.md 附录 C | `docs/upgrade/AUDIT.md`（含 §5.13、§5.14、附录 C）、`docs/upgrade/REAUDIT-PROMPT.md`、`docs/upgrade/AUDIT-ROUND2.md` | 两轮审计与合并说明均已提交（d550e27、1efc217） |
 | 1 | 依赖与工具链调整 | **完成（2026-09-17）**：commit「阶段 1：依赖与工具链调整」（34cd734）+「阶段 1 补充：ESLint 9 → 10（D1-1）」 | package.json / package-lock.json、vitest.config.ts、eslint.config.js + eslint-suppressions.json、tsconfig.json、src/test/、4 处 react-router 导入、README 事实行 | 复核口径与全部记录见下文「阶段 1 记录」；版本决定见 AUDIT.md §5.0 的 5.14、5.15 |
-| 2 | 逐主题修改（先改 18 路由样板） | **进行中**（分支 `phase-2-topics`）：前置 commit（壳修复，2.0）、**18 路由样板**（2.1，风格已确认，AUDIT.md §5.0 的 5.16）、**2-A Vue 响应式措辞批量修正**（2.2，措辞见「统一措辞」）、**2-B 的 07 表单**（2.3）、**19 异步提交**（2.4）、**11 API 请求状态**（2.5）、**30 TanStack Query**（2.6）、**14 自定义 Hook**（2.7）、**16 全局状态**（2.8）、**20 错误边界**（2.9）、**26 过期闭包**（2.10）已完成，**2-B 全部完成**；2-C 的 **01 组件与 JSX**（2.11）、**02 Props**（2.12）已完成。**下一步：2-C 的 03 State**（之后按编号 04 → 05 → …），做法见 `docs/upgrade/CONTINUE-PROMPT.md` | 每题一个 commit | 样板已确认，其余题不再逐题停 |
+| 2 | 逐主题修改（先改 18 路由样板） | **进行中**（分支 `phase-2-topics`）：前置 commit（壳修复，2.0）、**18 路由样板**（2.1，风格已确认，AUDIT.md §5.0 的 5.16）、**2-A Vue 响应式措辞批量修正**（2.2，措辞见「统一措辞」）、**2-B 的 07 表单**（2.3）、**19 异步提交**（2.4）、**11 API 请求状态**（2.5）、**30 TanStack Query**（2.6）、**14 自定义 Hook**（2.7）、**16 全局状态**（2.8）、**20 错误边界**（2.9）、**26 过期闭包**（2.10）已完成，**2-B 全部完成**；2-C 的 **01 组件与 JSX**（2.11）、**02 Props**（2.12）、**03 State**（2.13）已完成。**下一步：2-C 的 04 事件处理**（之后按编号 05 → 06 → …），做法见 `docs/upgrade/CONTINUE-PROMPT.md` | 每题一个 commit | 样板已确认，其余题不再逐题停 |
 | 3 | 补充新主题 | 未开始 | | 按阶段 0 确认的清单 |
 | 4 | 一致性检查 + CHANGELOG | 未开始 | `docs/upgrade/CHANGELOG.md` | |
 
@@ -567,6 +567,47 @@
 
 **验证**：`npm run check` 通过（lint 0 / typecheck 0 / 测试 308 条 / build）；02 的 33 条测试无 act 警告、无 stderr（故意触发的开发期报错 / 警告都 spy 并断言）。浏览器用临时 5174 服务器（完成后已停掉并还原 launch.json；面板隐藏）：两侧默认值表（React emphasis 为 undefined、Vue 为 false）、❌ 按钮（React 显示 TypeError 原文、Vue 读回 100 并只有那一条预期的 readonly 警告）、「稍后读取」（Chrome 实测 React 读到 100、Vue 读到 200）、回调 / emit 改成 0、镜像 100 / 直接 120 / 含税 127 / 草稿 90 → 重开 120、onClick 计数 1（禁用按钮不加）、合并后 class「btn-primary btn-ghost」与 style「font-size: 12px; padding: 2px 8px; margin-left: 8px;」、type submit、focus 移到「删除」、LabeledInput 的 placeholder / maxlength 落在 input 上且 label for 与 id 一致；源码查看器 React 7 个、Vue 13 个文件；1280 宽无横向溢出。修复复核意见后重跑一遍，捕获到的 console.error / console.warn 为 0。
 
+### 2.13 03 State 与 useState（2026-09-18，2-C 第三题）
+
+**蓝本与依据**：AUDIT-ROUND2.md §5 的 03 大纲；问题表 = R2-03-1～10 + AUDIT.md §3 的 03 各行（:223 空串 && —— 附录 C 列为「以第一轮为准」、:224 changeQuantity 位置写反、:225 引用「10、14 题」、:226 Vue 粒度、:227 四处「永远」）。核实：2 个只读研究代理（官方文档 44 小项、233 段引文脚本逐字校验全部通过：40 确认、2 修正、2 查无；源码 / npm 26 项、141 处行号回读全部通过：25 确认、1 修正）+ 主会话一次性探针（React：Object.is 跳过的两种情形、Too many re-renders、函数存进 state、StrictMode 双调、空串与 0、class setState；Vue：普通 let 变量、渲染中改数据、ref(fn)、赋同值、DOM 时机；lint：6 种反例的真实报错；TypeScript：readonly 类型的三条报错）+ React 18 升级指南原文（自动批处理、ReactDOM.render 的报错文案）+ MDN（localStorage 的 SecurityError、setItem 的 QuotaExceededError）+ 1 个反驳式复核代理（提出 23 条：错 4、措辞 11、建议 8，已全部处理，见下）。
+
+**结构（React 12 个文件，Vue 9 个文件）**
+- `react/Example.tsx`：十段文件头 + 七个区块的入口。
+- `react/WhyStateDemo.tsx`【区块一】：局部变量 `let clicks`（日志 1、2、3，界面一直 0；重渲染后又从 1 开始）+ 同一个 `StateCounter` 渲染两次各管各的。
+- `react/SnapshotDemo.tsx`【区块二】：set 之后立刻读、A ×2 只 +1 / B ×2 +2、设成当前值。
+- `react/CartDemo.tsx`【区块三】：map / filter / 展开 + 「❌ 原地 +1」（界面不动，下次别的重渲染才「突然」变）；初始数据用惰性初始化拷一份（标「演示简化」：否则 ❌ 按钮改到模块常量）。
+- `react/LazyInitDemo.tsx`【区块四】：`useState(createInitialRows(…))` vs `useState(() => createInitialRows(…))`，调用次数面板是兄弟组件（计数器在 `demoKit.ts`，通知推迟到微任务，避免「渲染 A 时更新 B」的报错）。
+- `react/StateStructureDemo.tsx`【区块五】：选中项存对象 vs 存 id；两个布尔值（「发送中」「已发送」同时成立的 bug）vs 一个 status。
+- `react/QuantityEditor.tsx` + `react/quantityReducer.ts`【区块六】：原 reducer 挪到 .ts 并导出（R2-03-10：之前说「可单独测试」但没导出），测试里直接调用。
+- `react/TroubleshootingDemo.tsx`【区块七】：`onClick={handleClick()}`（react-error-boundary 接住 Too many re-renders）、`setFormatter(addBang)` 把函数当更新函数调用。
+- `react/demoKit.ts` + `react/LogPanel.tsx`：日志 store 与面板（照 26 题的拆法）。
+- Vue 侧：`WhyStateDemo.vue` + `StateCounter.vue`、`SnapshotDemo.vue`（useTemplateRef 读 DOM + nextTick）、`CartDemo.vue`、`LazyInitDemo.vue`、`StateStructureDemo.vue`（存同一个响应式对象 / 副本 / id 三种 + 「重新拉取」）、`QuantityEditor.vue`（resetEditor 改成 Object.assign）、`Example.vue`（精简头 + 「区块七在 Vue 里」说明卡）。
+- 壳：注册表 03 题 summary；README 03 题目录行、说明段、面试题行，以及 23 段落「与 03 题的区别」、29 段落「与 03 题区块六的区别」两处半句。
+- 其他题的交叉引用：23（react / vue）「03 题区块一」→「区块二」；29（react / vue）「03 题区块二」→「区块六」。
+- 测试：React 24 条、Vue 14 条。
+
+**问题表处理**：R2-03-1 惰性初始化（区块四 + 原文 + 两侧测试，含 StrictMode 2 次）；R2-03-2 Hooks 规则（二-3：顶层调用原文 + deep dive「stable call order」「array of state pairs」，指向 14）；R2-03-3 局部变量两个问题 + state 属于实例（区块一，两侧测试）；R2-03-4 状态结构五原则（二-10 逐条原文，区块五演示重复 / 矛盾两条，拍平引「child place IDs」原文；不镜像 props 指向 02 区块三）；R2-03-5 两大排错（区块七 + Troubleshooting 原文 + 测试）；R2-03-6 class setState 浅合并与 this.state（八 + 测试，含 17 及以前定时器里同步生效的前提）；R2-03-7 lint 与 Compiler（九：recommended 预设实际 16 条、Compiler「understands the Rules of React」与「will skip optimizing」）；R2-03-8 Vue 响应式按统一措辞写；R2-03-9 模板残留与绝对化清零（「统一解法都是函数式更新」改成官方「In most cases, there is no difference」+ 什么时候要用）；R2-03-10 交叉引用改成 25 / 15 / 16 / 30，reducer 导出并单测。第一轮 :223（空串 && 讲反：React 不为空字符串建文本节点，测试覆盖）、:224（位置写反，重写后不再有这句）、:225（「10、14 题」改成 23 / 24 / 26）、:226、:227 全部落实。
+
+**待核实项结论**：
+- P-03-1（lint 预设）：阶段 1 已切 `reactHooks.configs.flat.recommended`；7.1.1 的 recommended 实际 16 条规则（插件文档列 17 条，多出的 component-hook-factories 不在 7.1.1 预设里；installation 页又说编译器规则在 recommended-latest，文档自相矛盾）。
+- P-03-2（Object.is 相同时「may still need to call your component」）：react-dom 19.2.8 实测 —— 没有待处理更新时 dispatchSetState 当场比较、相同就连组件函数都不调用（:9143-9161）；组件刚因自己的 state 更新重渲染过时，alternate 上留着更新标记，React 调用一次组件函数、算出没变再跳过子组件（:8070-8072、:10174-10179），再 set 一次就不调用了；只是因为父组件重渲染而跟着重渲染的子组件没有这个标记（复核实测）。这时 `<Profiler onRender>` 仍报一次 update —— 不能拿 Profiler 证明「没重渲染」。
+- P-03-3（17 及以前只在 React 事件里批处理的原文）：React 18 升级指南「Before React 18, we only batched updates inside React event handlers.」「Starting in React 18 with createRoot, all updates will be automatically batched, no matter where they originate from.」（发布博客的说法是「Without automatic batching, …」）。
+
+**本次新发现（审计没写到）**：
+1. eslint-plugin-react-hooks 7.1.1 的 immutability 拦得住 `items[0].quantity++`、`user.age = 2`，拦不住经 `items.find()` 拿到的对象再改字段、`items.push()`（渲染期和事件处理函数里都不报）；局部 `let` 在事件处理函数里重新赋值报两条（赋值处「Cannot reassign variable after render completes」、onClick 处「Cannot modify local variables after render completes」）。
+2. set-state-in-render 报组件体里无条件的 setState 与 `onClick={handleClick()}`，不报「记住上一次的 prop」那种有条件写法（规则页列为 Valid）；写在 `items.map()` 回调里的 `onClick={removeItem(id)}` 也不报（04 题实测）。
+3. 官方措辞：初始化函数「should be pure」，更新函数与 reducer「must be pure」；StrictMode 下两次调用「one of the calls will be ignored」—— 19.2.8 里初始化函数采用第一次的结果，更新函数在非急切路径下采用第二次（复核实测）。
+4. Vue `<script setup>` 的普通 `let` 变量：setup 只执行一次，变量一直活着但不触发渲染，别的数据让组件重渲染时模板读到它的当前值（开发的非内联编译与生产的内联编译都一样，复核实测）—— React 的局部变量是每次渲染重来。
+5. Vue 在渲染里改自己读过的数据：开发构建在同一个任务重复排队超过 100 次时 `handleError(字符串, null, 10)`，先警告「Unhandled error during execution of app errorHandler」（标签用的是错误码 10 的名字），再把字符串本身抛出去 —— 变成未处理的 Promise 拒绝，`app.config.errorHandler` 接不到（instance 是 null）；生产构建没有 checkRecursiveUpdates。
+6. `setFn(fn)`：TypeScript 拦不住（fn 的类型正好满足 SetStateAction 里「新值」那一支）。
+7. 空串 `&&`：React 不为空字符串创建文本节点（协调子节点四处 `"" !== newChild` 判断，宿主元素唯一子节点走 textContent = ""），会渲染出来的是数字 0（和 NaN）。
+8. `readonly CartItem[]` 拦 push（TS2339）与下标赋值（TS2542），`Readonly<CartItem>` 拦字段赋值（TS2540）；两者都是浅的。
+9. React 18 升级指南里 ReactDOM.render 的开发期报错原文「Until you switch to the new API, your app will behave as if it's running React 17.」
+
+**复核代理提出、已改的 23 条（要点）**：二-10「另外三条」列错（把 Don't mirror props 当成一条、漏了 Group related state）→ 按五条原则逐条写原文；「深嵌套拍平（21 题）」「详见 21 题（reactive 限制）」两处引用不成立 → 03 自己补拍平原文、删掉 21 的引用并记进遗留；StateStructureDemo 的「原文核对见二-7」→ 二-10；class setState「set 之后同步读旧值」补版本前提（17 及以前定时器 / Promise 里同步生效）、「过期闭包只出现在函数组件里」改成「class 默认从 this 现读，拷出来同样会过期」；StrictMode 测试名「只有第一次的结果被采用」对更新函数不成立 → 改成「其中一次的结果被忽略」；9 处缺成熟度标签；Vue「reactive 换掉就和模板断开」与区块一自相矛盾 → 改成「赋值不触发渲染、旧引用失联」；QuantityEditor.vue 把 reducer 讲成框架差异 → 改成「别让修改散落各处是和框架无关的组织方式」；Vue「渲染过程里不要改状态」补「无条件地」与 React 的例外；「任何时候都对 / 始终一致」补 id 稳定的前提；「解构会断开追踪」补「原始类型的属性」；四-2 补「不启用 Compiler」；localStorage 的错误改成 SecurityError / 解析失败 / 形状不对，配额只在写入时；「刚更新过」改成「刚因自己的 state 更新重渲染过」（含 README）；二-9 惰性初始化补「需要参数时包一层」；demoKit 注释与测试对齐；fake timers 在 afterEach 里恢复；README 补「开发构建」；五补「惰性初始化和 props 镜像是同一个原因」；二-13 的「测试覆盖」归属改准。
+
+**验证**：`npm run check` 通过（lint 0 / typecheck 0 / 测试 346 条 / build）；03 的 38 条测试无 act 警告、无 stderr（故意触发的报错都 spy 并断言；Vue 的未处理拒绝用 process.on('unhandledRejection') 收住）。浏览器用临时 5174 服务器（完成后已停掉并还原 launch.json；面板隐藏）：React 七个区块 —— 局部变量日志 1、2、3 且界面 0、重渲染后从 1 开始，A / B 计数器互不影响；快照日志「setCount(1) 之后立刻读 count = 0」、A 只 +1、B +2；「❌ 原地 +1」后界面不动、点另一行 + 后突然变 2、合计 6；惰性初始化 StrictMode 下首次 2 / 2，输入一次后 4 / 2；选中项存对象停在 × 1、存 id 显示 × 3；两个布尔值同时显示「发送中…」「已发送 ✓」；reducer 输入 9 报库存、输入 5 成功；Too many re-renders 被边界接住（唯一一条 console.error 是这个预期的报错）、formatter 被改坏后显示 typeof = string。Vue 六个区块 —— 普通变量点 3 次显示 0、重渲染后显示 3；改完立刻读 1、DOM 上还是 0、nextTick 后 1；A / B 都 +2；列表换新后存对象停在 × 2、存 id 显示 × 12；init 调用 1 次。源码查看器 React 12 个、Vue 9 个文件；无横向溢出。复核后的修改只动注释、测试名与说明文字，重跑 lint / typecheck / 测试。
+
 ## 统一措辞（各题改写时照用）
 
 ### Vue 响应式（2-A 定稿，2026-09-17）
@@ -689,6 +730,23 @@
 | 一个文件几个组件 | 「一个 SFC 只有一个模板组件；同一文件写多个组件要 defineComponent + 渲染函数 / JSX」 | 「Vue 一个文件只能有一个组件」 |
 | <button> 的 type | 「表单里没写 type 的 <button> 是提交按钮（MDN ③）」 | 「button 默认 type 是 submit」（不带表单前提） |
 
+### State（03 定稿，2026-09-18）
+
+| 要说的事 | 这样写 | 不要这样写 |
+|---|---|---|
+| set 之后读 | 「setter 只影响下一次渲染，这次渲染里读还是旧值」（useState 页 Caveats 原文） | 「setState 是异步的」 |
+| 函数式更新什么时候用 | 「同一事件里多次更新同一个 state、异步回调里基于旧值更新时用；只更新一次两种写法结果相同（官方 In most cases, there is no difference）；想统一风格一律写也可以」 | 「新值依赖旧值时必须用函数式更新」「统一解法都是函数式更新」 |
+| Object.is 跳过 | 「相同就跳过重渲染与子组件；组件刚因自己的 state 更新重渲染过时，React 可能先调用一次组件函数再跳过子组件」 | 「设同样的值组件函数一定不执行」「刚更新过的组件」（不说是自己的 state） |
+| 初始化函数 | 「应当是纯函数（should）、不接收参数；需要参数就包一层箭头函数；StrictMode 开发环境调两次、其中一次的结果被忽略」 | 「必须是纯函数」（must 是更新函数和 reducer 的措辞）、「只采用第一次的结果」 |
+| 空串 && | 「空字符串不渲染任何节点；会渲染出来的是数字 0（和 NaN）」 | 「空串会被渲染成看不见的文本」 |
+| lint 能拦什么 | 「immutability 拦得住 items[0].x++、obj.x = …；拦不住经 find() 拿到的对象再改、push()；set-state-in-render 只报组件体里无条件的 setState」 | 「lint 会拦住所有直接修改 state」 |
+| 普通变量 | 「React 的局部变量每次渲染重来（不保留、不触发渲染）；Vue <script setup> 的普通变量一直活着，只是不触发渲染」 | 「两边的普通变量一样」 |
+| 存对象还是存 id | 「React 存下来的对象在列表不可变更新后过期；Vue 存同一个响应式对象，原地修改时不过期，列表整体换新时同样过期；两边都推荐存 id（id 稳定为前提）」 | 「Vue 存对象不会过期」「存 id 任何时候都对」 |
+| 为什么要 reducer | 「别让修改散落在各个事件处理函数里（和框架无关）；React 用 reducer，Vue 集中到 composable / Pinia action」 | 「Vue 不需要 reducer 是因为可以直接改」（把模式讲成框架差异） |
+| class 的 setState | 「浅合并；React 事件处理函数里（18 起 createRoot 下任何地方）set 之后同步读还是旧值；17 及以前在定时器 / Promise / 原生事件里同步生效；定时器里读 this.state 是最新值，拷出来同样会过期」 | 「class 的 setState 是异步的」「过期闭包只出现在函数组件里」 |
+| Vue 渲染中改数据 | 「开发构建在同一个任务重复排队超过 100 次时报 Maximum recursive updates exceeded；生产构建没有这项检查」 | 「Vue 会无限循环」「Vue 也抛 Too many re-renders」 |
+| reactive 的限制 | 「只能装对象类型、不能整体替换（和原来的引用断开）、解构出原始类型的属性会断开追踪；所以官方推荐 ref() 为首选」 | 「reactive 解构就失去响应性」（不说原始类型）、「reactive 换掉就和模板断开」 |
+
 ## 每题状态（阶段 2 起填写）
 
 | 题号 | 主题 | 状态 | 改动摘要 | 遗留问题 |
@@ -697,9 +755,10 @@
 | 26 | 过期闭包 | **完成** | 修法优先级（函数式更新 → 写对依赖 → useEffectEvent 主线 → latest ref 并排）四个区块：事件处理函数里的 setTimeout、手动 addEventListener（含被 useCallback 缓存的 JSX 处理函数）、轮询四种写法、让依赖合法消失（搬进事件 / 对象依赖 / ref.current）；Vue 侧现读 .value、手动快照与解构 reactive、3.5 解构 props、watch vs watchEffect；React 22 条 + Vue 15 条测试（含 latest ref 窗口期、Effect Event 身份与换入时机、19.2.x memo / forwardRef bug）；了结 P-26-1～6。详见 2.10 | 19.3 升级后改 memo / forwardRef 那条测试与课件；14 题 useInterval 注释可补一句 19.2.x 的 memo / forwardRef bug；10 题改写时保留「场景二修法三 latest ref」或同步改 26 的引用；31–35 新增后回填交叉引用 |
 | 01 | 组件与 JSX | **完成** | 四个区块：资料卡（UserCard 两个独立实例、JSX 当值传、className / style / Fragment）、JSX 编译成什么（automatic vs classic 编译结果、style 补 px 实测、Fragment key）、组件必须纯（茶杯例子 + StrictMode）、不要在组件里定义组件；Vue 侧 SFC + 具名插槽、:class / :style、compiler-sfc 编译输出；React 17 条 + Vue 5 条测试；了结 P-01-1～5。详见 2.11 | 17 题改写时补 Compiler 小节并回头核对 01 的引用；多根组件的 attrs 透传已在 02 补上（2.12）；28 题改写时补「组件返回类型 / FunctionComponent 签名」；19.3 升级后核 Fragment ref 的类型；33 / 35 新增后回填交叉引用 |
 | 02 | Props | **完成** | 四个区块：props 的类型、解构与默认值（默认值实验表：没传 / undefined / null / 空串 / 无值写法）、props 只读与回调上浮（开发构建 TypeError、onAmountChange、快照）、不要把 props 复制进 state（useState 镜像 vs 直接读、initialPrice + 换 key）、接收原生属性（ComponentPropsWithRef + {...rest}、className / style 合并、ref 作为 prop）；Vue 侧 3.5 响应式 props 解构、布尔转型、改 props 只警告、props 是响应式对象、inheritAttrs + useAttrs、多根组件、组件 ref + defineExpose；React 20 条 + Vue 13 条测试；了结 P-02-1～5。详见 2.12 | 12 题改写时补：ref 回调与清理函数、useImperativeHandle、RefObject / MutableRefObject、useRef 必传参数、组件 ref + defineExpose（02 已写「12 题改写时补」，12 改完回头改成「见 12 题」）；28 题改写时补：ReactNode 与 ReactElement 的取舍、全局 JSX → React.JSX、useRef 必传参数、Vue 泛型组件 generic（同上）；17 题改写时核对 02 的「默认值新引用让 memo 失效」；19.3 升级后核 forwardRef 是否标弃用；35 新增后回填交叉引用 |
+| 03 | State 与 useState | **完成** | 七个区块：为什么需要 state（局部变量 vs useState、state 属于实例）、setter 只影响下一次渲染（快照、A / B、设成当前值）、对象 / 数组整体替换（原地改 + 同一个引用被跳过）、惰性初始化（调用次数面板）、state 的结构（存 id vs 存对象、status vs 两个布尔值）、useReducer（reducer 导出单测）、两个常见报错（Too many re-renders、函数存进 state）；Vue 侧普通 let 变量、DOM 在 nextTick 才变、setup 只执行一次、存同一个响应式对象 / 副本 / id、渲染中改数据的 Maximum recursive updates；React 24 条 + Vue 14 条测试；了结 P-03-1～3。详见 2.13 | 21 题改写时补：深嵌套拍平（03 二-10 已写原文，21 只讲了 Immer）与 Vue 侧 reactive 的三条限制 / ref 首选（R2-21-9；03 已写，21 可指回 03）；17 题改写时补 Compiler 小节（03 九已写「17 题改写时补」）；33 / 34 / 35 新增后回填交叉引用；19.3 升级后无需改（本课没用到 19.3 的 API） |
 | 20 | 错误边界 | **完成** | 手写 class 边界主线（fallback / onError / onReset / resetKeys）+ react-error-boundary 可运行并排；「接得住 / 接不住」8 个按钮 + useTransition 同步 / async、顶层 startTransition、lazy 缓存；createRoot 小根演示 onCaughtError / onUncaughtError 与整棵界面被移除；Vue 侧 ErrorBoundary.vue、捕获面、出错组件的两种表现、传播规则与 errorHandler；React 15 条 + Vue 12 条测试；了结 P-20-1～5。详见 2.9 | 31 / 32 / 33 / 34 新增后回填交叉引用；18 题可补一句 RouterProvider onError（7.11 起）与 throw data 404 |
 | 16 | 全局状态（Zustand） | **完成** | Zustand 5 主线五个区块（selector 与 useShallow + Profiler 渲染计数 / 组件外读写 + subscribe + 异步 action + persist 与 migrate / Context + useReducer 并排 / createStore + Context 每实例一份 / RTK 只读对照）；Vue 侧 Pinia setup store + 迷你持久化插件 + 模块级 reactive；React 19 条 + Vue 15 条测试；了结 P-16-1、3～6（P-16-2 仍是推论）。详见 2.8 | P-16-2（Compiler 与订阅粒度）留给 17 题；33 / 34 / 35 新增后回填交叉引用；首次打开会触发一次 Vite 依赖重新预构建（新发现 9） |
-| 14 | 自定义 Hook 与 Composable | **完成** | useSyncExternalStore 主线（useWindowWidth + getServerSnapshot + useDebugValue）+ Effect 订阅并排 + subscribe 稳定性实验；useInterval（useEffectEvent）与「回调进依赖」反例；防抖搜索（派生 loading，lint 抑制已清）+ let timer 坑；React 12 条 + Vue 8 条测试；了结 P-14-1～5。详见 2.7 | tearing 没有做可视化演示（P-14-3，只讲原理）；32 / 33 / 34 新增后回填交叉引用；03 题 :64「10、14 题会再遇到快照」留给 03 题改写时核对 |
+| 14 | 自定义 Hook 与 Composable | **完成** | useSyncExternalStore 主线（useWindowWidth + getServerSnapshot + useDebugValue）+ Effect 订阅并排 + subscribe 稳定性实验；useInterval（useEffectEvent）与「回调进依赖」反例；防抖搜索（派生 loading，lint 抑制已清）+ let timer 坑；React 12 条 + Vue 8 条测试；了结 P-14-1～5。详见 2.7 | tearing 没有做可视化演示（P-14-3，只讲原理）；32 / 33 / 34 新增后回填交叉引用（03 题 :64「10、14 题」那句已随 03 重写删除，2.13） |
 | 30 | TanStack Query 与服务端状态 | **完成** | v5 主线六个区块（queryKey 与缓存 + status × fetchStatus + 保留上一页 + 断网 / mutation 三种更新方式 / enabled / useSuspenseQuery / 缓存观察窗 / loader 分工）；key 工厂 + queryOptions；React 22 条 + Vue 14 条测试；了结 P-30-1～8、M-8。详见 2.6 | mutation 回调改名的起始版本待核实；31 / 32 / 33 / 34 新增后回填交叉引用；27 题「queryFn({ signal }) 把这一整套自动化了」缺「读了 signal 才取消」的前提，27 题改写时处理 |
 | 11 | API 请求状态 | **完成** | Effect 手写主线（判别联合 + 派生 pending + 取消 + 重试 + 保留旧数据）+ 四种方案速查；lint 抑制已清（M-6 / P-11-2 了结）；React 7 条 + Vue 7 条测试。详见 2.5 | 32 题新增后回填交叉引用；P-11-1 / P-11-3 / P-11-5 留给 30 / 18 / 32 与阶段 4 |
 | 19 | 异步提交与防重复 | **完成** | 手写 submitting 主线（防重复三道关 + 错误分层 + a11y）+ React 19 Actions 可运行并排；共享 mockApi 加 `ApiFieldError`；React 10 条 + Vue 7 条测试；了结 P-19-1/3/4、M-3 与「12.」的待核实。详见 2.4 | 31 / 35 题新增后回填交叉引用；P-19-2（回车与 disabled）无法核实，已从课件去掉 |

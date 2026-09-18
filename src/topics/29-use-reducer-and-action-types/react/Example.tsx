@@ -30,7 +30,7 @@
  * - React：useReducer 只暴露 dispatch，没有 setItems —— 想绕过 reducer 直接改状态在 API 上就做不到；
  *   Vue：reactive 对象谁拿到都能改，「都走 dispatch」只能靠纪律（Vue 侧区块三留了一个「绕过 dispatch 直接改」的反面按钮，
  *   点一下「重放一致」立刻变 ✗；React 侧没有这个按钮，因为根本写不出来）
- * - 与相邻题的区别：03 题区块二是四字段编辑器上「为什么从 useState 升级到 useReducer」的入门；
+ * - 与相邻题的区别：03 题区块六是四字段编辑器上「为什么从 useState 升级到 useReducer」的入门；
  *   本题是列表上的完整模式 —— 需求给定的四种 Action、业务规则集中在 reducer、纯函数带来的日志 / 撤销 / 重放 / 可测试。
  *   21 题讲不可变更新的写法本身；16 题讲跨组件的全局状态（Zustand / Pinia），本题的状态仍是组件局部的
  */

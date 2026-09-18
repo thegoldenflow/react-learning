@@ -30,7 +30,7 @@
  *   React 里 UI 变化的唯一入口是「调用 setter → 新一轮函数执行」。
  * - state snapshot 思维 vs 响应式变量思维：Vue 的 count 是一个会自己变新的「容器」；
  *   React 的 count 是本次渲染的「定格照片」。带着 Vue 的直觉写 React，会在 03 / 24 / 26 题的坑里反复摔倒。
- * - 与邻题的分工：03 题区块一是「连写两次 setCount 只加 1」的最小复现；本题从不连写两次 setCount，
+ * - 与邻题的分工：03 题区块二是「连写两次 setCount 只加 1」的最小复现；本题从不连写两次 setCount，
  *   讲的是那个现象背后的四条机制 + UI = f(props, state)。更新队列与批处理见 24 题，过期闭包的各种修法见 26 题。
  */
 import { computed, onUnmounted, onUpdated, ref } from 'vue'
