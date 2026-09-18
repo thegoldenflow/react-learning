@@ -9,7 +9,7 @@
 |---|---|---|---|---|
 | 0 | 审计（只读） | **完成。** 两轮审计均完成；用户 2026-09-17 答复「全部按建议执行」（AUDIT-ROUND2.md §6 D2-1～8，记录在 AUDIT.md §5.13）；两轮合并规则写在 AUDIT.md 附录 C | `docs/upgrade/AUDIT.md`（含 §5.13、§5.14、附录 C）、`docs/upgrade/REAUDIT-PROMPT.md`、`docs/upgrade/AUDIT-ROUND2.md` | 两轮审计与合并说明均已提交（d550e27、1efc217） |
 | 1 | 依赖与工具链调整 | **完成（2026-09-17）**：commit「阶段 1：依赖与工具链调整」（34cd734）+「阶段 1 补充：ESLint 9 → 10（D1-1）」 | package.json / package-lock.json、vitest.config.ts、eslint.config.js + eslint-suppressions.json、tsconfig.json、src/test/、4 处 react-router 导入、README 事实行 | 复核口径与全部记录见下文「阶段 1 记录」；版本决定见 AUDIT.md §5.0 的 5.14、5.15 |
-| 2 | 逐主题修改（先改 18 路由样板） | **进行中**（分支 `phase-2-topics`）：前置 commit（壳修复，2.0）、**18 路由样板**（2.1，风格已确认，AUDIT.md §5.0 的 5.16）、**2-A Vue 响应式措辞批量修正**（2.2，措辞见「统一措辞」）、**2-B 的 07 表单**（2.3）、**19 异步提交**（2.4）、**11 API 请求状态**（2.5）、**30 TanStack Query**（2.6）、**14 自定义 Hook**（2.7）、**16 全局状态**（2.8）已完成。**下一步：2-B 的 20 错误边界**（其后 26，再做 2-C），做法见 `docs/upgrade/CONTINUE-PROMPT.md` | 每题一个 commit | 样板已确认，其余题不再逐题停 |
+| 2 | 逐主题修改（先改 18 路由样板） | **进行中**（分支 `phase-2-topics`）：前置 commit（壳修复，2.0）、**18 路由样板**（2.1，风格已确认，AUDIT.md §5.0 的 5.16）、**2-A Vue 响应式措辞批量修正**（2.2，措辞见「统一措辞」）、**2-B 的 07 表单**（2.3）、**19 异步提交**（2.4）、**11 API 请求状态**（2.5）、**30 TanStack Query**（2.6）、**14 自定义 Hook**（2.7）、**16 全局状态**（2.8）、**20 错误边界**（2.9）已完成。**下一步：2-B 的 26 过期闭包**（之后做 2-C），做法见 `docs/upgrade/CONTINUE-PROMPT.md` | 每题一个 commit | 样板已确认，其余题不再逐题停 |
 | 3 | 补充新主题 | 未开始 | | 按阶段 0 确认的清单 |
 | 4 | 一致性检查 + CHANGELOG | 未开始 | `docs/upgrade/CHANGELOG.md` | |
 
@@ -401,6 +401,47 @@
 
 **验证**：`npm run check` 通过（lint 0 / typecheck 0 / 189 条测试 / build）；16 的 34 条测试无 act 警告、无 stderr。浏览器用临时 5174 服务器（完成后已停掉、清掉 localStorage 并还原 launch.json）：两侧区块一渲染次数与测试一致（加入购物车：商品列表 1、购物车 2、合计 2、礼品包装 1、整店徽标 2；再勾礼品包装：只有礼品包装与整店徽标 +1）；区块二 getState、模拟退出登录、同一轮调两次结算（两侧都只发 1 次请求）、结算失败 role="alert"、查看 localStorage（只有 items / giftWrap / version）、v0 → migrate、Vue `$patch` / `$reset` / 直接解构不更新；区块三 memo 徽标照样渲染（React）/ 件数不动（Vue）；区块四两个清单互不影响；切到 15 / 14 / 30 再回来，React 购物车在内存里、Vue 购物车从 localStorage 读回；整页刷新后两侧都从 localStorage 恢复；页面宽 1024 时没有卡片溢出；源码查看器 React 9 个、Vue 16 个文件。除新发现 9 那一次之外，捕获到的 console.error / console.warn 为 0（改代码时 HMR 分三步应用，中间出现过两条「statusText 未定义」警告，整页刷新后消失）。
 
+### 2.9 20 错误边界（2026-09-18）
+
+**蓝本与依据**：AUDIT-ROUND2.md §5 的 20 大纲 + §3.6 主线判定（手写 class 边界主线；react-error-boundary 并排 —— 阶段 1 已安装 6.1.3，所以做成可运行区块）；问题表 = R2-20-1～8 + AUDIT.md §3 的 20 各行（:585-:598）。核实：1 个只读研究代理（官方文档 15 组、136 条原文逐字校验，其中 7 组有修正）+ 主会话读 react-dom / react-error-boundary / @vue/runtime-core 源码 + 两份一次性探针测试 + 1 个反驳式复核代理（提出 10 条：错 5、措辞 5，已全部处理，见下）。
+
+**结构（React 8 个文件，Vue 10 个文件）**
+- `react/Example.tsx`：十段文件头 + 四个区块的入口。
+- `react/ErrorBoundary.tsx`【主线】：手写 class 边界，`fallback({ error, reset })` / `onError` / `onReset` / `resetKeys` 做成 props（照 react-error-boundary 的能力设计）；`hasError` 标记（throw null 也能处理）；resetKeys 跳过「刚捕获错误的那一次更新」。
+- `react/BoundaryBasicsDemo.tsx`【区块一】：易碎计数器（隔离、重试后全新实例）+ 商品详情 resetKeys（可关掉 resetKeys 对比）+ onError / onReset 日志。
+- `react/CatchScopeDemo.tsx`【区块二】：8 个按钮 —— 接得住：渲染中 throw、useTransition 的 startTransition（async）、lazy 加载失败；接不住：事件处理函数、async 处理函数、setTimeout、顶层 startTransition（Effect 里监听 window 的 error / unhandledrejection 写日志）；try / catch 转 state。
+- `react/LibraryBoundaryDemo.tsx`【区块三 · 并排】：react-error-boundary 的 FallbackComponent、onError、onReset（reason）、resetKeys、`useErrorBoundary().showBoundary` 接 await 之后的请求错误。
+- `react/RootOptionsDemo.tsx`【区块四】：在卡片里 createRoot 一棵小根，传 onCaughtError / onUncaughtError；没有边界时整棵小根被移除、可以重建；生产分层清单。
+- `react/errorLog.ts`：演示日志（外部 store + useSyncExternalStore）。
+- Vue 侧：`ErrorBoundary.vue`（onErrorCaptured + v-if 切 fallback 插槽 + resetKeys）、`BuggyCounter.vue`（模板里调函数抛错）、`ProductDetail.vue`、`BoundaryBasicsDemo.vue`、`CaptureOnlyParent.vue`（只注册钩子不换界面的实验）、`CatchTriggers.vue` + `CatchScopeDemo.vue`（渲染 / 事件 / async / watch 接得住，setTimeout / 原生 addEventListener 接不住）、`AppErrorHandlerDemo.vue`（小 Vue 应用演示自下而上传播、return false、app.config.errorHandler）、`Example.vue`（精简头 + 「区块三在 Vue 里」说明卡）。
+- 壳：注册表 20 题 summary；`src/shell/ShellErrorBoundary.tsx` 只改了一句注释（「React 中唯一仍然需要 class 组件的场景」→「错误边界目前只能用 class 组件写」，与课件结论一致，不改代码）。README 20 题目录行、说明段、面试题行。
+- 测试：React 15 条、Vue 12 条（全仓库 19 个文件 216 条）。
+
+**问题表处理**：R2-20-1（严重）「异步一律接不住」改为 Component 页原文的四类 + useTransition 例外，并补 lazy / use(promise) / useActionState 进边界、顶层 startTransition 进不了（区块二 + 测试，32 / 31 待新增）；R2-20-2 react-error-boundary 可运行并排（区块三，官方定位原文、全部 props、useErrorBoundary、withErrorBoundary、6.0.0 只发 ESM / 6.0.1 起 CommonJS 回来、6.1 unknown）；R2-20-3 根边界：区块四演示「没有边界整棵界面被移除」，七写分层；R2-20-4 createRoot 三个回调可运行（区块四 + 测试），「errorHandler 与 createRoot 选项不是同层概念」改为「都是应用级上报入口」，React 18 重复抛错 / 重复日志进八；R2-20-5 路由级 ErrorBoundary / useRouteError / RouterProvider onError【较新·7.11 起】（18 题）；R2-20-6「唯一 class 场景」删掉，改引 Component 页 getSnapshotBeforeUpdate 原文，模板残留清零；R2-20-7 交叉引用补 06 / 10 / 14 / 18 / 19 / 31 / 32 / 33 / 34；R2-20-8 Vue async 处理函数被拒绝进 onErrorCaptured（测试）、Suspense 错误处理原文。第一轮：:586 各条已落地；:594「官方多年表示未来可能提供」改为 Component 页现行原文；:598「Vue 捕获后不会自动卸载崩溃子树」已核实并细化（见新发现 6）。
+
+**待核实项结论**：
+- P-20-1（react-error-boundary 签名与版本）：按已安装 6.1.3 的 `dist/react-error-boundary.d.ts` 写（showBoundary / resetBoundary / withErrorBoundary / onReset details / FallbackProps.error 为 unknown）；最新 6.1.5，6.1.4 修了 throw null 时重置不生效。
+- P-20-2（error-boundaries 规则）：在 recommended 预设里（插件 7.1.1 `preset: LintRulePreset.Recommended`）；只拦「组件体的 try 里构造 JSX」，事件处理函数里的 try / catch 不受影响（本题 lint 通过）。
+- **P-20-3（开发环境是否打印被接住的错误）：已核实。** react-dom 19.2.8 `defaultOnCaughtError` 用 console.error 打印（:9370-9416，测试断言），传了 onCaughtError 就不再打印（测试）。另：Component 页 componentDidCatch 的 Caveats「In development, the errors will bubble up to window」在 19.2.8 不成立（被接住的错误不触发 window 的 error 事件，测试覆盖），课件在八里注明是旧行为。
+- P-20-4（getDerivedStateFromError 参数类型）：写成 `error: unknown`，vue-tsc 通过，关闭。
+- P-20-5（引入版本）：componentDidCatch 随 React 16 发布（博客 2017-07-26 为 16 beta，16.0 于 2017-09-26 发布）；getDerivedStateFromError 16.6.0（2018-10-23）。「deprecated in favor of getDerivedStateFromError」出自现行 Component 页，16.6 博客本身没这么说。
+
+**本次新发现（审计没写到）**：
+1. 只有 useTransition 返回的 startTransition 里的错误进边界；从 react 直接导入的顶层 startTransition 进不了（useTransition 页 Troubleshooting 原文 + 测试 + Chrome 实测）。
+2. React 19.2.8 的事件处理函数错误：`executeDispatch` 里 try / catch 后交给 reportError，同一次事件里其他监听照常执行（测试：子元素 onClick 抛错，父元素 onClick 仍被调用）。
+3. 在 act 里，没接住的渲染错误被推进 `ReactSharedInternals.thrownErrors` 由 act 重新抛出，onUncaughtError 不会被调用（`logUncaughtError`，:9420-9433）；要测 onUncaughtError 得临时关掉 `IS_REACT_ACT_ENVIRONMENT` 用原生 click。
+4. lazy 会缓存被拒绝的 Promise（lazy 页原文 + react 源码 `payload._status = 2`），重置边界不会重新下载，重试要重新调用 lazy()。
+5. react-error-boundary 的 showBoundary 实现是「setState 记下错误、下一次渲染时在 Hook 里 throw」（dist/react-error-boundary.js:84-92），所以对只接渲染错误的边界也有效。
+6. Vue 捕获错误后不替你换界面：渲染函数里抛错 → 那个组件渲染成空注释节点（runtime-core.cjs.js:4695-4698）；computed 在更新前的脏检查里抛错 → info 是 'component update'，渲染函数没执行，界面停在上一次（两种都有测试，实例和 state 都还在）。原课件说「模板读这个 computed 时抛错属于渲染期间」不准确（实际在渲染前的脏检查里抛出）；本题的 BuggyCounter.vue 改成模板里调函数。另外 Vue 只接住「交回给它的」被拒绝的 Promise（callWithAsyncErrorHandling 只处理返回值），在 onMounted 里调 async 函数却不 return 的拒绝它看不到。
+7. Vue 的 onUnmounted 里模板 ref 已经是 null，移除原生监听要放 onBeforeUnmount（探针实测）。
+8. `<RouterProvider onError>` 在 react-router 7.11.0 转正（CHANGELOG「Stabilize <HydratedRouter onError>/<RouterProvider onError>」）。
+9. 测试环境差异：jsdom 29 没有 window.reportError，React 退回到自己派发 window 的 error 事件；Vitest 的 jsdom 环境里 setTimeout 是 Node 的定时器，回调里的异常会变成进程级未捕获异常（让测试失败），所以相关测试用 fake timers 让它同步抛出再断言；async 处理函数的拒绝在 Node 里是 `unhandledRejection` 进程事件。
+10. 浏览器里 React、Vue 两侧都监听 window 的 error 事件，会看到对方的错误，两侧日志下面各加了一句说明。
+
+**复核代理提出、已改的 10 条（要点）**：react-error-boundary「6.0 起只发 ESM、peer 18/19」只对 6.0.0 成立 —— 6.0.1 起又带回 CommonJS（已安装的 6.1.3 同时有 .cjs / .js），React 18/19 的 peer 也是 6.0.1 起（npm view 逐版本）；「404 不该用边界」与 React Router 文档相反（「There are exceptions to the rule in #2, especially 404s」，loader 里 throw data(..., { status: 404 }) 交给路由级边界），文件头与区块四清单都已改；练习 2 要先把外层边界换成库的 ErrorBoundary（否则 useErrorBoundary 渲染时就报 ErrorBoundaryContext not found）；练习 1 的次数差一；19.3 发布说明里和错误有关的不止一条；「Vue 能接 async 函数的错误」收窄为「交回给 Vue 的被拒绝的 Promise」；补了 useTransition 里同步 throw 的测试；Vue 对照段补上成熟度标签（throwUnhandledErrorInProduction【较新·3.5 起】、Suspense【尝鲜·实验性】）。
+
+**验证**：`npm run check` 通过（lint 0 / typecheck 0 / 216 条测试 / build）；20 的 27 条测试无 act 警告、无 stderr。浏览器用临时 5174 服务器（完成后已停掉并还原 launch.json）：两侧区块一崩溃 / 重试（计数归零）/ resetKeys 自动重置；React 区块二 4～7 没有兜底、日志分别记下 window error / unhandledrejection，1～3 进边界；Vue 区块二 1～4 进边界（info：render function / native event handler ×2 / watcher callback），5、6 进 window error；区块三 onError → 重试（imperative-api）→ 换订单（keys）→ 关掉失败开关后加载成功；区块四 onCaughtError（边界名 ErrorBoundary）/ onUncaughtError 后小根变空、重建恢复；Vue 区块四 ①②③ 与 return false 只剩 ①；页面宽 1024 无溢出；源码查看器 React 8 个、Vue 10 个文件。控制台只有 React 开发环境默认 onCaughtError 对被接住错误的 console.error（课件七已说明），没有其它 error / warn。
+
 ## 统一措辞（各题改写时照用）
 
 ### Vue 响应式（2-A 定稿，2026-09-17）
@@ -475,11 +516,26 @@
 | Vue computed | Vue 3.4 起 computed 结果没变就不通知下游（blog 原文），作用相当于 selector 的 Object.is | 「computed 依赖变了，用它的组件就一定重新渲染」 |
 | Profiler | `<Profiler>`【主流 · 16.9 起】，生产构建默认不调用 onRender | 「16.5 起」 |
 
+### 错误边界（20 定稿，2026-09-18）
+
+| 要说的事 | 这样写 | 不要这样写 |
+|---|---|---|
+| 为什么是 class | 「目前没有函数组件的写法（Component 页 There is currently no way…），官方也说可以直接用 react-error-boundary」 | 「React 中唯一需要 class 的场景」（getSnapshotBeforeUpdate 也没有函数写法） |
+| 接不住什么 | Component 页四类：事件处理函数、服务端渲染、边界自身、setTimeout / rAF 这类异步回调；例外是 useTransition 返回的 startTransition | 「异步错误一律接不住」 |
+| startTransition | 「useTransition 返回的那个」里抛错进边界（19.0 起）；顶层 startTransition 进不了 | 不区分两个 startTransition |
+| 事件处理函数的错误去哪 | 「React 捕获后交给 reportError（浏览器派发 window 的 error 事件），同一次事件里其他监听照常执行」 | 「直接抛到全局」 |
+| 开发环境日志 | 「被接住的错误由默认 onCaughtError 用 console.error 打印一次；传了 onCaughtError 就不打印」 | 「会冒泡到 window」（React 18 的行为）、「边界失效了」 |
+| Vue 捕获面 | 「Vue 负责调用的代码：渲染、生命周期、setup、watch、模板事件处理函数，以及交回给 Vue 的被拒绝的 Promise」 | 「Vue 能接所有 async 错误」 |
+| Vue 出错后的界面 | 「钩子只负责通知；渲染函数抛错的组件变成空注释，computed 抛错时界面停在上一次，实例都还在；兜底要自己 v-if」 | 「Vue 会自动卸载出错的组件」 |
+| 404 | React Router 推荐 loader 里 throw data(..., { status: 404 }) 交给路由级边界（文档点名的例外） | 「404 不该用边界」 |
+| react-error-boundary 版本 | 6.0.0 只发 ESM；6.0.1 起 CommonJS 回来、peer 为 React 18 / 19；6.1 起错误类型 unknown | 「6.x 只发 ESM」 |
+
 ## 每题状态（阶段 2 起填写）
 
 | 题号 | 主题 | 状态 | 改动摘要 | 遗留问题 |
 |---|---|---|---|---|
 | 18 | 路由（React Router） | **完成（样板已确认）** | Data 模式主线（loader / action / middleware 守卫 / errorElement / lazy / useBlocker / 面包屑）+ 声明式 RequireAuth 三态并排；十段文件头；React 18 条 + Vue 7 条结论测试；Vue 守卫改为返回值写法；safeRedirect 共享实现；源码查看器支持多文件（5.10）。详见 2.1 | 32 / 34 / 35 题新增后回填交叉引用 |
+| 20 | 错误边界 | **完成** | 手写 class 边界主线（fallback / onError / onReset / resetKeys）+ react-error-boundary 可运行并排；「接得住 / 接不住」8 个按钮 + useTransition 同步 / async、顶层 startTransition、lazy 缓存；createRoot 小根演示 onCaughtError / onUncaughtError 与整棵界面被移除；Vue 侧 ErrorBoundary.vue、捕获面、出错组件的两种表现、传播规则与 errorHandler；React 15 条 + Vue 12 条测试；了结 P-20-1～5。详见 2.9 | 31 / 32 / 33 / 34 新增后回填交叉引用；18 题可补一句 RouterProvider onError（7.11 起）与 throw data 404 |
 | 16 | 全局状态（Zustand） | **完成** | Zustand 5 主线五个区块（selector 与 useShallow + Profiler 渲染计数 / 组件外读写 + subscribe + 异步 action + persist 与 migrate / Context + useReducer 并排 / createStore + Context 每实例一份 / RTK 只读对照）；Vue 侧 Pinia setup store + 迷你持久化插件 + 模块级 reactive；React 19 条 + Vue 15 条测试；了结 P-16-1、3～6（P-16-2 仍是推论）。详见 2.8 | P-16-2（Compiler 与订阅粒度）留给 17 题；33 / 34 / 35 新增后回填交叉引用；首次打开会触发一次 Vite 依赖重新预构建（新发现 9） |
 | 14 | 自定义 Hook 与 Composable | **完成** | useSyncExternalStore 主线（useWindowWidth + getServerSnapshot + useDebugValue）+ Effect 订阅并排 + subscribe 稳定性实验；useInterval（useEffectEvent）与「回调进依赖」反例；防抖搜索（派生 loading，lint 抑制已清）+ let timer 坑；React 12 条 + Vue 8 条测试；了结 P-14-1～5。详见 2.7 | tearing 没有做可视化演示（P-14-3，只讲原理）；32 / 33 / 34 新增后回填交叉引用；03 题 :64「10、14 题会再遇到快照」留给 03 题改写时核对 |
 | 30 | TanStack Query 与服务端状态 | **完成** | v5 主线六个区块（queryKey 与缓存 + status × fetchStatus + 保留上一页 + 断网 / mutation 三种更新方式 / enabled / useSuspenseQuery / 缓存观察窗 / loader 分工）；key 工厂 + queryOptions；React 22 条 + Vue 14 条测试；了结 P-30-1～8、M-8。详见 2.6 | mutation 回调改名的起始版本待核实；31 / 32 / 33 / 34 新增后回填交叉引用；27 题「queryFn({ signal }) 把这一整套自动化了」缺「读了 signal 才取消」的前提，27 题改写时处理 |

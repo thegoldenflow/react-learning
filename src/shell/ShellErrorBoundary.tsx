@@ -1,6 +1,6 @@
 /**
  * 壳应用的错误边界（基础设施）：某个示例渲染崩溃时，不让整个学习站点白屏。
- * Error Boundary 是 React 中唯一仍然需要 class 组件的场景，
+ * 错误边界目前只能用 class 组件写（函数组件没有对应的 Hook），
  * 详细讲解见 20 题《错误边界》。
  */
 import { Component, type ErrorInfo, type ReactNode } from 'react'

@@ -119,7 +119,7 @@ src/
 | --- | --- | --- | --- |
 | 18 | `18-routing` | 路由（React Router） | Data 模式主线（loader / action / middleware 守卫）与声明式 RequireAuth 并排；参数、query、嵌套路由、导航，对照 Vue Router |
 | 19 | `19-async-submit` | 异步提交与防重复 | 手写 submitting（disabled + state 守卫 + useRef 锁）、错误分层与重试，并排 React 19 Actions（useActionState / useFormStatus） |
-| 20 | `20-error-handling` | 错误边界 | Error Boundary（唯一的 class 组件场景）能捕获什么、不能捕获什么，对照 errorCaptured |
+| 20 | `20-error-handling` | 错误边界 | 手写 class 边界 + react-error-boundary 并排：接得住 / 接不住什么（含 useTransition、lazy）、resetKeys、React 19 的 onCaughtError / onUncaughtError，对照 onErrorCaptured |
 | 21 | `21-immutable-update` | 不可变数据更新 | 展开、map、filter、嵌套更新；引用变化对 React 为什么至关重要 |
 | 22 | `22-integrated-order-page` | 综合：订单管理页 | 搜索 + 筛选 + 分页 + 编辑 + 删除 + 各种请求状态，综合前面所有知识点 |
 
@@ -233,7 +233,7 @@ src/
 
 **19 异步提交与防重复** —— 主线是**手写 submitting**（`useState` 驱动界面 + `useRef` 锁 + `try / catch / finally`）：防重复三道关（按钮 `disabled` → 处理函数里的 state 守卫 → `useRef` 锁），结果用判别联合建模，错误分层（服务端字段错误显示在字段旁并聚焦、网络错误 `role="alert"` + 重试），成功清空、失败保留输入。页面上的「同一轮事件里提交两次」实验能看到：只有 state 守卫时两个请求都发出去了，加上 `useRef` 锁才拦住（渲染快照）。并排是 **React 19 Actions【主流·19.0 起】**：`<form action>` + `useActionState`（`isPending`、重复提交排队串行）+ `useFormStatus`（按钮必须放在 `<form>` 的子组件里），并演示了一个常见坑——action 返回错误 state 也算成功，非受控字段照样被重置，要把提交的值放回 state 用 `defaultValue` 回填。Vue 侧逐行对应，但 `ref` 同步生效，守卫本身就够；事件处理函数里的同步错误和 async 拒绝都会进 `onErrorCaptured`（React 的错误边界接不住事件处理函数里的错误）。完整的 Actions（`useOptimistic`、Server Functions）在 31 题。
 
-**20 错误边界** —— Error Boundary 是 React 里**唯一还必须用 class 组件**的场景；它能捕获渲染期错误，捕获不了事件处理器/异步代码里的错误。对照 Vue 的 `errorCaptured`。工业界现状：一般直接用 `react-error-boundary` 库而不是手写 class。
+**20 错误边界** —— 主线手写 class 边界（`getDerivedStateFromError` + `componentDidCatch`，fallback / onError / resetKeys / onReset 做成 props）：函数组件目前写不了边界，官方也说可以直接用 `react-error-boundary`（区块三并排：`FallbackComponent`、`onReset` 的 reason、`useErrorBoundary().showBoundary`）。区块二用 8 个按钮把「接得住 / 接不住」逐条跑一遍：渲染、`useTransition` 的 `startTransition`、`lazy` 失败进边界；事件处理函数、async 处理函数、`setTimeout`、顶层 `startTransition` 进不了（分别去了 window 的 error / unhandledrejection 事件）。区块四用 `createRoot` 建一棵小根演示 React 19 的 `onCaughtError` / `onUncaughtError`，以及没有边界时整棵界面被移除。Vue 侧：可复用的 `ErrorBoundary.vue`（`onErrorCaptured` + v-if）、事件处理函数和 async 函数的错误 Vue 也能接、出错组件留在原地（空注释 / 停在上次的界面）、`errorCaptured` 自下而上传播与 `app.config.errorHandler`。
 
 **21 不可变数据更新** —— 展开、map、filter、嵌套对象/数组更新的完整套路，以及「引用变化」为何是 React 一切更新检测的基石。工业界现状：**深嵌套结构生产上普遍用 Immer**（`produce` 里写「可变风格」代码、产出不可变结果，Redux Toolkit 内置）——先把手写展开练熟，才知道 Immer 免除了什么苦。
 
@@ -397,7 +397,7 @@ src/
 | 17 | useMemo 和 useCallback 分别缓存什么？什么时候该用、什么时候是负优化？React.memo 和它们如何配合？ |
 | 18 | React Router 三种模式怎么选？登录守卫用 loader 还是 middleware，各有什么坑？RequireAuth 为什么要三态？路由参数变化时 state 会不会重置？`setSearchParams` 为什么会丢参数？v6 → v7 → v8 的导入路径怎么变？ |
 | 19 | 如何防止表单重复提交？只靠 `disabled` 为什么不够、为什么还要 `useRef` 锁？提交出错该 throw 给错误边界还是放进 state？React 19 的 `useActionState` / `useFormStatus` 解决了什么问题，重复提交会怎样？ |
-| 20 | Error Boundary 能捕获哪些错误、不能捕获哪些（事件/异步/自身）？为什么它必须是 class 组件？ |
+| 20 | Error Boundary 能捕获哪些错误、不能捕获哪些（事件 / 异步 / 自身，以及 React 19 的 useTransition 例外）？为什么它必须是 class 组件、生产上用什么？怎么重置（resetKeys / key）？React 19 在错误上报上改了什么？ |
 | 21 | 为什么 React 要求不可变更新？如何不可变地更新深层嵌套对象？Immer 的原理是什么？ |
 | 22 | （综合题）如何设计一个列表页的状态结构？搜索/筛选/分页状态如何组织？防抖放在哪一层？ |
 | 23 | React 组件函数什么时候执行？「state 是快照」是什么意思？事件处理函数里 setCount 之后立刻 console.log(count) 打印什么？UI = f(props, state) 怎么理解？和 Vue 的响应式依赖追踪有什么本质区别？ |

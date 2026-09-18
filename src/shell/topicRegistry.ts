@@ -155,7 +155,7 @@ export const PHASES: TopicPhase[] = [
       {
         slug: '20-error-handling',
         title: '错误边界',
-        summary: 'Error Boundary（唯一的 class 组件场景）能捕获什么、不能捕获什么，对照 errorCaptured。',
+        summary: '手写 class 边界（为什么必须是 class、resetKeys）+ react-error-boundary 并排：接得住什么（含 useTransition、lazy）、接不住什么、React 19 的 onCaughtError / onUncaughtError，对照 onErrorCaptured。',
       },
       {
         slug: '21-immutable-update',

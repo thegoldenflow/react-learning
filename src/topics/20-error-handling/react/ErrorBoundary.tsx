@@ -1,78 +1,82 @@
 /**
- * 通用错误边界（题 20 专用）—— React 中唯一仍然需要 class 组件的场景。
+ * 20 题【主线】手写的错误边界（class 组件）。
  *
- * 函数组件没有等价 API：getDerivedStateFromError / componentDidCatch 都没有对应的 Hook
- * （官方多年表示「未来可能提供」，至今没有）。工业界通常不手写，而是用现成的
- * react-error-boundary 库（提供 <ErrorBoundary fallbackRender={...} onReset={...}>，
- * 内部就是下面这几十行）；本课程不引入第三方库，手写一遍 —— 这也是高频面试题。
+ * 为什么必须是 class：react.dev Component 页原文「There is currently no way to write an Error Boundary as a function component.」
+ * 边界靠两个 class 生命周期工作，函数组件没有对应的 Hook：
+ * - static getDerivedStateFromError(error)：子树渲染出错时调用，返回要合并进 state 的对象，让下一次 render 走兜底分支。
+ *   它是 static 纯函数，不能有副作用（不能 setState、不能上报）。
+ * - componentDidCatch(error, info)：提交阶段调用，适合做副作用（上报监控）；info.componentStack 是出错组件的祖先链。
+ * 同一页接着说「you don't have to write the Error Boundary class yourself. For example, you can use react-error-boundary instead.」
+ * —— 生产项目多用那个库（区块三并排演示，已安装 6.1.3）；面试要求能手写，所以主线手写一遍。
+ * class 组件在 React 19 里并没有被弃用，只是新代码不推荐：除了错误边界，getSnapshotBeforeUpdate 也还没有函数组件的等价写法。
  *
- * 能捕获（子组件树在【渲染流程】里抛出的错误）：
- * 1. 子组件渲染期间（函数组件体 / render 方法执行时）
- * 2. 子组件的生命周期方法
- * 3. 子组件的构造函数
- * 不能捕获（Example 里的按钮演示了第 1 条）：
- * 1. 事件处理器里的错误 —— 它不发生在渲染流程里，必须自己 try/catch
- * 2. 异步代码（setTimeout、Promise 回调 —— 它们执行时渲染早已结束）
- * 3. 服务端渲染（SSR）
- * 4. 边界组件【自身】抛出的错误（只能由更外层的边界接）
- *
- * Vue 对照：onErrorCaptured 一个钩子干同样的事，但捕获范围更宽（连事件处理器里的错误
- * 都能接住），详见本题 Vue 版 —— 两者没有一一对应关系。
+ * 这个版本把生产里需要的几项做成了 props（对照 react-error-boundary 的同名能力）：
+ * - fallback({ error, reset })：出错时渲染什么（对应 fallbackRender）；
+ * - onError(error, info)：上报（对应 onError，在 componentDidCatch 里调用）；
+ * - resetKeys：数组里任何一项变了就自动重置（对应 resetKeys，用 Object.is 逐项比较）；
+ * - onReset()：重置时通知调用方，把导致出错的状态也清掉（对应 onReset）。
  */
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 
-interface ErrorBoundaryProps {
-  children: ReactNode
+export interface FallbackArgs {
+  /** 抛出来的值：JS 可以 throw 任何东西，所以类型是 unknown，显示前要自己判断 */
+  error: unknown
+  /** 清掉错误、重新渲染子树（子树会以全新实例挂载） */
+  reset: () => void
 }
 
-interface ErrorBoundaryState {
-  error: Error | null
+interface ErrorBoundaryProps {
+  children: ReactNode
+  fallback: (args: FallbackArgs) => ReactNode
+  onError?: (error: unknown, info: ErrorInfo) => void
+  onReset?: () => void
+  resetKeys?: readonly unknown[]
+}
+
+// 用 hasError 标记而不是判断 error 是否为 null：有人会 throw null / throw undefined
+type ErrorBoundaryState = { hasError: false; error: null } | { hasError: true; error: unknown }
+
+const INITIAL_STATE: ErrorBoundaryState = { hasError: false, error: null }
+
+function keysChanged(prev: readonly unknown[] = [], next: readonly unknown[] = []) {
+  return prev.length !== next.length || prev.some((item, i) => !Object.is(item, next[i]))
+}
+
+export function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error)
 }
 
 export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  // class 组件的 state 是一个整体对象；没有 useState，用类字段初始化
-  state: ErrorBoundaryState = { error: null }
+  state: ErrorBoundaryState = INITIAL_STATE
 
-  /**
-   * 子树渲染出错时被调用，返回值合并进 state —— 相当于「catch 到错误后 setState」。
-   * 它是 static 纯函数（不允许副作用），只负责「把错误转成 state」，
-   * 让下一次 render 走到兜底 UI 分支。
-   */
-  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
-    return { error }
+  static getDerivedStateFromError(error: unknown): ErrorBoundaryState {
+    return { hasError: true, error }
   }
 
-  /**
-   * 错误上报的时机（这里允许副作用）：error 是错误本身，info.componentStack 是组件调用栈。
-   * 真实业务在这里发给 Sentry 等监控平台；演示里只打到控制台。
-   */
-  componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error('[ErrorBoundary] 捕获到渲染错误：', error, info.componentStack)
+  componentDidCatch(error: unknown, info: ErrorInfo) {
+    // 这里只转交给调用方。React 19 另外还会调用根节点的 onCaughtError（默认 console.error 打印这个错误，区块四）
+    this.props.onError?.(error, info)
   }
 
-  /**
-   * 重置：清空 error，回到正常渲染。关键点 —— React 捕获错误时已把崩溃的子树整棵【卸载】，
-   * reset 后 children 会以全新实例重新挂载（BuggyCounter 的 count 归零），所以不会立刻再崩。
-   * （Vue 的 onErrorCaptured 不会自动卸载子树，重置时要自己用 v-if / :key 强制重挂 —— 见 Vue 版。）
-   * 用箭头函数类字段绑定 this，等价于在构造函数里 bind（class 组件的经典面试点）。
-   */
+  componentDidUpdate(prevProps: ErrorBoundaryProps, prevState: ErrorBoundaryState) {
+    // resetKeys 变了就重置。prevState.hasError 这个条件不能省：如果「改了某个 key」本身就是出错的原因，
+    // 捕获错误的那一次更新里 key 也变了，不加判断会立刻重置、再崩一次（react-error-boundary 源码同样的判断）
+    if (this.state.hasError && prevState.hasError && keysChanged(prevProps.resetKeys, this.props.resetKeys)) {
+      this.reset()
+    }
+  }
+
+  // 箭头函数类字段：this 固定指向这个实例，可以直接当 onClick 传（等价于在构造函数里 bind，class 组件的经典面试点）
   reset = () => {
-    this.setState({ error: null })
+    this.props.onReset?.()
+    this.setState(INITIAL_STATE)
   }
 
   render() {
-    if (this.state.error) {
-      // 兜底 UI：真实业务通常做成 props（fallback / fallbackRender）方便复用，演示里写死
-      return (
-        <div className="stack">
-          <p className="error-text">这块区域崩溃了：{this.state.error.message}</p>
-          <button className="btn-primary" onClick={this.reset}>
-            重置
-          </button>
-        </div>
-      )
+    if (this.state.hasError) {
+      return this.props.fallback({ error: this.state.error, reset: this.reset })
     }
-    // 没出错时原样渲染 children —— 边界组件平时是「透明」的
+    // 没出错时原样渲染 children，边界组件平时是「透明」的
     return this.props.children
   }
 }

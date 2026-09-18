@@ -1,101 +1,46 @@
 <script setup lang="ts">
 /**
- * 学习主题：错误边界 —— Error Boundary vs onErrorCaptured
+ * 主题：20. 错误边界（Vue 对照：onErrorCaptured）
+ * 适用版本：Vue 3.5
+ * 最后核对：2026-09-18
+ * 前置主题：06、10、14、18、19（同 React 侧）
+ * 成熟度：本课知识点按【主流】【较新】【尝鲜】【旧写法】逐一标注
  *
- * React 核心概念：
- * - Error Boundary 是 React 中唯一仍需要 class 组件的场景：函数组件没有等价 API
- *   （getDerivedStateFromError / componentDidCatch 没有对应 Hook）；工业界常用现成的
- *   react-error-boundary 库（本课程不引入，手写一遍是面试要求）
- * - 能捕获：子组件树【渲染流程】里的错误 —— 渲染期间、生命周期方法、构造函数
- * - 不能捕获：事件处理器、异步代码（setTimeout / Promise）、SSR、边界组件自身的错误
- * - Error Boundary vs try/catch：前者接「声明式渲染」过程中的错误，后者接「命令式代码」；
- *   事件处理器属于命令式代码，必须自己 try/catch
- * - 边界捕获错误后 React 会自动卸载崩溃的子树；reset 后子树以全新实例重挂（state 归零）
+ * 完整的十段讲解在 react/Example.tsx；本文件列出 Vue 这一侧的要点。
  *
- * Vue 对应概念：
- * - onErrorCaptured 捕获后代组件的错误，返回 false 阻止向上冒泡 —— 一个钩子扮演边界角色
- * - 但捕获范围比 React 宽：渲染、生命周期之外，连事件处理器里的错误也能接住
- * - 全局兜底 app.config.errorHandler —— 与 React 没有一一对应关系
- *   （React 19 最接近的是 createRoot 的 onUncaughtError / onCaughtError 选项，但不是同层概念）
- * - Vue 捕获后不会自动卸载崩溃子树，重置时要靠 v-if / :key 自己重挂载
- *
- * 最重要的区别：
- * - React 用「专门的边界组件」包住易碎区域，隔离范围由组件树结构决定，且对事件处理器无能为力；
- *   Vue 用「任意组件里的一个钩子」实现同样效果，捕获范围更宽 —— 两边都推荐只在关键区域做局部兜底
+ * Vue 这一侧的要点：
+ * - Vue 没有专门的边界组件：任何组件注册 onErrorCaptured((err, instance, info) => boolean | void) 就能接住后代的错误【主流】。
+ *   本课把它包成可复用的 ErrorBoundary.vue（默认插槽 + fallback 插槽 + resetKeys），和 React 的手写边界对照。
+ * - 捕获面比 React 宽【主流】：渲染、生命周期、setup、watch 回调，还有模板上的事件处理函数（同步 throw，以及处理函数返回的 Promise 被拒绝；
+ *   只接住交回给 Vue 的 Promise，在 onMounted 里调 async 函数却不 return，它的拒绝 Vue 看不到），
+ *   info 分别是 'render function'、'native event handler'、'watcher callback' 等（区块二，测试覆盖）。
+ *   接不住的是 Vue 没参与调用的代码：setTimeout 回调、自己 addEventListener 注册的监听。
+ * - Vue 不替你换界面：钩子只负责通知，兜底界面要自己用 v-if 切换，重试时子树重新挂载。出错的组件本身留在原地 ——
+ *   渲染函数里抛错时渲染成空注释节点，computed 在更新前抛错时界面停在上一次的样子（info 是 'component update'），测试覆盖。
+ *   官方提醒兜底界面不要再渲染出错的内容，否则会无限渲染。
+ * - 传播规则：自下而上逐级调用所有 errorCaptured，最后到 app.config.errorHandler；某一层 return false 就停，也不再打印（区块四，测试覆盖）。
+ *   React 的边界只交给最近的一个。
+ * - 全局【主流】：app.config.errorHandler 对应 React 的 createRoot 回调，都是应用级上报入口；默认「will re-throw errors during development and log
+ *   errors during production」；【较新·3.5 起】app.config.throwUnhandledErrorInProduction 可以让生产环境也抛出。
+ * - React 的 react-error-boundary 在 Vue 里不需要对应物：Vue 本来就接事件处理函数的错误和交回给它的被拒绝的 Promise，用不着 showBoundary。
+ * - <Suspense>【尝鲜·实验性】没有自己的错误处理，异步错误用父组件的 onErrorCaptured 接（32 题，待新增）。
  */
-import { onErrorCaptured, ref } from 'vue'
-import BuggyCounter from './BuggyCounter.vue'
-
-const errorMessage = ref<string | null>(null)
-const safeCount = ref(0) // 兜底区域之外的正常计数器（React 版拆成了 SafeCounter 组件）
-
-/**
- * onErrorCaptured：捕获【后代组件】抛出的错误 —— 一个钩子就扮演了 React ErrorBoundary 的角色，
- * 不需要专门写一个 class 组件。（回调还有两个参数：出错的组件实例、错误来源字符串 info，这里没用到。）
- *
- * 捕获范围比 React 的 Error Boundary 宽：渲染、生命周期之外，
- * 事件处理器、watch 回调等「Vue 管理的代码」里的错误也能接住 ——
- * 点子组件里「事件处理器里 throw」的按钮试试，这里照样能捕获（React 版这颗按钮只能自己 try/catch）。
- *
- * 返回 false 阻止错误继续向上传播（传给更外层的 onErrorCaptured，直至全局 app.config.errorHandler）——
- * 对应 React 边界「把错误就地消化」的行为。app.config.errorHandler 这个全局兜底与 React
- * 没有一一对应关系（React 19 最接近的是 createRoot 的 onUncaughtError / onCaughtError 选项）。
- * 注：因为这里返回了 false，Vue 不会再把错误打印到控制台（handleError 直接返回，不走 logError）；
- * 想看详情要自己 console.error，或者不返回 false 让它继续冒泡到 app.config.errorHandler。
- * React 侧相反：componentDidCatch 接住之后，默认的 onCaughtError 仍会把错误打印出来。
- */
-onErrorCaptured((err) => {
-  errorMessage.value = err instanceof Error ? err.message : String(err)
-  return false
-})
-
-/**
- * 重置：清空错误信息。注意与 React 的差异 —— React 捕获错误时会【自动】卸载崩溃子树，
- * reset 后自动重挂全新实例；Vue 不会自动卸载，这里靠模板里的 v-if：
- * 出错时 BuggyCounter 被 v-else 移除（卸载），重置后重新挂载出全新实例（count 归零），不会立刻再崩。
- */
-function reset() {
-  errorMessage.value = null
-}
+import AppErrorHandlerDemo from './AppErrorHandlerDemo.vue'
+import BoundaryBasicsDemo from './BoundaryBasicsDemo.vue'
+import CatchScopeDemo from './CatchScopeDemo.vue'
 </script>
 
 <template>
   <div class="stack">
-    <p class="muted">
-      把左边的易碎计数器加到 3：只有它所在的卡片变成兜底 UI，右边的正常计数器不受影响；
-      点「重置」后子树以全新实例重挂（count 归零）。子组件里「事件处理器里 throw」的按钮
-      在 Vue 里也会被捕获 —— React 版做不到这一点
-    </p>
-
-    <div class="row">
-      <div class="card">
-        <!-- 出错时兜底 UI 顶替子组件：对应 React ErrorBoundary 里 render 的 if (error) 分支 -->
-        <div
-          v-if="errorMessage"
-          class="stack"
-        >
-          <p class="error-text">
-            这块区域崩溃了：{{ errorMessage }}
-          </p>
-          <button
-            class="btn-primary"
-            @click="reset"
-          >
-            重置
-          </button>
-        </div>
-        <!-- v-if / v-else 负责卸载、重挂崩溃子树（React 版由边界自动完成，无需手动） -->
-        <BuggyCounter v-else />
-      </div>
-
-      <div class="card">
-        <p>
-          正常计数器：<strong>{{ safeCount }}</strong>
-        </p>
-        <button @click="safeCount++">
-          +1
-        </button>
-      </div>
+    <BoundaryBasicsDemo />
+    <CatchScopeDemo />
+    <div class="card stack">
+      <h3>区块三在 Vue 里</h3>
+      <p class="muted">
+        React 区块三的 react-error-boundary 主要解决两件事：少写 class 样板、用 showBoundary 把事件 / 异步错误交给边界。
+        Vue 这边 onErrorCaptured 本来就是一个钩子，事件处理函数的错误、处理函数返回的被拒绝的 Promise 也会送上来，所以不需要这类库。
+      </p>
     </div>
+    <AppErrorHandlerDemo />
   </div>
 </template>
