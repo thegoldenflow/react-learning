@@ -9,7 +9,7 @@
 |---|---|---|---|---|
 | 0 | 审计（只读） | **完成。** 两轮审计均完成；用户 2026-09-17 答复「全部按建议执行」（AUDIT-ROUND2.md §6 D2-1～8，记录在 AUDIT.md §5.13）；两轮合并规则写在 AUDIT.md 附录 C | `docs/upgrade/AUDIT.md`（含 §5.13、§5.14、附录 C）、`docs/upgrade/REAUDIT-PROMPT.md`、`docs/upgrade/AUDIT-ROUND2.md` | 两轮审计与合并说明均已提交（d550e27、1efc217） |
 | 1 | 依赖与工具链调整 | **完成（2026-09-17）**：commit「阶段 1：依赖与工具链调整」（34cd734）+「阶段 1 补充：ESLint 9 → 10（D1-1）」 | package.json / package-lock.json、vitest.config.ts、eslint.config.js + eslint-suppressions.json、tsconfig.json、src/test/、4 处 react-router 导入、README 事实行 | 复核口径与全部记录见下文「阶段 1 记录」；版本决定见 AUDIT.md §5.0 的 5.14、5.15 |
-| 2 | 逐主题修改（先改 18 路由样板） | **进行中**（分支 `phase-2-topics`）：前置 commit（壳修复，2.0）、**18 路由样板**（2.1，风格已确认，AUDIT.md §5.0 的 5.16）、**2-A Vue 响应式措辞批量修正**（2.2，措辞见「统一措辞」）、**2-B 的 07 表单**（2.3）、**19 异步提交**（2.4）、**11 API 请求状态**（2.5）、**30 TanStack Query**（2.6）、**14 自定义 Hook**（2.7）、**16 全局状态**（2.8）、**20 错误边界**（2.9）、**26 过期闭包**（2.10）已完成，**2-B 全部完成**；2-C 的 **01 组件与 JSX**（2.11）已完成。**下一步：2-C 的 02 Props**（之后按编号 03 → 04 → …），做法见 `docs/upgrade/CONTINUE-PROMPT.md` | 每题一个 commit | 样板已确认，其余题不再逐题停 |
+| 2 | 逐主题修改（先改 18 路由样板） | **进行中**（分支 `phase-2-topics`）：前置 commit（壳修复，2.0）、**18 路由样板**（2.1，风格已确认，AUDIT.md §5.0 的 5.16）、**2-A Vue 响应式措辞批量修正**（2.2，措辞见「统一措辞」）、**2-B 的 07 表单**（2.3）、**19 异步提交**（2.4）、**11 API 请求状态**（2.5）、**30 TanStack Query**（2.6）、**14 自定义 Hook**（2.7）、**16 全局状态**（2.8）、**20 错误边界**（2.9）、**26 过期闭包**（2.10）已完成，**2-B 全部完成**；2-C 的 **01 组件与 JSX**（2.11）、**02 Props**（2.12）已完成。**下一步：2-C 的 03 State**（之后按编号 04 → 05 → …），做法见 `docs/upgrade/CONTINUE-PROMPT.md` | 每题一个 commit | 样板已确认，其余题不再逐题停 |
 | 3 | 补充新主题 | 未开始 | | 按阶段 0 确认的清单 |
 | 4 | 一致性检查 + CHANGELOG | 未开始 | `docs/upgrade/CHANGELOG.md` | |
 
@@ -526,6 +526,47 @@
 
 **验证**：`npm run check` 通过（lint 0 / typecheck 0 / 275 条测试 / build）；01 的 22 条测试无 act 警告、无 stderr（故意触发的开发期报错都 spy 并断言）。浏览器用临时 5174 服务器（完成后已停掉并还原 launch.json）：不纯茶杯首次 #2、#4、#6，点重渲染后 #8、#10、#12，切到 02 / 26 再回来接着涨；React 读出的 style 为「width: 48px; border-width: 2px; padding: 0px; line-height: 1.5; …」，Vue 侧没有 width / border-width（Chrome 实测）；区块四父组件重渲染后组件里定义的输入框清空、顶层定义的保留；两侧 dl 列表正常；源码查看器 React 6 个、Vue 5 个文件；页面无横向溢出；复核后补的「关注」按钮两侧各点第一张卡，只有那张变成「已关注」。捕获到的 console.error / console.warn 为 0。
 
+### 2.12 02 Props（2026-09-18，2-C 第二题）
+
+**蓝本与依据**：AUDIT-ROUND2.md §5 的 02 大纲；问题表 = R2-02-1～12 + AUDIT.md §3 的 02 各行（:202 开发构建冻结 props、:203 「SFC 一文件一组件」、:204 单根透传前提、:205 defaultProps / propTypes 的版本、:206 UiButton 按 React 19 ref-as-prop 重写 —— 附录 C 列为「以第一轮为准」、:207 绝对化）。核实：2 个只读研究代理（官方文档 25 项、114 段引文脚本逐字校验全部通过；源码 / npm 15 项，1 项修正：createElement 仍合并函数组件的 defaultProps）+ 主会话一次性探针（Vitest 开发构建 + node / jsdom 生产构建两侧实测）+ 1 个反驳式复核代理（提出 22 条：错 5、措辞 10、建议 7，已全部处理，见下）。
+
+**结构（React 7 个文件，Vue 13 个文件）**
+- `react/Example.tsx`：十段文件头 + 四个区块的入口。
+- `react/OrderCards.tsx`【区块一】：三张订单卡（interface + 参数解构默认值）；默认值实验表（没传 / `undefined` / `null` / 空串 / 无值写法 `emphasis`）。
+- `react/ReadonlyPropsDemo.tsx`【区块二】：`props.amount = 0` 在开发构建抛 TypeError（界面显示错误原文）、`onAmountChange(0)` 请父组件改、「稍后读取」演示快照（`delayMs` prop，页面 1500ms）。
+- `react/MirrorPropsDemo.tsx`【区块三】：`useState(price)` 镜像 vs 直接读 / 渲染时计算；`initialPrice` + 换 key 重开草稿。
+- `react/UiButton.tsx` + `react/UiButtonDemo.tsx`【区块四】：`ComponentPropsWithRef<'button'>` + `{ variant, size, className, style, ref, children, ...rest }`；className / style 合并、`type="button"` 默认值写在 rest 前、ref 作为 prop（父组件 focus 删除按钮）。
+- Vue 侧：`OrderCards.vue` / `OrderCard.vue`（3.5 响应式 props 解构）/ `NoteText.vue`（布尔转型）、`ReadonlyPropsDemo.vue` / `AmountEditor.vue`（改 props 只警告、emit、定时器读到最新值）、`MirrorPropsDemo.vue` / `PriceViews.vue` / `PriceDraft.vue`、`UiButtonDemo.vue` / `UiButton.vue`（inheritAttrs: false + useAttrs + useTemplateRef + defineExpose）/ `LabeledInput.vue`（多根组件显式 `v-bind="$attrs"`，`:id` 写在后面由组件说了算）、`Example.vue`（精简头）。
+- 壳：注册表 02 题 summary；README 02 题目录行、速查表 `interface Props` 行、说明段、面试题行、28 题段落里提到 02 的半句。
+- 其他题的交叉引用：01 的「多根的情况 02 题改写时补」两处改为「见 02 题区块四」；28 react/Example.tsx:44 的 `ComponentPropsWithoutRef` 改为 `ComponentPropsWithRef + rest 透传与 ref 作为 prop`。
+- 测试：React 20 条、Vue 13 条。
+
+**问题表处理**：R2-02-1 讲反的「React 不警告」→ 开发构建冻结 props + TypeError 原文 + 生产构建三步行为（测试 + node 实测）；R2-02-2 Vue 主线改成 3.5 响应式 props 解构，withDefaults 进旧写法；R2-02-3 默认值边界（null / 0 / 空串，两侧测试）；R2-02-4 镜像 props（区块三，两侧测试）；R2-02-5 快照（区块二「稍后读取」，React 读到旧值、Vue 读到新值，两侧测试）；R2-02-6 旧写法对照补全（defaultProps 移除且 createElement 路径仍合并、class defaultProps、propTypes、forwardRef、element.ref、string ref）；R2-02-7 ref 透传的交叉引用改成「12 / 28 题改写时补」；R2-02-8 key 不是 prop、展开要克制、无值属性 = true（原文 + 测试）；R2-02-9 @types/react 19 类型变化 + ref 回调清理（九、二-8）；R2-02-10 生产段（style 合并、Omit 冲突、默认值引用、校验放数据边界）；R2-02-11 模板残留与绝对化清零、SFC 说法改准；R2-02-12 useAttrs 与多根组件（测试）。第一轮 :202～:207 全部落实（UiButton 改为 ComponentPropsWithRef + ref 作为 prop 主线，forwardRef + WithoutRef 进旧写法）。
+
+**待核实项结论**：
+- P-02-1（无值属性 = true 的出处）：react.dev 没有这句（全仓库 224 个 md 搜过）；出处是 legacy.reactjs.org JSX In Depth「If you pass no value for a prop, it defaults to true.」（同段「we don't recommend not passing a value for a prop」）；esbuild 0.28.2 实测编译成 `{ disabled: true }`。
+- P-02-2（ComponentProps 系列无 react.dev 页）：确认没有，依据用 @types/react 19.2.18 index.d.ts（:1430-1432 JSDoc「It's usually better to use ComponentPropsWithRef or ComponentPropsWithoutRef」、:1480-1484、:1530）。
+- P-02-3（只删 inheritAttrs、留 v-bind="attrs"）：真实 SFC 实测 class 变成「btn-primary btn-ghost btn-ghost」，style 同名键合并，同一个 onClick 只触发一次（mergeProps 按引用去重，runtime-core.cjs.js:8012-8036）；测试覆盖。
+- P-02-4（生产构建改 props）：react-jsx-runtime.production.js 不冻结；node + react-dom 19.2.8 生产构建 + jsdom 实测：赋值成功、不重渲染；子组件自己重渲染时读到改过的值（同一个 props 对象）；父组件重渲染后恢复。react.dev 原文在 createElement 页 Caveats「In development, React will freeze the returned element and its props property shallowly」。
+- P-02-5（3.5 响应式 props 解构）：compiler-sfc 3.5.42 的 propsDestructure 默认开启（d.ts:119-124「@default true」），@vitejs/plugin-vue 6.0.8 把 `features.propsDestructure` 透传、本项目没配置；vue-tsc 3.3.11 下解构默认值后类型去掉了 undefined（OrderCard.vue 模板里 `discount > 0` 通过类型检查）。
+
+**本次新发现（审计没写到）**：
+1. React 19.2.8 的 `React.createElement` 仍会合并任何组件（含函数组件）的 `defaultProps`（react.development.js:1037-1039），而 `<C {...p} key="k" />`（key 写在展开后面）会被 esbuild 编译成 createElement —— 函数组件的 defaultProps 在 19 里「时灵时不灵」（测试覆盖两种写法）。
+2. Vue 生产构建改 props：setup 拿到的是可写的 shallowReactive props（runtime-core.cjs.prod.js:6613），赋值成功并触发重渲染；父组件之后传的值没变时子组件不会被更新，界面一直停在改过的值（node + jsdom 实测）。开发构建是 shallowReadonly，警告「[Vue warn] Set operation on key "amount" failed: target is readonly.」（reactivity 包的 warn 没有冒号，runtime-core 的是「[Vue warn]:」）。
+3. `useAttrs()` 文档说「isn't reactive … You cannot use watchers」，但 3.5.42 的 attrs 代理读时整体追踪（runtime-core.cjs.js:8365-8369 `track(target, "get", "")`）、updateProps 在 attrs 变化时统一 trigger（:5042），`watch(() => attrs.title)` 实测会触发；这套追踪来自 3.2 的修复「ensure setupContext.attrs reactivity when used in child slots」（#4161）。isReactive(attrs) 为 false。课件按文档写、测试记录现状。
+4. 开发环境读 props.key 的报错整个页面只报一次（模块级 `specialPropKeyWarningShown`）；props 上的 key getter 不可枚举，生产环境 props 上没有 key。
+5. 升级指南里 element.ref 的报错文案（「is no longer supported」）和 19.2.8 实际打印的（「Accessing element.ref was removed in React 19. …」）不一致，课件用实测文案。
+6. `ComponentProps<'input'> & { size?: 'sm' | 'md' }` 不报错但 size 的类型变成 undefined；interface 继承直接报 TS2430 —— 所以同名冲突要 Omit（测试里用 expectTypeOf + @ts-expect-error 固定下来，并且让 BadInputProps 被使用，免得 @ts-expect-error 被「声明未使用」满足）。
+7. react-hooks/immutability 不只拦 `props.x = …`，在事件处理函数里给解构出来的 prop 重新赋值也报同一段文案（复核实测；渲染期的 `amount = amount + 1` 不报）。
+8. Vue 3.5 给解构出来的 prop 赋值时 compileScript 直接报错「Cannot assign to destructured props as they are readonly.」（compiler-sfc.cjs.js:25081-25098）。
+9. @types/react 19.2.18 与 19.3.0 的 forwardRef 都没有 @deprecated（npm + unpkg 抽查 19.0.0 / 19.0.14 / 19.1.0 / 19.1.17 / 19.2.0 / 19.3.0）；19.3.0 相对 19.2.18 新增 FragmentInstance / Fragment ref、ViewTransition 与 addTransitionType、SubmitEvent.submitter。
+10. HTML 标准现在把 `<button>` 的缺省 type 叫 Auto 状态（没有 command / commandfor 时按提交按钮处理）；MDN 原句「This is the default if the attribute is not specified for buttons associated with a <form>」。
+11. Vue `generic` 属性从哪个版本开始，文档没有版本徽章、3.3 CHANGELOG 里也没有直接条目 —— 课件只标【主流】、不写版本。
+
+**复核代理提出、已改的 22 条（要点）**：易错点「改解构出来的局部变量任何构建都不报错、没有效果」两半都不成立（lint 照样报、同次渲染的其他闭包会读到改过的值）；6 处「见 12 题」、2 处「28 题」指向的内容还不存在 → 改成「NN 题改写时补」并记进遗留；React 头 3 处、Vue 头 5 处缺成熟度标签（19.3 改标【尝鲜·19.3.0】）；四-1「React 任何版本都是参数默认值」与八段矛盾；Vue「任何时候读 props.x 都是最新值」补上「父组件重新渲染 patch 之后（下一个 tick）」；区块四说明把 className / style 也说成靠 rest 透传；className 覆盖方向只说了一半（谁写在后面谁赢）；SIZE_STYLE 被当成「稳定引用的默认值」例子不成立 → 换成 `EMPTY_ITEMS`；data-* 不在 ComponentPropsWithRef 类型里；`<button>` 缺省 type 补 MDN 依据（参考列表加 MDN）；30 秒速答把 propTypes 限定在函数组件；「只靠 TypeScript」→「TypeScript 这类静态检查（外部数据在边界用 schema 校验）」（含 README 速查表）；冻结是浅的但 jsxs 的静态 children 数组也会被冻结 → 改成「父组件传进来的对象 / 数组 prop」；19.3 类型新增漏了 addTransitionType；class defaultProps 测试补 undefined / null 两种；defaultProps 的 createElement 路径改用真实 JSX（key 在展开前 / 后）证明；LabeledInput 的 `:id` 挪到 `v-bind="$attrs"` 后面；源码行号改准（:5035-5042、:10130 → :7662、jsx-dev-runtime:193）；ref 回调清理补升级指南原文；补 ReactElement 与 ReactNode、Vue 泛型组件、Boolean 多类型顺序、key → 06 题、vue-tsc 去 undefined 的结论。另：九段「forwardRef 在 19.3 运行时也没有动作」没核实过，改成只说类型包与 19.2.8 运行时（forwardRef 测试补了无报错断言）。复核建议的「Vapor Mode 不改变 props 声明方式」没有依据，没写。
+
+**验证**：`npm run check` 通过（lint 0 / typecheck 0 / 测试 308 条 / build）；02 的 33 条测试无 act 警告、无 stderr（故意触发的开发期报错 / 警告都 spy 并断言）。浏览器用临时 5174 服务器（完成后已停掉并还原 launch.json；面板隐藏）：两侧默认值表（React emphasis 为 undefined、Vue 为 false）、❌ 按钮（React 显示 TypeError 原文、Vue 读回 100 并只有那一条预期的 readonly 警告）、「稍后读取」（Chrome 实测 React 读到 100、Vue 读到 200）、回调 / emit 改成 0、镜像 100 / 直接 120 / 含税 127 / 草稿 90 → 重开 120、onClick 计数 1（禁用按钮不加）、合并后 class「btn-primary btn-ghost」与 style「font-size: 12px; padding: 2px 8px; margin-left: 8px;」、type submit、focus 移到「删除」、LabeledInput 的 placeholder / maxlength 落在 input 上且 label for 与 id 一致；源码查看器 React 7 个、Vue 13 个文件；1280 宽无横向溢出。修复复核意见后重跑一遍，捕获到的 console.error / console.warn 为 0。
+
 ## 统一措辞（各题改写时照用）
 
 ### Vue 响应式（2-A 定稿，2026-09-17）
@@ -631,13 +672,31 @@
 | Vue 里 useEffectEvent 的概念对应 | 「watch 只追踪 source，回调里读最新值不触发重跑」 | 「Vue 没有任何对应物」 |
 | 3.5 解构 props | 「编译器把访问改写成 props.x，回调里读到的是那一刻的 prop；watch(x) 要写 watch(() => x)（3.5.42 实测编译抛错，文档写的是 warning）」 | 「解构 props 会失去响应式」（3.4 及以前才是） |
 
+### Props（02 定稿，2026-09-18）
+
+| 要说的事 | 这样写 | 不要这样写 |
+|---|---|---|
+| props 只读靠什么 | 「开发构建里 props 被浅冻结，严格模式下赋值抛 TypeError（JS 引擎的错误）；生产构建不冻结，赋值成功但不重渲染；react-hooks/immutability 会报」 | 「React 不警告、纯靠约定」「改 props 一定报错」（不分构建） |
+| 快照 | 「props 是每次渲染的只读快照（passing-props Recap 原文）；Vue 的 props 是同一个响应式对象，父组件 patch 之后读到新值」 | 「Vue 任何时候读 props 都是最新值」（不提下一个 tick） |
+| 默认值 | React：参数解构默认值，只对没传 / undefined 生效；Vue：3.5 响应式 props 解构【主流】，3.4 及以前 withDefaults【旧写法】 | 「Vue 默认值要包一层 withDefaults」 |
+| 函数组件 defaultProps | 「19.0 移除：日常 JSX（jsx()）下静默忽略，React.createElement 路径仍会合并（key 写在展开后面就会走这条）；class 组件保留」 | 「19 里函数组件的 defaultProps 完全不生效」 |
+| propTypes | 「19 起 React 不再做 propTypes 检查（所有组件），组件 props 靠 TypeScript 这类静态检查，外部数据在边界用 schema 校验」 | 「只靠 TypeScript」「函数组件的 propTypes 被移除」 |
+| 透传 | 「React 任何版本都没有自动透传，只有显式 {...rest}；Vue 单根组件默认自动透传，多根组件要显式绑 $attrs（否则警告）」 | 「React 里根本不存在…唯一手段」、不带单根前提的「Vue 自动透传」 |
+| 原生属性类型 | 「ComponentPropsWithRef / ComponentPropsWithoutRef（@types/react 的 JSDoc 建议用这两个）；纯 19 组件用 WithRef 并解构 ref，兼容 18 用 forwardRef + WithoutRef」 | 「ComponentPropsWithoutRef 是组件库的标准写法」 |
+| ref 与 forwardRef | 「React 19 起 ref 对函数组件是普通 prop（class 组件不是）；forwardRef 仍可用，文档说将来弃用，@types/react 19.2 / 19.3 都没标 @deprecated」 | 「forwardRef 已废弃」「forwardRef 是必需的」 |
+| key | 「key 不是 prop，组件收不到；需要这个值另用一个 prop 传」 | — |
+| useAttrs | 「文档：isn't reactive、不能用 watch；3.5.42 实测 watch getter 会触发（实现细节，不要依赖）」 | 「useAttrs 返回响应式对象」 |
+| 一个文件几个组件 | 「一个 SFC 只有一个模板组件；同一文件写多个组件要 defineComponent + 渲染函数 / JSX」 | 「Vue 一个文件只能有一个组件」 |
+| <button> 的 type | 「表单里没写 type 的 <button> 是提交按钮（MDN ③）」 | 「button 默认 type 是 submit」（不带表单前提） |
+
 ## 每题状态（阶段 2 起填写）
 
 | 题号 | 主题 | 状态 | 改动摘要 | 遗留问题 |
 |---|---|---|---|---|
 | 18 | 路由（React Router） | **完成（样板已确认）** | Data 模式主线（loader / action / middleware 守卫 / errorElement / lazy / useBlocker / 面包屑）+ 声明式 RequireAuth 三态并排；十段文件头；React 18 条 + Vue 7 条结论测试；Vue 守卫改为返回值写法；safeRedirect 共享实现；源码查看器支持多文件（5.10）。详见 2.1 | 32 / 34 / 35 题新增后回填交叉引用 |
 | 26 | 过期闭包 | **完成** | 修法优先级（函数式更新 → 写对依赖 → useEffectEvent 主线 → latest ref 并排）四个区块：事件处理函数里的 setTimeout、手动 addEventListener（含被 useCallback 缓存的 JSX 处理函数）、轮询四种写法、让依赖合法消失（搬进事件 / 对象依赖 / ref.current）；Vue 侧现读 .value、手动快照与解构 reactive、3.5 解构 props、watch vs watchEffect；React 22 条 + Vue 15 条测试（含 latest ref 窗口期、Effect Event 身份与换入时机、19.2.x memo / forwardRef bug）；了结 P-26-1～6。详见 2.10 | 19.3 升级后改 memo / forwardRef 那条测试与课件；14 题 useInterval 注释可补一句 19.2.x 的 memo / forwardRef bug；10 题改写时保留「场景二修法三 latest ref」或同步改 26 的引用；31–35 新增后回填交叉引用 |
-| 01 | 组件与 JSX | **完成** | 四个区块：资料卡（UserCard 两个独立实例、JSX 当值传、className / style / Fragment）、JSX 编译成什么（automatic vs classic 编译结果、style 补 px 实测、Fragment key）、组件必须纯（茶杯例子 + StrictMode）、不要在组件里定义组件；Vue 侧 SFC + 具名插槽、:class / :style、compiler-sfc 编译输出；React 17 条 + Vue 5 条测试；了结 P-01-1～5。详见 2.11 | 17 题改写时补 Compiler 小节并回头核对 01 的引用；02 题改写时补「多根组件的 attrs 透传」；28 题改写时补「组件返回类型 / FunctionComponent 签名」；19.3 升级后核 Fragment ref 的类型；33 / 35 新增后回填交叉引用 |
+| 01 | 组件与 JSX | **完成** | 四个区块：资料卡（UserCard 两个独立实例、JSX 当值传、className / style / Fragment）、JSX 编译成什么（automatic vs classic 编译结果、style 补 px 实测、Fragment key）、组件必须纯（茶杯例子 + StrictMode）、不要在组件里定义组件；Vue 侧 SFC + 具名插槽、:class / :style、compiler-sfc 编译输出；React 17 条 + Vue 5 条测试；了结 P-01-1～5。详见 2.11 | 17 题改写时补 Compiler 小节并回头核对 01 的引用；多根组件的 attrs 透传已在 02 补上（2.12）；28 题改写时补「组件返回类型 / FunctionComponent 签名」；19.3 升级后核 Fragment ref 的类型；33 / 35 新增后回填交叉引用 |
+| 02 | Props | **完成** | 四个区块：props 的类型、解构与默认值（默认值实验表：没传 / undefined / null / 空串 / 无值写法）、props 只读与回调上浮（开发构建 TypeError、onAmountChange、快照）、不要把 props 复制进 state（useState 镜像 vs 直接读、initialPrice + 换 key）、接收原生属性（ComponentPropsWithRef + {...rest}、className / style 合并、ref 作为 prop）；Vue 侧 3.5 响应式 props 解构、布尔转型、改 props 只警告、props 是响应式对象、inheritAttrs + useAttrs、多根组件、组件 ref + defineExpose；React 20 条 + Vue 13 条测试；了结 P-02-1～5。详见 2.12 | 12 题改写时补：ref 回调与清理函数、useImperativeHandle、RefObject / MutableRefObject、useRef 必传参数、组件 ref + defineExpose（02 已写「12 题改写时补」，12 改完回头改成「见 12 题」）；28 题改写时补：ReactNode 与 ReactElement 的取舍、全局 JSX → React.JSX、useRef 必传参数、Vue 泛型组件 generic（同上）；17 题改写时核对 02 的「默认值新引用让 memo 失效」；19.3 升级后核 forwardRef 是否标弃用；35 新增后回填交叉引用 |
 | 20 | 错误边界 | **完成** | 手写 class 边界主线（fallback / onError / onReset / resetKeys）+ react-error-boundary 可运行并排；「接得住 / 接不住」8 个按钮 + useTransition 同步 / async、顶层 startTransition、lazy 缓存；createRoot 小根演示 onCaughtError / onUncaughtError 与整棵界面被移除；Vue 侧 ErrorBoundary.vue、捕获面、出错组件的两种表现、传播规则与 errorHandler；React 15 条 + Vue 12 条测试；了结 P-20-1～5。详见 2.9 | 31 / 32 / 33 / 34 新增后回填交叉引用；18 题可补一句 RouterProvider onError（7.11 起）与 throw data 404 |
 | 16 | 全局状态（Zustand） | **完成** | Zustand 5 主线五个区块（selector 与 useShallow + Profiler 渲染计数 / 组件外读写 + subscribe + 异步 action + persist 与 migrate / Context + useReducer 并排 / createStore + Context 每实例一份 / RTK 只读对照）；Vue 侧 Pinia setup store + 迷你持久化插件 + 模块级 reactive；React 19 条 + Vue 15 条测试；了结 P-16-1、3～6（P-16-2 仍是推论）。详见 2.8 | P-16-2（Compiler 与订阅粒度）留给 17 题；33 / 34 / 35 新增后回填交叉引用；首次打开会触发一次 Vite 依赖重新预构建（新发现 9） |
 | 14 | 自定义 Hook 与 Composable | **完成** | useSyncExternalStore 主线（useWindowWidth + getServerSnapshot + useDebugValue）+ Effect 订阅并排 + subscribe 稳定性实验；useInterval（useEffectEvent）与「回调进依赖」反例；防抖搜索（派生 loading，lint 抑制已清）+ let timer 坑；React 12 条 + Vue 8 条测试；了结 P-14-1～5。详见 2.7 | tearing 没有做可视化演示（P-14-3，只讲原理）；32 / 33 / 34 新增后回填交叉引用；03 题 :64「10、14 题会再遇到快照」留给 03 题改写时核对 |

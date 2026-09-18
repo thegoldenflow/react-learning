@@ -86,7 +86,7 @@ src/
 | 编号 | 目录名 | 标题 | 学习重点 |
 | --- | --- | --- | --- |
 | 01 | `01-component-and-jsx` | 组件与 JSX | 组件是返回 JSX 的函数（名字大写）、JSX 编译成 `jsx()` 调用、几条 JSX 硬规则、组件必须纯（StrictMode 调用两次）、不要在组件里定义组件，对照 Vue 的 SFC、模板语法与插槽 |
-| 02 | `02-props` | Props | 用 TypeScript 类型声明 props、默认值写法、「props 只读」的约定，以及继承原生元素属性 + `{...rest}` 透传 |
+| 02 | `02-props` | Props | props 是组件函数唯一的参数：类型与解构默认值（只对 undefined 生效）、只读快照与回调上浮、不要把 props 复制进 state、继承原生属性 + `{...rest}` 透传与 ref 作为 prop，对照 Vue 的 defineProps、响应式 props 解构与透传属性 |
 | 03 | `03-state` | State 与 useState | useState 的读与写、不可变更新、渲染快照与函数式更新、多状态收敛到 useReducer，对照 ref/reactive |
 | 04 | `04-events` | 事件处理 | onClick 与事件对象、处理函数的定义与传参，对照 @click 与 $event |
 | 05 | `05-conditional-rendering` | 条件渲染 | 三元表达式与 && 的用法及陷阱（误渲染 0），对照 v-if / v-else-if |
@@ -169,7 +169,7 @@ src/
 | React | Vue 3 对应 | 注意差异 |
 | --- | --- | --- |
 | JSX（`{expr}`、`.map()`、三元） | template（`{{ }}`、`v-for`、`v-if`） | JSX 就是 JavaScript 表达式，没有指令系统——所有控制流用原生 JS 写，能力上限更高但也没有模板编译期优化。 |
-| `interface Props` + 函数参数解构 | `defineProps<Props>()` / `withDefaults` | React 的 props 类型就是普通 TS 类型，默认值用参数默认值语法；没有运行时校验层，纯靠编译期类型。 |
+| `interface Props` + 函数参数解构 | `defineProps<Props>()` + 响应式 props 解构默认值（3.5 起；3.4 及以前用 `withDefaults`） | React 的 props 类型就是普通 TS 类型，默认值用参数默认值语法；React 19 起 propTypes 不再校验，组件 props 靠 TypeScript 这类静态检查（Vue 保留开发期运行时校验）。 |
 | `useState` | `ref` / `reactive` | useState 返回的是普通值 + setter，**不可直接修改**、必须换新引用；Vue 的 ref 是响应式对象，直接改就生效。 |
 | 渲染时直接算派生值 / `useMemo` | `computed` | React 组件函数每次渲染整体重跑，普通 `const` 就是天然的派生值，useMemo 只是性能优化项；Vue 的 computed 是必需品（setup 只跑一次）且自动缓存。 |
 | `useEffect` | `watch` / `watchEffect` / `onMounted` | useEffect 是「与外部系统同步」的声明式模型，不是生命周期钩子；`[dep]` ≈ `watch(dep, cb, { immediate: true })`（注意 immediate），cleanup 一个函数覆盖 Vue 的 onCleanup + onUnmounted 两个时机。 |
@@ -191,7 +191,7 @@ src/
 
 **01 组件与 JSX** —— 课件升级阶段 2 重写（2026-09-18，文件头按十段模板）。四个区块：① 资料卡：同一个 `UserCard` 用两次（两个独立实例，各自的「关注」按钮互不影响），VIP 徽章是存在变量里的 JSX、当参数传进去，`className` / `style` 对象 / 花括号 / Fragment / JSX 注释；② JSX 编译成什么：同一段 JSX 在 automatic runtime（生产构建是 `jsx()` / `jsxs()`，开发环境是 `jsxDEV()`；React 17 起，19 必须）与 classic runtime（`React.createElement`【旧写法】）下的编译结果并排，`style` 数字哪些补 px（点按钮读出 DOM 上的实际值），列表里用 `<Fragment key>`；③ 组件必须是纯函数：react.dev 的「茶杯」例子，渲染时改外部变量在 StrictMode 下显示 #2、#4、#6；④ 不要在组件里定义组件：父组件一重渲染，里面定义的子组件就被卸载重建、输入清空。测试还覆盖了小写组件名被当成 HTML 标签、`class` / `for` / `onclick` / `ariaLabel` 的开发期报错原文、`style` 传字符串抛错、返回带 key 的数组。Vue 侧：SFC + 具名插槽 `#badge`、`:class` / `:style` 对象与数组语法、`:style` 数字不补单位、`<template v-for>`、`@vue/compiler-sfc` 编译出的渲染函数（补丁标记、静态提升、静态节点缓存）。React 17 条、Vue 5 条结论测试。
 
-**02 Props** —— 用 `interface` 声明 props 类型、参数解构 + 默认值、props 只读约定；以及**继承原生元素属性**（`ComponentPropsWithoutRef<'button'>` + `{...rest}`）。后半段是 Vue 老手的盲区：Vue 的 fallthrough attributes 会把 `disabled`/`aria-*` **自动**落到根元素，React 一个都不会自动落，必须显式展开。工业界现状：TS 化的 React 项目 props 就是纯类型声明，不再用运行时的 `prop-types` 库；受控地暴露原生属性是 shadcn/ui、MUI 等组件库的通用 API 设计范式。
+**02 Props** —— 课件升级阶段 2 重写（2026-09-18，文件头按十段模板）。四个区块：① props 的类型、解构与默认值：三张订单卡，一张默认值实验表（没传 / `undefined` 走默认值，`null` / 空串原样收到，只写属性名 = 传 `true`）；② props 只读、改动靠回调上浮：直接改 `props.amount` 在开发构建里抛 TypeError（props 被冻结），`onAmountChange` 请父组件改，「稍后读取」演示 props 是每次渲染的快照；③ 不要把 props 复制进 state：`useState(price)` 停在第一次渲染的值，`initialPrice` + 换 key 才是有意只取初始值；④ 接收原生属性：`ComponentPropsWithRef<'button'>` + `{...rest}`，className / style 合并、`{...rest}` 的位置决定默认值能否被覆盖，ref 作为 prop（React 19）把焦点移到按钮上。测试还覆盖了 key 不是 prop、把带 key 的对象展开进 JSX 的报错、类型层的 `Omit`、React 19 里函数组件 `defaultProps` 只在 `createElement` 路径生效、`propTypes` 被忽略、`forwardRef` 仍可用、`element.ref` 的弃用报错。Vue 侧：3.5 响应式 props 解构、布尔转型（不传是 `false`）、改 props 只警告不抛错、props 是响应式对象（定时器里读到最新值）、`ref(price)` 与 `computed`、`inheritAttrs: false` + `useAttrs()`、多根组件显式绑 `$attrs`、组件 ref + `defineExpose`。React 20 条、Vue 13 条结论测试。
 
 **03 State 与 useState** —— 本项目最重要的一题。useState 二元组、**不可变更新**（map/filter/展开造新引用）、函数式更新 `setX(prev => ...)`、「引用变了才重渲染」，以及一个能亲手点的**渲染快照**实验（`setCount(count+1)` 连写两次只加 1）。末尾还有 **useReducer**：多个互相牵制的状态如何收敛成 reducer + Action 判别联合 + `never` 穷尽检查（渲染快照与批处理在 23/24 题展开、useReducer 在 29 题展开）。这是 Vue 开发者思维转换的第一关，示例注释请逐条读完。
 
@@ -251,7 +251,7 @@ src/
 
 **27 异步竞态、取消与过期响应** —— 用确定性延迟（`a` 1100ms、`an` 800ms、`ang` 500ms、`angf` 200ms）让「先发的慢请求后返回」稳定复现：一键「自动演示：依次输入 a → an → ang → angf」，一个输入框同时驱动三个面板并排比较。`BrokenSearch`（无 cleanup：#1「a」最后返回，覆盖了「angf」的结果，列表变成 6 人并高亮「当前关键词 angf ／ 列表来自请求「a」」）；`IgnoreFlagSearch`（`let ignore = false`，cleanup 置 true，响应仍回来但被丢弃并记日志——官方文档模式，适用于接口不支持取消的场景）；`AbortSearch`（每轮 effect 新建 `AbortController`，`signal` 传给 `fetchUsers`，cleanup 里 `abort()`，`isAbortError` 分流后记「已取消」而不是当错误展示）。每个面板都有 idle / loading / success / error / empty 五态，`zzz` 看空态，勾选「模拟请求失败」看错误与重试。Vue 侧一个 `keyword` ref + 三个 `watch(keyword, …)`：`onCleanup` 就是 effect cleanup 的一一对应，watch 默认懒执行恰好对应 idle。与 10 / 11 题的区别：10 只顺带展示 abort 修法，11 讲请求状态建模，27 把竞态本身可视化（可复现的乱序、三种策略并排、过期响应语义）。工业界现状：TanStack Query 的 `queryFn({ signal })` 把这一整套自动化了（30 题）；但面试几乎必问「如何处理请求竞态」，ignore 标志和 AbortController 两种手写答案都要会。
 
-**28 React + TypeScript 基础** —— 02 题讲了 props 接口、默认值、`ComponentPropsWithoutRef` + rest，本题补齐其余工具箱：`useState('')` 能推断、`useState<StatusFilter>('all')` 必须显式泛型（否则拓宽成 `string`）、`useState<Order[]>(…)`（裸 `useState([])` 是 `never[]`）、`useState<string | null>(null)`；`ChangeEvent<HTMLInputElement | HTMLSelectElement>`、`FormEvent<HTMLFormElement>`、`MouseEvent` 要起别名以免遮蔽 DOM 全局类型，内联 `onChange={e => …}` 可推断；callback props `onSelect?: (id, e) => void`、`footer?: ReactNode` 插槽、`children?`；字符串联合 `OrderStatus | 'all'` + `as const satisfies` + 类型守卫代替 `as` 断言；`Record<OrderStatus, string>`、`catch (err: unknown)`，永不 `e: any`。Vue 侧对照 `defineProps<Props>()` + `withDefaults`、`defineEmits<{ submit: [filter: OrderFilter]; reset: [] }>()`、`ref<StatusFilter>('all')`（同样的拓宽问题）；模板 `@input` 拿到原生 `Event`，必须 `(e.target as HTMLInputElement).value`——这正是 `v-model` 替你省掉的；`ReactNode` 是值类型、slot 是模板机制，没有一一对应关系。工业界现状：新的 React 项目几乎 100% 是 TS；TS 不是 React 独有，但 React 里 JSX / 事件 / props 都是普通值，所以比 Vue 模板更频繁地需要你亲手建模类型。
+**28 React + TypeScript 基础** —— 02 题讲了 props 接口、默认值、`ComponentPropsWithRef` + rest 与 ref 作为 prop，本题补齐其余工具箱：`useState('')` 能推断、`useState<StatusFilter>('all')` 必须显式泛型（否则拓宽成 `string`）、`useState<Order[]>(…)`（裸 `useState([])` 是 `never[]`）、`useState<string | null>(null)`；`ChangeEvent<HTMLInputElement | HTMLSelectElement>`、`FormEvent<HTMLFormElement>`、`MouseEvent` 要起别名以免遮蔽 DOM 全局类型，内联 `onChange={e => …}` 可推断；callback props `onSelect?: (id, e) => void`、`footer?: ReactNode` 插槽、`children?`；字符串联合 `OrderStatus | 'all'` + `as const satisfies` + 类型守卫代替 `as` 断言；`Record<OrderStatus, string>`、`catch (err: unknown)`，永不 `e: any`。Vue 侧对照 `defineProps<Props>()` + `withDefaults`、`defineEmits<{ submit: [filter: OrderFilter]; reset: [] }>()`、`ref<StatusFilter>('all')`（同样的拓宽问题）；模板 `@input` 拿到原生 `Event`，必须 `(e.target as HTMLInputElement).value`——这正是 `v-model` 替你省掉的；`ReactNode` 是值类型、slot 是模板机制，没有一一对应关系。工业界现状：新的 React 项目几乎 100% 是 TS；TS 不是 React 独有，但 React 里 JSX / 事件 / props 都是普通值，所以比 Vue 模板更频繁地需要你亲手建模类型。
 
 **29 useReducer 与判别联合 Action** —— 购物车的添加 / 删除 / 改数量 / 清空全部收敛为组件外的纯函数 `cartReducer(state, action)`；`Action` 是 `add / remove / changeQuantity / clear` 四种形状的判别联合，`switch` 的 `default` 用 `const exhaustive: never = action` 做穷尽检查，漏掉一种 Action 编译期就报错；业务规则（数量 < 1 视为移除）集中在 reducer 里。页面有 action 日志面板（每条 dispatch 的 JSON）、「撤销上一步」（清空 + 重放剩余 action，同一事件内批处理成一次渲染——24 题）、以及一行「重放 N 条 action 得到的购物车与当前一致 ✓」——纯函数带来的日志 / 撤销 / 重放 / 可单测都是免费的。注释里明确：什么时候 `useState` 就够、setter 分散在各处的信号、`dispatch` 引用稳定、StrictMode 会调用 reducer 两次所以必须纯、联合类型优于 `{ type: string; payload?: unknown }`。Vue 侧同一个 `Action` 类型 + `reactive` + 类型化 `apply(items, action)`（原地修改，Vue 风格）：useReducer 没有内置对应，日常写 `addItem()` 或 Pinia action，纯 reducer 风格也能用。与 03 题区块二的区别：03 讲「为什么从 useState 升级」，29 是列表上的完整模式。工业界现状：useReducer + Context 是「不装状态库」时的标准组合，Redux Toolkit 的 slice 本质就是这套 reducer + Action 模式，学会它读 Redux 代码零障碍。
 
@@ -379,7 +379,7 @@ src/
 | 题号 | 面试问题 |
 | --- | --- |
 | 01 | JSX 是什么、浏览器能直接运行吗、编译成什么？为什么 React 17 之后不用 `import React`？组件名为什么必须大写？「组件必须是纯函数」是什么意思、StrictMode 为什么调用两次？调用组件函数等于更新 DOM 吗？为什么不能在组件里定义组件？ |
-| 02 | props 为什么是只读的？如何用 TypeScript 给组件的 props 定义类型和默认值？如何让自定义组件支持 `disabled`、`aria-*` 等全部原生属性（对比 Vue 的 `$attrs` 自动透传）？ |
+| 02 | props 为什么是只读的、直接改会怎样（开发构建 / 生产构建）？默认值传 `null` 和 `undefined` 有什么区别？为什么不要把 props 复制进 state？如何让自定义组件支持 `disabled`、`aria-*` 等全部原生属性（对比 Vue 的 `$attrs` 自动透传）？`ComponentPropsWithRef` 和 `WithoutRef` 的区别？React 19 的「ref 作为 prop」与 `forwardRef`？key 是 prop 吗？ |
 | 03 | setState 之后发生了什么？为什么直接修改 state 不会触发更新？`setCount(count+1)` 连写两次为什么只加 1？什么时候该从 useState 升级到 useReducer？ |
 | 04 | React 的合成事件（SyntheticEvent）是什么？`onClick={fn()}` 和 `onClick={fn}` 有什么区别？ |
 | 05 | `condition && <Component/>` 有什么陷阱？条件渲染 null / false 时组件会发生什么？ |

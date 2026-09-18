@@ -78,7 +78,7 @@
  *   React 用对象展开合并；:style 会自动加厂商前缀（class-and-style「Vue will automatically add the appropriate prefix」）。Vue 不给数字补 px：width: 48 在 Vue 侧测试（jsdom）
  *   和 Chrome（标准模式，本项目 index.html 有 doctype）里都被当成无效值丢掉。
  * - Fragment vs 多根【主流】：Vue 3 的组件可以有多个根节点，不需要 Fragment；但「components with multiple root nodes do not have an automatic attribute fallthrough
- *   behavior」，class 也要自己用 $attrs.class 指定落在哪个根上（透传机制见 02 题，多根的情况 02 题改写时补）；一次渲染多个节点用 <template v-for> / <template v-if> 做无痕包裹，v-for 的 key 写在 <template> 上。
+ *   behavior」，class 也要自己用 $attrs.class 指定落在哪个根上（透传机制与多根组件见 02 题区块四）；一次渲染多个节点用 <template v-for> / <template v-if> 做无痕包裹，v-for 的 key 写在 <template> 上。
  * - JSX 是值 vs 模板片段【主流】：React 把 JSX 存进变量、当参数传；Vue 模板片段不能存进变量，习惯做法是插槽（区块一的 #badge，13 题）。Vue 也支持渲染函数 h() 和 JSX / TSX，
  *   h() 返回的 vnode 同样是普通对象；但官方「Vue recommends using templates to build applications in the vast majority of cases.」，而且「Vue JSX transform is different from
  *   React's JSX transform, so you can't use React's JSX transform in Vue applications」（Vue 的 JSX 里可以直接写 class、for，插槽的传法也不同）。

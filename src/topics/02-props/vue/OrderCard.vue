@@ -1,7 +1,8 @@
 <script setup lang="ts">
 /**
- * 子组件 OrderCard（对照 React 版：React 的 OrderCard 与父组件写在同一个 .tsx 文件里，
- * 因为组件只是函数；Vue 的 SFC 一个文件只能有一个组件，所以拆成这个单独的 .vue 文件）。
+ * 区块一的订单卡。对照 react/OrderCards.tsx 里的 OrderCard。
+ * Vue 一个 SFC 只有一个模板组件（sfc-spec：「at most one top-level <template> block」），所以拆成单独的文件；
+ * React 的组件只是函数，一个 .tsx 里放几个都行。
  */
 import { computed } from 'vue'
 import type { OrderStatus } from '@/shared/types'
@@ -17,23 +18,20 @@ interface Props {
   discount?: number
 }
 
-// defineProps 是编译器宏（无需 import、编译期展开）；React 没有宏，props 就是函数参数。
-// withDefaults 给可选 props 默认值，对应 React 的参数解构默认值 { discount = 0 }。
-// Vue 3.5 起也可以写 const { discount = 0 } = defineProps<Props>()（响应式 props 解构），
-// 与 React 的参数解构默认值逐字对应；本文件保留 withDefaults 写法。
-const props = withDefaults(defineProps<Props>(), { discount: 0 })
+// defineProps 是编译器宏（不用 import，编译期展开）；React 没有宏，props 就是函数参数。
+// 响应式 props 解构【主流·3.5 起】：默认值直接用 JS 解构默认值写，和 React 的参数解构默认值写法一样。
+// 编译器会把后面对 amount / discount 的访问改写成 __props.amount / __props.discount，所以它们仍然是响应式的（不是普通局部变量）。
+// 3.4 及以前没有这个特性，要写 const props = withDefaults(defineProps<Props>(), { discount: 0 })【旧写法】。
+const { orderNo, customer, amount, status, discount = 0 } = defineProps<Props>()
 
-// props 只读：这里写 props.amount = 0 开发期会收到警告；
-// React 里改 props 不会警告，纯靠单向数据流约定（两边都不允许，改动应通过回调上浮）。
-// 派生值用 computed —— React 里 payable 只是普通 const，因为组件函数每次渲染都会重跑。
-const payable = computed(() => props.amount * (1 - props.discount))
+// 派生值用 computed：setup 只执行一次，要让它跟着 props 变就得放进 computed（React 里是渲染时的普通 const，09 题）。
+const payable = computed(() => amount * (1 - discount))
 </script>
 
 <template>
   <div class="card">
     <div class="row">
       <strong>{{ orderNo }}</strong>
-      <!-- React 里这一步是模板字符串手拼 className：`badge badge-${status}` -->
       <span
         class="badge"
         :class="`badge-${status}`"
@@ -42,7 +40,6 @@ const payable = computed(() => props.amount * (1 - props.discount))
     <p>客户：{{ customer }}</p>
     <p>
       金额：￥{{ amount.toFixed(2) }}
-      <!-- React 里这一步是 {discount > 0 && <span>...</span>} -->
       <span
         v-if="discount > 0"
         class="success-text"

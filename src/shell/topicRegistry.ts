@@ -39,7 +39,7 @@ export const PHASES: TopicPhase[] = [
       {
         slug: '02-props',
         title: 'Props',
-        summary: '用 TypeScript 类型声明 props、默认值写法、「props 只读」约定，以及继承原生元素属性 + rest 透传。',
+        summary: 'props 是组件函数唯一的参数：类型与默认值、只读快照与回调上浮、不要复制进 state、继承原生属性 + rest 透传与 ref 作为 prop，对照 Vue 的 defineProps 与透传属性。',
       },
       {
         slug: '03-state',

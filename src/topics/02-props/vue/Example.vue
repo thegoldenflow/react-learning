@@ -1,127 +1,48 @@
 <script setup lang="ts">
 /**
- * 学习主题：Props（类型声明、默认值与单向数据流）
+ * 主题：02. Props（Vue 对照：defineProps、单向数据流与透传属性）
+ * 适用版本：Vue 3.5
+ * 最后核对：2026-09-18
+ * 前置主题：01
+ * 成熟度：本课知识点按【主流】【较新】【尝鲜】【旧写法】逐一标注
  *
- * React 核心概念：
- * - props 就是组件函数的第一个参数（一个普通对象），用 TS interface 描述形状
- * - 默认值用「参数解构默认值」：function OrderCard({ discount = 0 }: Props) —— 工业主流写法
- * - defaultProps / PropTypes 是过时写法，TypeScript 时代不再使用
- * - props 只读：子组件不能改，要改就调用父组件传下来的回调把修改「上浮」（08 题详讲）
- * - 组件只是函数，多个组件写在同一个 .tsx 文件里很常见
- * - 没有任何属性会自动透传：想让自己的组件支持 disabled / type / title / aria-* / onClick
- *   这些原生属性，必须自己用 { ...rest } 收集，再展开到真实 DOM 元素上
- * - ComponentPropsWithoutRef<'button'> 一次性继承 <button> 的全部原生属性类型，
- *   与自定义 props 用交叉类型 & 拼起来 —— 这是组件库（shadcn/ui、MUI）的通用 API 写法
- * - props 的 TS 声明基础在这里；事件类型、useState 泛型、ReactNode 等 React + TS 常见类型的系统梳理见 28 题
+ * 完整的十段讲解在 react/Example.tsx；本文件列出 Vue 这一侧的要点。
  *
- * Vue 对应概念：
- * - defineProps<{ ... }>() 声明类型；默认值要包一层 withDefaults(defineProps<...>(), { ... })
- * - Vue 的 props 同样单向：子组件里改 props，开发期会收到运行时警告
- * - SFC 一个文件只能有一个组件，子组件必须放单独的 .vue 文件
- * - fallthrough attributes（$attrs）：没在 defineProps 里声明的属性（含 class/style/事件监听）
- *   Vue 会自动落到子组件根元素上，class/style 还会自动与根元素已有的合并
- * - defineOptions({ inheritAttrs: false }) + useAttrs() 才是「手动接管透传」，
- *   这一步才等价于 React 的 { ...rest }
- *
- * 最重要的区别：
- * - defineProps 是「编译器宏」（编译期展开、无需 import）；React 没有任何宏，
- *   props 就是函数参数，类型、默认值全部用 TypeScript + JS 原生语法（解构默认值）表达
- * - 「子组件不能改 props」两边一致，但 Vue 有运行时警告兜底，React 不警告、
- *   纯靠约定与单向数据流——改 props 往往不报错，却会造成 UI 与数据源不一致（面试常问）
- * - 属性透传：Vue 默认帮你做（$attrs 自动落到根元素、class/style 还自动合并），
- *   React 一个属性都不会自动传下去。没有一一对应关系——React 里根本不存在
- *   $attrs / inheritAttrs / useAttrs 这套机制，{ ...rest } 是唯一手段，连 className 也要手动合并
+ * Vue 这一侧的要点：
+ * - defineProps<Props>()【主流】：编译器宏，不用 import；React 的 props 就是函数参数，没有宏。
+ * - 默认值【主流·3.5 起】：响应式 props 解构 const { discount = 0 } = defineProps<Props>()，编译器把后面对 discount 的访问改写成 __props.discount，
+ *   所以它仍是响应式的；把解构出来的 prop 传给 watch / composable 要包成 getter（() => discount）。3.4 及以前用 withDefaults(defineProps<Props>(), { … })【旧写法】，
+ *   对象 / 数组默认值要写成工厂函数，解构写法不需要（区块一）。
+ * - 默认值只在「没传 / 传 undefined」时生效【主流】，null 原样收到，和 React 一样；布尔 prop 不一样：声明成 boolean 的 prop 不传是 false、只写属性名是 true（布尔转型），
+ *   React 不传就是 undefined（区块一，测试覆盖）。同时允许 String 和 Boolean 时，Boolean 写在 String 前面才做布尔转型。
+ * - 单向数据流【主流】：子组件改 props，开发环境不抛错，控制台警告「Set operation on key "amount" failed: target is readonly.」、值不变；TypeScript 也拦
+ *   （defineProps 的返回类型是只读的）。生产构建没有只读包装，赋值会成功（node + 生产构建实测）。想改就 emit 给父组件（区块二，08 题）。
+ *   props 是响应式对象：父组件重新渲染把新值 patch 进来之后（下一个 tick），定时器里读 props.amount 读到的就是新值，不是 React 那样「每次渲染一份快照」（区块二，26 题）。
+ * - 不要把 prop 拷进本地 ref【主流】：ref(price) 只在 setup 执行时读一次；有意只取初始值时命名 initialX（props 页的第一种情形），需要转换就用 computed（区块三）。
+ * - 透传属性（fallthrough attributes）【主流】：没被 props / emits 声明的属性和监听器自动加到单根组件的根元素上，class / style 合并、监听器两边都触发；
+ *   defineOptions({ inheritAttrs: false })【主流·3.3 起】+ useAttrs() / $attrs 手动接管 = React 的 {...rest}（区块四）。
+ *   关了 inheritAttrs 又没手动绑，属性就丢了；没关 inheritAttrs 又手动绑，class 会重复（测试覆盖）。
+ * - 多根组件【主流】不自动透传，没显式绑 $attrs 会运行时警告（区块四的 LabeledInput，测试覆盖）。
+ * - useAttrs()【主流】返回的对象：文档「it isn't reactive (for performance reasons). You cannot use watchers to observe its changes.」要响应式就声明成 prop，或在 onUpdated 里读。
+ *   实测 3.5.42 里 watch(() => attrs.title) 其实会触发（attrs 代理整体追踪、属性变化时统一触发，3.2 起为修插槽里的 $attrs 更新而加），但文档没有承诺，别依赖（测试记录了这个现状）。
+ * - 组件 ref【主流】：模板 ref 放在组件上拿到的是组件实例；<script setup> 组件默认封闭，要 defineExpose（12 题改写时补）；useTemplateRef【主流·3.5 起】（区块四）。
+ *   React 19 的 ref 是普通 prop，组件把它转交给 DOM 元素，父组件拿到的是 DOM 节点。
+ * - prop 名【主流】：defineProps 里 camelCase 声明，模板里惯用 kebab-case（order-no），Vue 自动对应；透传属性在 JS 里保留原始写法（$attrs['foo-bar']、$attrs.onClick）。
+ * - 运行时校验【主流】：对象形式的 defineProps({ amount: { type: Number, required: true, validator } }) 在开发环境校验、失败只警告；类型形式由编译器生成等价的运行时声明。
+ *   React 19 起 propTypes 不再校验，组件 props 靠 TypeScript 这类静态检查。
+ * - 解构出来的 prop 是只读的：给它赋值（discount = 1）编译时直接报错「Cannot assign to destructured props as they are readonly.」（@vue/compiler-sfc 3.5.42）。
  */
-// 子组件必须是单独的 .vue 文件再 import 进来；React 版的 OrderCard 与父组件同文件
-import OrderCard from './OrderCard.vue'
-// 演示属性透传的按钮组件；React 版的 UiButton 与父组件同在一个 .tsx 文件里
-import UiButton from './UiButton.vue'
-
-// 只用来证明 @click 确实落到了真实 button 上（React 侧对应 handleDemoClick）
-function handleDemoClick() {
-  console.log('[02-Vue] @click 没被 defineProps 接住，它是通过 $attrs 落到真实 <button> 上的')
-}
+import MirrorPropsDemo from './MirrorPropsDemo.vue'
+import OrderCards from './OrderCards.vue'
+import ReadonlyPropsDemo from './ReadonlyPropsDemo.vue'
+import UiButtonDemo from './UiButtonDemo.vue'
 </script>
 
 <template>
   <div class="stack">
-    <p class="muted">
-      父组件渲染三张订单卡；第二张传了可选的 discount，其余两张走默认值 0
-    </p>
-    <!-- 静态字符串属性直接写；数字等 JS 值要用 v-bind（:amount="1280"）。
-         React 里这一步是：字符串用引号、其余值一律花括号 amount={1280}。
-         Vue 模板惯用 kebab-case（order-no），JSX 属性保持 camelCase（orderNo）。 -->
-    <OrderCard
-      order-no="SO-20260801"
-      customer="林小满"
-      :amount="1280"
-      status="pending"
-    />
-    <OrderCard
-      order-no="SO-20260802"
-      customer="陈北洋"
-      :amount="5600"
-      status="paid"
-      :discount="0.15"
-    />
-    <OrderCard
-      order-no="SO-20260803"
-      customer="赵四方"
-      :amount="899"
-      status="cancelled"
-    />
-
-    <!-- ---------- 新增区块：UiButton 与属性透传 ---------- -->
-    <div class="card stack">
-      <p class="muted">
-        UiButton 只声明了 variant 一个自己的 prop；下面的 disabled / type / title / aria-label / @click
-        都没被 defineProps 接住，走的是 fallthrough attributes（$attrs）这条路
-      </p>
-      <div class="row">
-        <!-- @click 能生效：Vue 默认就会把没声明的属性自动落到子组件根元素上；
-             React 那边必须靠组件内部把 rest 展开到 <button> 才行 -->
-        <UiButton @click="handleDemoClick">
-          主要按钮（点我看控制台）
-        </UiButton>
-
-        <!-- 多个原生属性一起透传，写法和 React 侧一一对应 -->
-        <UiButton
-          variant="danger"
-          title="这行 title 是透传到真实 button 上的，鼠标悬停可见"
-          aria-label="删除订单 SO-20260803"
-          @click="handleDemoClick"
-        >
-          删除
-        </UiButton>
-
-        <!-- disabled 真的落到原生 button 上：按钮变灰、点击不触发 @click -->
-        <UiButton
-          disabled
-          @click="handleDemoClick"
-        >
-          已禁用（点击无反应）
-        </UiButton>
-
-        <!-- type 同理：UiButton 里 type="button" 写在 v-bind="attrs" 之前，
-             mergeProps 后写的同名键覆盖前面的，所以外部这个 type="submit" 生效。
-             与 React 侧「rest 展开位置决定外部能不能覆盖默认值」是同一条规则 -->
-        <UiButton
-          type="submit"
-          @click="handleDemoClick"
-        >
-          type 被外部覆盖为 submit
-        </UiButton>
-
-        <!-- class 会被 Vue 自动 merge 到根元素已有的 class 上；
-             React 侧要把 className 单独解构出来手动拼接，否则外部 className 会整个覆盖组件样式 -->
-        <UiButton class="btn-ghost">
-          class 被自动合并
-        </UiButton>
-      </div>
-      <p class="muted">
-        打开 DevTools 看最后一个按钮：btn-primary 和 btn-ghost 同时存在——
-        class/style 的合并是 Vue 白送的，React 必须自己写合并逻辑
-      </p>
-    </div>
+    <OrderCards />
+    <ReadonlyPropsDemo />
+    <MirrorPropsDemo />
+    <UiButtonDemo />
   </div>
 </template>

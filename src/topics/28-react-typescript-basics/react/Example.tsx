@@ -41,7 +41,7 @@
  *   React 一切都是普通 TypeScript：props 是 interface、事件是从 'react' 导入的泛型类型、children 是 ReactNode 类型的 prop
  * - React 事件是合成事件（SyntheticEvent），类型从 'react' 导入且带 DOM 元素泛型；Vue 拿到的是原生 DOM 事件，类型是全局的
  *   Event / MouseEvent —— 所以 React 里 import MouseEvent 时要起别名，否则会遮蔽 DOM 全局的同名类型
- * - 与邻题的分工：02 = props 接口、默认值、ComponentPropsWithoutRef + rest 透传；本题 = 其余工具箱
+ * - 与邻题的分工：02 = props 接口、默认值、ComponentPropsWithRef + rest 透传与 ref 作为 prop；本题 = 其余工具箱
  *   （state 泛型、事件类型、ReactNode、联合类型与守卫、satisfies、unknown）；04 讲事件机制本身、07 讲受控表单本身，
  *   本题只讲它们的类型；13 讲 children / 插槽的组合用法，本题只讲 ReactNode 这个类型；29 讲判别联合 Action + never 穷尽检查
  */

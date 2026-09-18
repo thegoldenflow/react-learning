@@ -14,7 +14,7 @@
  * - 模板语法【主流】：插值 {{ }} 只能放单个表达式，而且在沙箱里只能访问受限的全局变量；class / for 原样写；:class、:style 有对象和数组语法，:style 自动加厂商前缀；
  *   同名简写 :id【主流·3.4 起】。React 里拼 class 靠字符串（clsx）、合并 style 靠对象展开。
  * - :style 里的数字不补单位【主流】（区块二：width: 48 在 jsdom 和 Chrome 里都被当成无效值丢掉）；React 会给 0 与无单位属性以外的数字自动补 px。
- * - 多根组件【主流】：Vue 3 组件可以有多个根节点（区块一的 ProfileCards.vue），不需要 Fragment；多根时透传 attrs 要显式绑定（class 用 $attrs.class 指定），否则运行时警告（attrs 页；透传机制见 02 题，多根的情况 02 题改写时补）。
+ * - 多根组件【主流】：Vue 3 组件可以有多个根节点（区块一的 ProfileCards.vue），不需要 Fragment；多根时透传 attrs 要显式绑定（class 用 $attrs.class 指定），否则运行时警告（attrs 页；透传机制与多根组件见 02 题区块四）。
  *   一次渲染多个节点用 <template v-for> / <template v-if>，v-for 的 key 写在 <template> 上。
  * - 把一段 UI 传给子组件【主流】：React 把 JSX 当值传；Vue 用插槽（区块一的 #badge，13 题）。Vue 也有渲染函数 h() 和 JSX / TSX，但官方推荐绝大多数情况用模板，
  *   而且 Vue 的 JSX 转换和 React 的不同，不能混用。
