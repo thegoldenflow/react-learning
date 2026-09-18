@@ -195,7 +195,7 @@ export const PHASES: TopicPhase[] = [
         slug: '26-stale-closures',
         title: '过期闭包（stale closure）',
         summary:
-          '延迟回调、手动事件监听、轮询读到旧 state 的坏例子与修法（函数式更新、依赖数组、latest ref / useEffectEvent、cleanup），对照 Vue 永远新鲜的 .value。',
+          '延迟回调、手动事件监听、轮询读到旧 state：修法按优先级（函数式更新 → 写对依赖 → useEffectEvent → latest ref）、让依赖合法消失、latest ref 的窗口期，对照 Vue 的现读 .value 与 watch / watchEffect。',
       },
       {
         slug: '27-async-race-and-cancellation',

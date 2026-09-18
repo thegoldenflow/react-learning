@@ -9,7 +9,7 @@
 |---|---|---|---|---|
 | 0 | 审计（只读） | **完成。** 两轮审计均完成；用户 2026-09-17 答复「全部按建议执行」（AUDIT-ROUND2.md §6 D2-1～8，记录在 AUDIT.md §5.13）；两轮合并规则写在 AUDIT.md 附录 C | `docs/upgrade/AUDIT.md`（含 §5.13、§5.14、附录 C）、`docs/upgrade/REAUDIT-PROMPT.md`、`docs/upgrade/AUDIT-ROUND2.md` | 两轮审计与合并说明均已提交（d550e27、1efc217） |
 | 1 | 依赖与工具链调整 | **完成（2026-09-17）**：commit「阶段 1：依赖与工具链调整」（34cd734）+「阶段 1 补充：ESLint 9 → 10（D1-1）」 | package.json / package-lock.json、vitest.config.ts、eslint.config.js + eslint-suppressions.json、tsconfig.json、src/test/、4 处 react-router 导入、README 事实行 | 复核口径与全部记录见下文「阶段 1 记录」；版本决定见 AUDIT.md §5.0 的 5.14、5.15 |
-| 2 | 逐主题修改（先改 18 路由样板） | **进行中**（分支 `phase-2-topics`）：前置 commit（壳修复，2.0）、**18 路由样板**（2.1，风格已确认，AUDIT.md §5.0 的 5.16）、**2-A Vue 响应式措辞批量修正**（2.2，措辞见「统一措辞」）、**2-B 的 07 表单**（2.3）、**19 异步提交**（2.4）、**11 API 请求状态**（2.5）、**30 TanStack Query**（2.6）、**14 自定义 Hook**（2.7）、**16 全局状态**（2.8）、**20 错误边界**（2.9）已完成。**下一步：2-B 的 26 过期闭包**（之后做 2-C），做法见 `docs/upgrade/CONTINUE-PROMPT.md` | 每题一个 commit | 样板已确认，其余题不再逐题停 |
+| 2 | 逐主题修改（先改 18 路由样板） | **进行中**（分支 `phase-2-topics`）：前置 commit（壳修复，2.0）、**18 路由样板**（2.1，风格已确认，AUDIT.md §5.0 的 5.16）、**2-A Vue 响应式措辞批量修正**（2.2，措辞见「统一措辞」）、**2-B 的 07 表单**（2.3）、**19 异步提交**（2.4）、**11 API 请求状态**（2.5）、**30 TanStack Query**（2.6）、**14 自定义 Hook**（2.7）、**16 全局状态**（2.8）、**20 错误边界**（2.9）、**26 过期闭包**（2.10）已完成，**2-B 全部完成**。**下一步：2-C 从 01 开始**（按编号：01 → 02 → 03 → …），做法见 `docs/upgrade/CONTINUE-PROMPT.md` | 每题一个 commit | 样板已确认，其余题不再逐题停 |
 | 3 | 补充新主题 | 未开始 | | 按阶段 0 确认的清单 |
 | 4 | 一致性检查 + CHANGELOG | 未开始 | `docs/upgrade/CHANGELOG.md` | |
 
@@ -442,6 +442,50 @@
 
 **验证**：`npm run check` 通过（lint 0 / typecheck 0 / 216 条测试 / build）；20 的 27 条测试无 act 警告、无 stderr。浏览器用临时 5174 服务器（完成后已停掉并还原 launch.json）：两侧区块一崩溃 / 重试（计数归零）/ resetKeys 自动重置；React 区块二 4～7 没有兜底、日志分别记下 window error / unhandledrejection，1～3 进边界；Vue 区块二 1～4 进边界（info：render function / native event handler ×2 / watcher callback），5、6 进 window error；区块三 onError → 重试（imperative-api）→ 换订单（keys）→ 关掉失败开关后加载成功；区块四 onCaughtError（边界名 ErrorBoundary）/ onUncaughtError 后小根变空、重建恢复；Vue 区块四 ①②③ 与 return false 只剩 ①；页面宽 1024 无溢出；源码查看器 React 8 个、Vue 10 个文件。控制台只有 React 开发环境默认 onCaughtError 对被接住错误的 console.error（课件七已说明），没有其它 error / warn。
 
+### 2.10 26 过期闭包（2026-09-18，2-B 最后一题）
+
+**蓝本与依据**：AUDIT-ROUND2.md §5 的 26 大纲 + §3.7 主线判定（修法优先级 函数式更新 → 写对依赖 → useEffectEvent【较新】主线 → latest ref 并排）；问题表 = R2-26-1～11 + AUDIT.md §3 的 26 各行（:715-:722，其中 :717「被缓存的 onClick 一样过期」按附录 C 以第一轮为准）。核实：本会话没开 Ultracode，用 Agent 工具起了 2 个只读研究代理（官方文档 68 条 / 296 段引文逐字校验，其中 8 条修正、5 条查无；源码 / npm / lint 实测 32 条，其中 7 条修正、1 条查无）+ 主会话两份一次性探针测试 + 1 个反驳式复核代理（提出 28 条：错 4、无出处 1、措辞 23，已全部处理，见下）。
+
+**结构（React 8 个文件，Vue 8 个文件）**
+- `react/Example.tsx`：十段文件头 + 四个区块的入口。
+- `react/demoKit.ts`：`createDemoLog`（组件外日志 store，Effect 体里写日志不碰 set-state-in-effect）+ `useTimeouts`（卸载时清定时器）+ 两个时间常量；`react/LogPanel.tsx`：日志面板（useSyncExternalStore）。拆成 .ts + .tsx 两个文件是因为 @vitejs/plugin-react README「For React refresh to work correctly, your file should only export React components.」（组件文件再导出常量 / 工具函数，热更新会退化成整页刷新）。
+- `react/DelayedSaveDemo.tsx`【区块一】：事件处理函数里的 setTimeout（没有 Effect 参与）—— 读快照 vs latest ref、`setCount(count + 1)` 倒退 vs 函数式更新；写明 useEffectEvent 在这里用不了（只能在 Effect 里调用），这是 19.2 之后仍需要 latest ref 的场景；官方挑战题「Read the latest state」的事件处理函数同步写法作对照。
+- `react/ListenerDemo.tsx`【区块二】：手动 addEventListener 五个输入框 —— ❌ 依赖 []、② 写对依赖（每次 +1 重注册，日志显示第 n 次注册）、③ useEffectEvent（只注册一次）、JSX onKeyDown、❌ 被 `useCallback(fn, [])` 缓存的 JSX 处理函数（第一轮 :717）。
+- `react/PollingDemo.tsx`【区块三】：轮询四种写法 ❌ [] / ② [status] / ③ useEffectEvent（主线）/ ④ latest ref（并排），写法下拉框切换、`key={mode}` 换实例；alive 标志丢弃迟到响应；演示简化 → TanStack Query refetchInterval（30 题）。
+- `react/DependencyLabs.tsx`【区块四】：4a 交互逻辑搬回事件处理函数（官方 submit + theme 例子）、4b 每次渲染新建的对象当依赖（草稿框打字就断开重连）vs 只依赖原始值、4c `ref.current` 写进依赖数组没用。
+- Vue 侧：`DelayedSaveDemo.vue`（现读 / 手动快照 + 解构 reactive vs toRefs）+ `PropsDestructureChild.vue`（3.5 解构 props 在回调里读到最新值）、`ListenerDemo.vue`（onMounted 注册一次 + onBeforeUnmount 移除 + useTemplateRef）、`PollingDemo.vue`（一个 watch + onWatcherCleanup，现读 / 启动时拷一份 / watch 重启三种模式）、`WatchSourceDemo.vue`（watchEffect vs watch vs 事件版；非响应式 source）、`LogList.vue`、`Example.vue`（精简头）。旧的 `vue/Example.vue` 单文件拆开。
+- 壳：注册表 26 题 summary；README 26 题目录行、说明段、面试题行。
+- 测试：React 22 条、Vue 15 条（全仓库 21 个文件 253 条）。
+
+**问题表处理**：R2-26-1 latest ref 标「社区惯用法 · 并排」，写明适用边界（React 18 / 19.0 / 19.1、Effect 之外的延迟回调、19.2.x 的 memo / forwardRef 组件），「react.dev 无推荐语」改正（见待核实 P-26-1）；R2-26-2 useEffectEvent【较新·19.2.0 起】、参考页 Caveats 四条原文（第 1 条是「顶层调用」，「not reactive、不写进依赖」出自 learn 页与 useEffect 页）、lint 从 6.1.0 起识别、TS 签名、自定义 Hook 包一层（14 题）、与 useCallback 的分工；R2-26-3 修法体系：搬回事件（4a）、拆 Effect、对象 / 函数移进 Effect / 原始值（4b）+ 五「exhaustive-deps 报警的处理顺序」；R2-26-4 `ref.current` 作依赖（4c + 测试 + lint 文案）；R2-26-5 Vue 官方 FAQ 原文、解构 reactive / 3.4 前解构 props、watch vs watchEffect（Vue 区块四）；R2-26-6 绝对化措辞清零（「唯一会过期」「没有任何对应物」「任何时刻读 .current 都是最新」都已改）；R2-26-7 模板残留 6 处清零；R2-26-8 交叉引用逐条核对（10 题场景二修法三仍在，10 题改写时要保留或同步改 26 的引用）；R2-26-9 轮询演示简化 → refetchInterval（UseQueryOptions 原文）；R2-26-10 disable 注释标【旧写法】并引 19.2 博客原文；R2-26-11 全文成熟度标签。第一轮：:715 按 §3.7 覆盖；:716 第 3 条 caveat 与「其他 Hook」已补；:717 被缓存的 JSX 处理函数（区块二 + 测试）；:718 / :719 已改；:720「根本没有 effect」已改；:721 Compiler 一句已加（useCallback 页原文）；:722 Vue 改用 onBeforeUnmount 移除（并说明 onUnmounted 时模板 ref 已是 null）。
+
+**待核实项结论**：
+- **P-26-1（latest ref 有没有官方推荐语）：结论改正。** react.dev 没有给这个模式命名（全站无 useLatest / latestRef），但 learn/referencing-values-with-refs 的挑战题「Read the latest state」答案就是「you can keep the latest input text in a ref」，ref 在事件处理函数里与 setText 一起更新，题目称之为 occasional cases。课件照此写，标签仍按 §3.7 用「社区惯用法」（官方只在挑战题里用过、没有作为通用模式推荐），主线判定不变。
+- P-26-2（版本历史）：RFC「useEvent」（reactjs/rfcs#220，2022-05-04 提出，承诺 always stable function identity，2022-09-27 搁置）→ 实验通道 experimental_useEvent（2022-11 起）→ experimental_useEffectEvent（2024-04 至 2025-09）→ 19.2.0（2025-10-01）稳定导出。react 18.3.1 / 19.0.0 / 19.1.0 / 19.1.9 的稳定版都没有导出（npm pack 核对）。eslint-plugin-react-hooks 5.x 与误发的 6.0.0 里 isUseEffectEventIdentifier 直接 return false，6.1.0（与 React 19.2 同日）起识别。
+- P-26-3（refetchInterval 的文档 URL）：TanStack 2026-09-02 把 React 参考文档改为 TypeDoc 生成，旧的 reference/useQuery 已 404；选项说明在 docs/framework/react/reference/interfaces/UseQueryOptions.md，另有 guides/polling.md。两个选项默认都是 false。
+- **P-26-4（「提交阶段把最新回调换进槽位」准不准）：已核实并细化。** react-dom 19.2.8：每次渲染返回新的包装函数（共用一个 ref，调用 ref.impl），更新渲染时新回调排进 updateQueue.events，在 commitBeforeMutationEffects（:13874-13889）写入 —— 早于 insertion / layout / passive 所有 Effect；首次挂载在渲染期直接写入；渲染被丢弃则不写入。测试证明 layout effect 里调用 Effect Event 已是新值。
+- **P-26-5（latest ref 的窗口期）：已核实。** 用 useEffect 同步时，本组件的 useLayoutEffect、子组件的 Effect（子先于父执行）读到的是旧值（测试覆盖）；离散事件里 flushSync 之后被动 Effect 已同步执行完，读到新值（测试覆盖）。课件去掉「任何时刻读 .current 都是最新的」。
+- P-26-6（在事件处理函数里调用 Effect Event）：lint 报 rules-of-hooks error「… can only be called from Effects and Effect Events in the same component.」，传给子组件再多一句「It cannot be assigned to a variable or passed down.」；运行时只拦渲染期调用，在 onClick 里调用照常执行（探针实测）。
+
+**本次新发现（审计没写到）**：
+1. **React 19.2.x 的 useEffectEvent 在 memo()（不带比较函数）/ forwardRef 组件里一直调用第一次渲染的回调**：commitBeforeMutationEffects 只处理 tag 0，tag 11 / 15 直接 break（:13890-13892）。19.3.0 修复（CHANGELOG #34831，issue #34818 标题「Bug: Stale closures with useEffectEvent」，报告版本 19.2）；19.2.1～19.2.8 没有回补。测试钉住这个行为（升级 19.3 后这条测试会失败，届时改断言并改课件）。本仓库其它用 useEffectEvent 的地方（14 题 useInterval / IntervalDemo、bridge/VueMount）都是普通函数组件，不受影响；14 题注释可在 2-C 或阶段 4 补一句。
+2. Effect Event 身份每次渲染都变，但旧的包装函数调用时也转发到最新回调（共用一个 ref，测试覆盖）。
+3. JSX 事件不过期的机制：react-dom 派发事件时从 DOM 节点上读最近一次提交的 props（getListener :3274-3279，commitUpdate 在提交时写入 :22167-22170）。Vue 的模板事件绑在元素上的是 invoker：处理函数换了时 patchEvent 只换 invoker.value、不重新注册（runtime-dom.cjs.js:641-659）；而编译器通常把模板处理函数缓存起来（本课 @keydown.enter 编译成缓存的 withKeys 包装，引用不变，patchEvent 根本不会被调用），缓存的函数执行时现读 .value，所以也不会过期（测试证明重渲染后 addEventListener 次数不变）。
+4. Vue 文档说把解构出来的 prop 直接传给 watch 编译器会「throw a warning」，3.5.42 实测 compileScript 直接抛错（编译失败）；以实测为准，课件两个都写。
+5. Vue watch 回调里的读取不被追踪，不是靠 pauseTracking：回调在 effect.run() 结束之后才调用（研究代理读 @vue/reactivity 源码）。
+6. watchEffect 里写 `logRef.value.push(...)` 会把 logRef 收成依赖（读 .value 被追踪，push 本身不追踪），给它赋新数组就重跑 —— Vue 区块四改用 reactive 数组 + push / splice，另有测试证明这个坑。
+7. Vue 的模板事件同样通过 addEventListener 绑在元素上（测试里数 keydown 注册要算上它），React 的 JSX 事件在根节点委托。
+8. Vitest 4 内置 fake-timers 把「推进过程中新排进来的 0ms 定时器」记成 1ms 之后（`clock.duringTick ? 1 : 0`），setInterval 回调里发出的 delayMs=0 请求要再推 1ms 才回来（测试辅助函数已处理）。
+9. React 19 StrictMode 下挂载时的 setup → cleanup → setup 共用同一个 ref，所以「第 n 次注册」在页面上从第 2 次开始（浏览器实测，页面已注明）。
+10. exhaustive-deps 对「每次渲染新建的对象当依赖」的报错位置在对象声明那一行，不在依赖数组那一行（eslint-disable 要写在声明上方）。
+11. react.dev 有三处 Pitfall 示例（lifecycle-of-reactive-effects、removing-effect-dependencies、useEffect 参考页）把注释写成了 `eslint-ignore-next-line`，ESLint 没有这个指令，照抄不会生效；课件提醒不要照抄。
+12. exhaustive-deps 的依赖比较发生在渲染阶段（updateEffectImpl 里 areHookInputsEqual，:8641-8655），提交阶段只执行已打标记的 Effect；Effect Event 的换入早于「这次提交」里的所有 Effect（commitRoot 开头会先冲刷上一次提交遗留的被动 Effect）。
+13. npm 上周下载（2026-09-18）：React 18 / 19.0 / 19.1 合计 30.45%（18.x 24.71%），连同 17 及更早，没有 useEffectEvent 的共 34.18%；19.2.x 56.72%，19.3.x 8.79%。
+
+**复核代理提出、已改的 28 条（要点）**：引文漏了 will（「we will lose the reactivity connection」）；eslint-ignore-next-line 是三处 Pitfall 不是一处、「笔误」改为「ESLint 没有这个指令」；依赖比较在渲染阶段不在提交后；「Vue 任何函数里读 .value 都不当依赖」改为区分 watch 回调 / 事件 / 定时器（不登记）与 watchEffect / computed / 模板（登记）；「Vue 没有缓存处理函数这一层」与 17 题矛盾，改为 Vue 编译器也缓存、但缓存的函数现读 .value；五「exhaustive-deps 处理顺序」把「老实写依赖」放回 useEffectEvent 之前（与优先级和大纲一致）；取消补上「queryFn 读了 signal 才中止」的前提（30 题措辞表）；refetchInterval 的「30 题」引用改为「基础见 30 题、轮询见官方 guides/polling」（30 题只提了默认 false）；日志用 index 当 key 改为按理由说明（不是 06 题允许的例外）；【较新】补起始版本；exhaustive-deps 报的是 warn 不是 error；「exhaustive-deps 报的就是过期闭包」限定为「缺少依赖」时；npm 占比拆成 30.45% / 34.18% 并注明含 CI；「社区库常用 useLayoutEffect / useLatest 社区常见」这类频度说法删掉；补 7.0.1 禁止内联 useEffectEvent 当 JSX prop、六补「以为 useEffectEvent 返回稳定函数」；补两条测试（onClick 里调用不抛错、useInsertionEffect 里已是新值），「渲染被丢弃不写入」改标源码依据；flushSync 那条测试在二-8 补上对应说明；停止轮询的日志文案改成「卸载 / watcher 清理时」；onCleanup 不是旧写法（3.5 仍可用，await 之后注册清理要用它）；Vue 源码依据补文件与行号；PropsDestructureChild 区分文档说法（warning）与 3.5.42 实测（抛错）。
+
+**验证**：`npm run check` 通过（lint 0 / typecheck 0 / 251 条测试 / build）；26 的 35 条测试无 act 警告、无 stderr。浏览器用临时 5174 服务器（完成后已停掉并还原 launch.json）：React 区块一（坏的保存读到 0、好的读到 3；延迟 +1 把 6 打回 4，函数式更新 4 → 7）、区块二（StrictMode 下注册从第 2 次开始；两次 +1 后写对依赖是第 4 次注册；依赖 [] 与 useCallback [] 读到 0，其余读到 2）、区块三（四种写法日志与测试一致，停止后 2.5 秒无新日志）、区块四（Effect 版 3 次 POST、事件版 1 次；对象依赖打字就断开重连；ref.current 改两次不跑、重渲染后补跑读到 2）；Vue 区块一（现读 3、快照 0、子组件 prop 3、数字打回 4、likes 三种写法 2 / 0 / 2）、区块二（注册次数 1，两个输入框读到 2）、区块三（现读 / 启动时拷一份 / watch 重启与测试一致，停止后无新日志）、区块四（watchEffect 3 次、watch 与事件版各 1 次，清空日志不会重跑；非响应式 source 不触发）；开始轮询后切到 27 → 25 → 回 26 无报错；源码查看器 React 7 个、Vue 8 个文件；899px 宽无横向溢出。捕获到的 console.error / console.warn 为 0（复核修正只改了注释、日志文案与测试，没有影响交互）。
+
 ## 统一措辞（各题改写时照用）
 
 ### Vue 响应式（2-A 定稿，2026-09-17）
@@ -530,11 +574,29 @@
 | 404 | React Router 推荐 loader 里 throw data(..., { status: 404 }) 交给路由级边界（文档点名的例外） | 「404 不该用边界」 |
 | react-error-boundary 版本 | 6.0.0 只发 ESM；6.0.1 起 CommonJS 回来、peer 为 React 18 / 19；6.1 起错误类型 unknown | 「6.x 只发 ESM」 |
 
+### 过期闭包与 useEffectEvent（26 定稿，2026-09-18）
+
+| 要说的事 | 这样写 | 不要这样写 |
+|---|---|---|
+| 修法顺序 | ① 函数式更新 → ② 写对依赖 → ③ useEffectEvent【较新·19.2.0 起】→ ④ latest ref（社区惯用法 · 并排）；另有「搬回事件处理函数」「对象 / 函数移进 Effect、依赖原始值」「拆 Effect」 | 「latest ref 是主流修法」「useEffectEvent 只是加分点」 |
+| latest ref 的官方态度 | 「react.dev 没有给这个模式命名；referencing-values-with-refs 的挑战题 Read the latest state 用 ref 在事件处理函数里保存最新值（occasional cases）」 | 「react.dev 对 latest ref 没有任何推荐语」「官方推荐的模式」 |
+| latest ref 同步位置 | 事件处理函数里跟 setState 一起写（官方挑战题）/ useEffect 无依赖（lint 干净，有窗口期）/ useLayoutEffect（缩小窗口）；渲染期写 ref.current 会被 refs 规则报 error | 「任何时刻读 .current 都是最新的」「渲染期写 ref.current = value 没问题」 |
+| Effect Event 的换入时机 | 「更新渲染时新回调先排队，提交的第一步（before-mutation）写进去，早于所有 Effect」（19.2.8） | 「提交阶段某一步」「和 useEffect 同时」 |
+| useEffectEvent 的限制 | 参考页 Caveats 四条：顶层调用；只在 Effect / Effect Event 里调用，不渲染时调用、不传给组件或 Hook；不拿来逃避依赖；身份每次渲染都变。另：不是响应式值、不写进依赖（learn 页 / useEffect 页） | 把「not reactive、必须从依赖省略」说成参考页 Caveats 之一 |
+| 运行时与 lint | 「运行时只拦渲染期调用（抛错），在事件处理函数里调用照常执行、靠 rules-of-hooks 报 error」 | 「在 Effect 外调用会抛错」 |
+| 19.2.x 已知 bug | 「memo()（不带比较函数）/ forwardRef 组件里的 Effect Event 一直调用第一次渲染的回调，19.3.0 修复（#34831）」 | 「19.2 起可以放心在任何组件里用」 |
+| lint 版本 | 「eslint-plugin-react-hooks 6.1.0 起识别 useEffectEvent（本项目 7.1.1）」 | 「需要 v6」「需要 v7」（6.0.0 是误发、不识别） |
+| JSX 事件为什么不过期 | 「React 派发时从 DOM 节点读最近一次提交的 props 里的处理函数；前提是没被 useCallback 缓存成旧闭包」 | 「JSX 事件永远不会过期」 |
+| Vue 会不会过期 | 「默认现读 .value 不会；把值拷出来（手动快照、解构 reactive、3.4 及以前解构 props）就会」 | 「Vue 没有这个坑」「Vue 唯一会过期的是手动快照」 |
+| Vue 里 useEffectEvent 的概念对应 | 「watch 只追踪 source，回调里读最新值不触发重跑」 | 「Vue 没有任何对应物」 |
+| 3.5 解构 props | 「编译器把访问改写成 props.x，回调里读到的是那一刻的 prop；watch(x) 要写 watch(() => x)（3.5.42 实测编译抛错，文档写的是 warning）」 | 「解构 props 会失去响应式」（3.4 及以前才是） |
+
 ## 每题状态（阶段 2 起填写）
 
 | 题号 | 主题 | 状态 | 改动摘要 | 遗留问题 |
 |---|---|---|---|---|
 | 18 | 路由（React Router） | **完成（样板已确认）** | Data 模式主线（loader / action / middleware 守卫 / errorElement / lazy / useBlocker / 面包屑）+ 声明式 RequireAuth 三态并排；十段文件头；React 18 条 + Vue 7 条结论测试；Vue 守卫改为返回值写法；safeRedirect 共享实现；源码查看器支持多文件（5.10）。详见 2.1 | 32 / 34 / 35 题新增后回填交叉引用 |
+| 26 | 过期闭包 | **完成** | 修法优先级（函数式更新 → 写对依赖 → useEffectEvent 主线 → latest ref 并排）四个区块：事件处理函数里的 setTimeout、手动 addEventListener（含被 useCallback 缓存的 JSX 处理函数）、轮询四种写法、让依赖合法消失（搬进事件 / 对象依赖 / ref.current）；Vue 侧现读 .value、手动快照与解构 reactive、3.5 解构 props、watch vs watchEffect；React 22 条 + Vue 15 条测试（含 latest ref 窗口期、Effect Event 身份与换入时机、19.2.x memo / forwardRef bug）；了结 P-26-1～6。详见 2.10 | 19.3 升级后改 memo / forwardRef 那条测试与课件；14 题 useInterval 注释可补一句 19.2.x 的 memo / forwardRef bug；10 题改写时保留「场景二修法三 latest ref」或同步改 26 的引用；31–35 新增后回填交叉引用 |
 | 20 | 错误边界 | **完成** | 手写 class 边界主线（fallback / onError / onReset / resetKeys）+ react-error-boundary 可运行并排；「接得住 / 接不住」8 个按钮 + useTransition 同步 / async、顶层 startTransition、lazy 缓存；createRoot 小根演示 onCaughtError / onUncaughtError 与整棵界面被移除；Vue 侧 ErrorBoundary.vue、捕获面、出错组件的两种表现、传播规则与 errorHandler；React 15 条 + Vue 12 条测试；了结 P-20-1～5。详见 2.9 | 31 / 32 / 33 / 34 新增后回填交叉引用；18 题可补一句 RouterProvider onError（7.11 起）与 throw data 404 |
 | 16 | 全局状态（Zustand） | **完成** | Zustand 5 主线五个区块（selector 与 useShallow + Profiler 渲染计数 / 组件外读写 + subscribe + 异步 action + persist 与 migrate / Context + useReducer 并排 / createStore + Context 每实例一份 / RTK 只读对照）；Vue 侧 Pinia setup store + 迷你持久化插件 + 模块级 reactive；React 19 条 + Vue 15 条测试；了结 P-16-1、3～6（P-16-2 仍是推论）。详见 2.8 | P-16-2（Compiler 与订阅粒度）留给 17 题；33 / 34 / 35 新增后回填交叉引用；首次打开会触发一次 Vite 依赖重新预构建（新发现 9） |
 | 14 | 自定义 Hook 与 Composable | **完成** | useSyncExternalStore 主线（useWindowWidth + getServerSnapshot + useDebugValue）+ Effect 订阅并排 + subscribe 稳定性实验；useInterval（useEffectEvent）与「回调进依赖」反例；防抖搜索（派生 loading，lint 抑制已清）+ let timer 坑；React 12 条 + Vue 8 条测试；了结 P-14-1～5。详见 2.7 | tearing 没有做可视化演示（P-14-3，只讲原理）；32 / 33 / 34 新增后回填交叉引用；03 题 :64「10、14 题会再遇到快照」留给 03 题改写时核对 |
