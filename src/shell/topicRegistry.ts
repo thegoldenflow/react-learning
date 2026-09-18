@@ -119,7 +119,12 @@ export const PHASES: TopicPhase[] = [
       {
         slug: '16-global-state',
         title: '全局状态（Zustand）',
-        summary: 'Zustand store 与组件局部状态的取舍，对照 Pinia。',
+        summary: 'Zustand 5 主线：selector 与 useShallow、组件外读写、异步 action、persist / devtools、createStore + Context；并排 Context + useReducer 与 Redux Toolkit 对照，对照 Pinia。',
+        vuePlugins: async () => {
+          // 把本题的迷你持久化插件装到 VueMount 新建的 pinia 上（pinia.use）
+          const { topic16PiniaSetup } = await import('../topics/16-global-state/vue/persistPlugin')
+          return [topic16PiniaSetup]
+        },
       },
       {
         slug: '17-performance-hooks',

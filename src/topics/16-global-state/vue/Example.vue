@@ -1,43 +1,48 @@
 <script setup lang="ts">
 /**
- * 学习主题：全局状态管理（Zustand vs Pinia）
+ * 主题：16. 全局状态（Vue 对照：Pinia）
+ * 适用版本：Vue 3.5 · pinia 3.0（4.x 见下）
+ * 最后核对：2026-09-17
+ * 前置主题：15、29、21、25、14、30（同 React 侧）
+ * 成熟度：本课知识点按【主流】【较新】【尝鲜】【旧写法】逐一标注
  *
- * React 核心概念：
- * - Zustand：create<T>()((set, get) => ({...})) 创建 store，返回值本身就是 Hook（useCartStore），
- *   不需要任何 Provider，import 即用
- * - selector 用法 useCartStore(s => s.items)：组件只订阅选出来的切片，切片不变（Object.is 对比）
- *   就不重渲染——不传 selector 则订阅整个 store，任何字段变化都会让组件重渲染
- * - set 是浅合并 + 必须不可变更新（和 useState 一样的规矩）
- * - 派生值：store 里放函数（get() 现算，无缓存）或组件内直接算——Zustand 没有 Pinia getter
- *   那种「自动缓存的派生值」概念
- * - 选型：Zustand 是 React 社区目前最主流的轻量方案之一（Redux Toolkit 更重、样板多；
- *   Context + useReducer 无外部库但样板多且有整体重渲染问题）——本项目选 Zustand
- * - 什么时候不用全局状态：只被一个组件树用的状态放局部；服务端数据交给请求层（如 TanStack Query，见 30 题）；
- *   只有跨页面 / 跨互不嵌套组件共享的客户端状态才进全局 store
+ * 完整的十段讲解在 react/Example.tsx；本文件列出 Vue 这一侧的要点。
  *
- * Vue 对应概念：
- * - Pinia defineStore 的 setup store 写法与 composable 完全一致：ref = state、computed = getter、
- *   function = action
- * - 组件里 useCartStore() 拿 store；解构 state/getter 必须 storeToRefs，action 可直接解构
- * - getter（computed）自动依赖追踪 + 自动缓存
- *
- * 最重要的区别：
- * - Pinia 的 store 是响应式对象，组件按「实际读了哪个属性」自动精准订阅；
- *   Zustand 的 store 是不可变快照，订阅粒度靠你手写的 selector 决定——
- *   「订阅粒度自动 vs 手动」是两者最大的心智差异
- * - Pinia 里可以直接改 state（响应式可变更新），Zustand 必须 set + 不可变更新
+ * Vue 这一侧的要点：
+ * - 定位【主流】：Pinia 由 Vue 核心团队维护，Vuex 已进入维护模式，新项目推荐 Pinia（vuejs.org scaling-up/state-management）。
+ *   React 官方不指定状态库，内置的是 Context（+ reducer）和给外部 store 用的 useSyncExternalStore；这是两边生态最大的不同。
+ * - setup store：ref() → state、computed() → getter、function → action；state 要全部 return（cartStore.ts）。
+ *   option store（{ state, getters, actions }）更好上手，setup store 更灵活、更强（官方原文「Options stores are easier to work with while Setup stores are more flexible and powerful」：
+ *   能在 store 里用 watch、composable），代价是 state 必须全部 return、服务端渲染时用 composable 更复杂。
+ * - 订阅是自动的：组件渲染时读了哪些响应式数据，就只在这些数据变化时重新渲染，不需要 selector（区块一，测试覆盖）；
+ *   读了整个 $state 就依赖整个 store（WholeStoreBadge.vue）。
+ * - 解构 state / getter 用 storeToRefs，action 直接解构；直接解构 state 会丢失响应性（区块二，测试覆盖）。
+ * - 更新：直接改（可变），也可以 $patch(对象) / $patch(函数) 批量改；setup store 没有自带 $reset()，要自己写（测试覆盖默认会报错）。
+ * - 监听：$subscribe（state 变化，组件卸载时自动取消，{ detached: true } 保留）、$onAction（action 调用前后，after / onError）。
+ * - 扩展：插件 pinia.use()（本题 persistPlugin.ts 做了一个迷你持久化），对应 Zustand 的中间件；devtools、HMR（acceptHMRUpdate）、
+ *   服务端渲染支持在 Pinia 核心里。生产常用社区插件 pinia-plugin-persistedstate（本仓库未安装）。
+ * - 实例：state 挂在 pinia 实例上，每个 app 一个 pinia；服务端渲染每个请求 createPinia()。Zustand 模块级 store 是整个页面一份。
+ * - 最小方案：模块级 reactive（区块三），服务端渲染会跨请求共享，官方原文见 react/Example.tsx 三。
+ * - pinia 4【尝鲜】：2026-07-14 首发，破坏性变更只涉及打包（只发 ESM、@vue/devtools-api 要单独安装、TypeScript ≥ 5.6），
+ *   另外重写了错误与开发提示、加了几项小功能；store 的写法不变。发布不满 3 个月，本课仍用 3.0.4。
  */
-import ProductList from './ProductList.vue'
-import CartPanel from './CartPanel.vue'
-
-// 两个互不嵌套的兄弟组件，零 props 往来——共享状态全走全局 store（与 React 版结构一致）。
-// 没有全局 store 的话，就得把购物车状态提升到这里再层层下发（父子回调见 08 题；兄弟组件的状态提升见 25 题）；
-// 组件隔得越远，提升方案越痛苦，这正是全局状态管理要解决的问题。
+import CartDemo from './CartDemo.vue'
+import ReactiveStoreDemo from './ReactiveStoreDemo.vue'
+import StoreApiDemo from './StoreApiDemo.vue'
 </script>
 
 <template>
   <div class="stack">
-    <ProductList />
-    <CartPanel />
+    <CartDemo />
+    <StoreApiDemo />
+    <ReactiveStoreDemo />
+    <div class="card stack">
+      <h3>区块四、五在 Vue 里</h3>
+      <p class="muted">
+        React 区块四（createStore + Context，每个实例一份 store）：Pinia 的 state 本来就挂在 pinia 实例上，服务端渲染时每个请求
+        createPinia() 一次即可；组件实例级别的共享状态用 provide / inject 注入一个 composable 创建的对象（15 题）。
+        React 区块五（Redux Toolkit）：Vue 这边对应 Vuex（已进入维护模式），新项目用 Pinia，没有 mutations、没有 action 类型字符串。
+      </p>
+    </div>
   </div>
 </template>

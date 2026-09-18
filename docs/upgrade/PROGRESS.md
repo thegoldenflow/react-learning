@@ -9,7 +9,7 @@
 |---|---|---|---|---|
 | 0 | 审计（只读） | **完成。** 两轮审计均完成；用户 2026-09-17 答复「全部按建议执行」（AUDIT-ROUND2.md §6 D2-1～8，记录在 AUDIT.md §5.13）；两轮合并规则写在 AUDIT.md 附录 C | `docs/upgrade/AUDIT.md`（含 §5.13、§5.14、附录 C）、`docs/upgrade/REAUDIT-PROMPT.md`、`docs/upgrade/AUDIT-ROUND2.md` | 两轮审计与合并说明均已提交（d550e27、1efc217） |
 | 1 | 依赖与工具链调整 | **完成（2026-09-17）**：commit「阶段 1：依赖与工具链调整」（34cd734）+「阶段 1 补充：ESLint 9 → 10（D1-1）」 | package.json / package-lock.json、vitest.config.ts、eslint.config.js + eslint-suppressions.json、tsconfig.json、src/test/、4 处 react-router 导入、README 事实行 | 复核口径与全部记录见下文「阶段 1 记录」；版本决定见 AUDIT.md §5.0 的 5.14、5.15 |
-| 2 | 逐主题修改（先改 18 路由样板） | **进行中**（分支 `phase-2-topics`）：前置 commit（壳修复，2.0）、**18 路由样板**（2.1，风格已确认，AUDIT.md §5.0 的 5.16）、**2-A Vue 响应式措辞批量修正**（2.2，措辞见「统一措辞」）、**2-B 的 07 表单**（2.3）、**19 异步提交**（2.4）、**11 API 请求状态**（2.5）、**30 TanStack Query**（2.6）、**14 自定义 Hook**（2.7）已完成。**下一步：2-B 的 16 全局状态**（其后 20 → 26，再做 2-C），做法见 `docs/upgrade/CONTINUE-PROMPT.md` | 每题一个 commit | 样板已确认，其余题不再逐题停 |
+| 2 | 逐主题修改（先改 18 路由样板） | **进行中**（分支 `phase-2-topics`）：前置 commit（壳修复，2.0）、**18 路由样板**（2.1，风格已确认，AUDIT.md §5.0 的 5.16）、**2-A Vue 响应式措辞批量修正**（2.2，措辞见「统一措辞」）、**2-B 的 07 表单**（2.3）、**19 异步提交**（2.4）、**11 API 请求状态**（2.5）、**30 TanStack Query**（2.6）、**14 自定义 Hook**（2.7）、**16 全局状态**（2.8）已完成。**下一步：2-B 的 20 错误边界**（其后 26，再做 2-C），做法见 `docs/upgrade/CONTINUE-PROMPT.md` | 每题一个 commit | 样板已确认，其余题不再逐题停 |
 | 3 | 补充新主题 | 未开始 | | 按阶段 0 确认的清单 |
 | 4 | 一致性检查 + CHANGELOG | 未开始 | `docs/upgrade/CHANGELOG.md` | |
 
@@ -357,6 +357,50 @@
 
 **验证**：`npm run check` 通过（lint 0 / typecheck 0 / 155 条测试 / build）；14 的 20 条测试连跑两次稳定，无 act 警告、无 stderr。浏览器用临时 5174 服务器（完成后已还原视口、停掉服务器、还原 launch.json）：两侧三个区块渲染；StrictMode 下 subscribe 实验从 2 / 2 开始，点 3 次后变成 2 / 5；视口改为 700 并派发 resize 后两侧面板都变成 700px、「窄」；卸载面板 B 后 A 照常更新；React 侧 let timer 触发 3 次、useRef 1 次，Vue 侧 let timer 1 次；防抖搜索只按「张伟」发请求（React 侧开发环境多一次被取消的空关键词请求，页面已注明）。捕获到的 console.error / console.warn 为 0。
 
+### 2.8 16 全局状态（2026-09-18）
+
+**蓝本与依据**：AUDIT-ROUND2.md §5 的 16 大纲 + §3.5 主线判定（Zustand 5 主线；Context + useReducer 作 React 内置并排；Redux Toolkit 作【主流·存量】只读对照，不装依赖）；问题表 = R2-16-1～12 + AUDIT.md §3 的 16 各行（:470 覆盖检查、:475 v5 稳定引用与 useShallow、:476 RTK 对照、:477「Options / setup 二者等价」（附录 C「以第一轮为准」）、:479 柯里化原因、:481「永远稳定」）。核实：本会话没开 Ultracode，没有用 Workflow，改用 Agent 工具起了 2 个只读研究代理（官方文档 32 条原文，其中 3 条措辞修正；npm / 源码 19 组，其中 2 条修正）+ 1 个反驳式复核代理（对写好的课件逐条复核，提出 24 条：错 7、无出处 1、措辞 16，已全部处理，见下），另在主会话读了 zustand / pinia 源码并用探针测试核实行为。
+
+**结构（React 9 个文件，Vue 16 个文件）**
+- `react/Example.tsx`：十段文件头 + 五个区块的入口。
+- `react/cartStore.ts`【主线】：`create<CartState>()(devtools(persist(...)))`；actions 与 state 同一接口；`set` 第三个参数写 action 名；`decrease` 到 1 时返回原 state（不通知订阅者）；异步 `checkoutCart`（`get()` 守卫 + await 后 set）；persist 的 `partialize` 白名单、`version: 1` + `migrate`（v0 的 qty → quantity）；导出选择器 `selectTotalCount` / `selectTotalPrice`（替换原来的 store 内 `totalPrice()` 函数）；模拟结算接口带请求计数。
+- `react/renderCounts.tsx`：`<Profiler onRender>` 统计每个组件的提交次数，计数放组件外的小 store、单独面板显示。
+- `react/CartDemo.tsx`【区块一】：商品列表（只选 action）/ 购物车（原子 selector + `useShallow` 取三个 action）/ 合计（`useShallow` 返回派生的两个数字）/ 礼品包装 / 「订阅整个 store」的反例徽标，五个组件的渲染次数实时显示。
+- `react/StoreApiDemo.tsx`【区块二】：`getState()` 在事件里读、非 React 代码调 action（模拟退出登录）、Effect 里 `subscribe` + cleanup 写日志、结算（成功 / 失败 / 同一轮调两次）、查看 localStorage、`persist.clearStorage()`、写入 v0 旧数据后 `persist.rehydrate()` 触发 migrate。
+- `react/ContextReducerCart.tsx`【区块三 · 并排】：react.dev scaling-up 教程的写法（state / dispatch 两个 Context + 自定义 Hook + `<Context value>`），`memo` 包着的件数徽标照样被礼品包装触发重渲染。
+- `react/ScopedStoreDemo.tsx`【区块四】：`createStore` + `useState(() => ...)` + Context + `useStore(store, selector)`，两个清单各一份 store、一个用 props 初始化。
+- `react/ReduxToolkitCard.tsx`【区块五 · 只读】：RTK 2 + react-redux 9 示意代码（`createSlice`、`configureStore`、`.withTypes()`）+ 四种方案速查表。
+- Vue 侧：`cartStore.ts`（setup store + 自写 `$reset` + 异步结算 + 第三个参数 `persist` 选项）、`persistPlugin.ts`（迷你持久化插件：`declare module 'pinia'` 给 `DefineStoreOptionsBase` 加选项、创建时 `$patch` 水合、`$subscribe({ detached: true, flush: 'sync' })` 写回；`topic16PiniaSetup` 通过 `app.config.globalProperties.$pinia.use()` 装到 VueMount 新建的 pinia 上）、`ProductList` / `CartPanel` / `CartSummary` / `GiftWrapToggle` / `WholeStoreBadge` / `CartDemo` / `RenderCountsPanel` + `renderCounts.ts`（onMounted / onUpdated 计数，provide / inject 传计数器）、`StoreApiDemo.vue`（storeToRefs 与直接解构对比、`$patch` 两种形式、`$reset`、组件外 `useCartStore()`、结算、`$subscribe` / `$onAction` 日志）、`reactiveCart.ts` + `ReactiveStoreDemo.vue`（模块级 reactive 最小方案，对照 Context + useReducer）、`products.ts`、`Example.vue`（精简头 + 「区块四、五在 Vue 里」说明卡）。
+- 壳：`topicRegistry.ts` 16 题 summary 更新，并加 `vuePlugins` 懒加载 `topic16PiniaSetup`（与 18 / 30 题同一个机制，不改 VueMount）。README 16 题目录行、对照表 Zustand 行、说明段、面试题行，以及附录「全局状态为什么选 Zustand」一段（原文「Redux Toolkit 概念多、样板重」与 RTK 自述相悖，已改）。
+- 测试：React 19 条、Vue 15 条（全仓库 17 个文件 189 条）。
+
+**问题表处理**：R2-16-1 useShallow（区块一 + 测试：不包时的两条报错、shallow 只比一层）、`createWithEqualityFn` 写进二-5 / 八（`zustand/traditional` 需另装 use-sync-external-store，本仓库导入会 ERR_MODULE_NOT_FOUND，只作说明）、Compiler 一句（推论，待核实）；R2-16-2 底层 uSES（react.mjs:5-13）+ getState / setState / subscribe / getInitialState（区块二 + 测试）+ 服务端快照读 getInitialState（测试）；R2-16-3 按 §3.5 定稿：RTK 自述三条抱怨原文、「RTK 样板多」改为「RTK 减轻了经典 Redux 的样板，但比 Zustand 仍多 Provider / configureStore / 带类型 Hook」、采用数据（③ npm）；R2-16-4 devtools / persist 可运行，subscribeWithSelector / combine / redux / immer 写进二-8，`set(x, true)` 清掉 actions（测试）；R2-16-5 异步 action（区块二 + 测试）、slices 类型写法进七、combine 进二-8；R2-16-6 区块四可运行 + Next.js 指南原文；R2-16-7 八段：zustand v4 相等函数 / 默认导出 / persist 初始写入、经典 Redux + createStore 弃用、Context.Provider、legacy context 在 19 移除、Vuex / Pinia 2；R2-16-8 Pinia 对照全部落地（定位原文、$patch / $state / 自写 $reset / $subscribe / $onAction、插件、模块级 reactive + SSR 原文、组件外使用）；R2-16-9 先分类五类（服务端 / URL / 表单草稿 / 子树 / 全局）；R2-16-10 七段全部标出演示简化与生产写法（slices、persist 白名单 + version / migrate + 校验、token 不落 localStorage → 35、devtools 仅开发期、服务端渲染每请求一个 store、测试重置）；R2-16-11 模板残留清零，「永远稳定」改为带前提；R2-16-12 交叉引用补 14 / 18 / 21 / 25 / 29 / 30 / 33 / 34 / 35。第一轮：:477 改为官方原文「Options stores are easier to work with while Setup stores are more flexible and powerful」（初稿写成「能力相当」，复核后改正）；:479 柯里化原因改引 advanced-typescript 原文（T 不变型 + TS#10571）；:481 加「没被 set(x, true) 换掉」的前提。
+
+**大纲与判定的一处取舍**：AUDIT-ROUND2 §5 的 16 大纲「八」把「Context + useReducer 手搓 store」列为旧写法，但 §3.5 主线判定把它定为 React 内置并排、react.dev 仍把它当 scaling-up 的正式写法。按 §3.5 + 官方教程定为【主流 · React 内置】，并写清适用范围（低频全局值、依赖注入、子树内部）和短板（没有 selector）；真正的旧写法（class 组件 legacy context、`<Context.Provider>`）放进八。
+
+**待核实项结论**：
+- P-16-1（v5 迁移页、发布日期）：迁移页在 GitHub 的 `docs/reference/migrations/migrating-to-v5.md`（原文已引）；页面里没有发布日期，③ npm：5.0.0 发布于 2024-10-14，最新 5.0.15（2026-08-13），4.5.7（2025-05-15）是最后一个 4.x。
+- P-16-2（Compiler 不改变订阅粒度）：仍是推论，没找到官方原文，课件写「推论，待核实，见 17 题」，17 题改写时在 Compiler 小节再核。
+- **P-16-3（selector 返回新对象的表现）：已核实。** zustand 5.0.15 + react-dom 19.2.8：开发环境先 console.error「The result of getSnapshot should be cached to avoid an infinite loop」（:8130），随后抛「Maximum update depth exceeded」（:4625）；测试覆盖。迁移指南原文是「may cause infinite loops」。
+- P-16-4（react-redux useSelector 相等比较）：hooks 页原文「uses strict === reference equality checks by default」「returning a new object every time will always force a re-render by default」，可传 `shallowEqual`；8.1.0 起开发期 stabilityCheck。写进二-11 / 四-2。
+- P-16-5（采用数据）：③ api.npmjs.org 2026-09-10 至 09-16：zustand 50.3M、react-redux 33.6M、@reduxjs/toolkit 27.2M、jotai 5.3M、mobx 3.4M、valtio 1.9M、pinia 4.5M、vuex 1.5M；zustand v5 55.3% / v4 39.5%；pinia v3 42.2% / v2 39.2% / v4 18.6%；RTK v2 91.8%。
+- **P-16-6（selector 里调用 store 函数 `s => s.totalPrice()`）：文档没有示范这种写法**（beginner-typescript 的「Derived State with Selectors」推荐在 selector 里算；advanced-typescript 的 slices 例子在 store 里放过 getBoth，但没在 selector 里调用）。已改为 store 外导出选择器函数。
+
+**本次新发现（审计没写到）**：
+1. Vue 3.4 起 computed 结果没变就不通知下游（blog.vuejs.org/posts/vue-3-4 原文），所以「读了整个 $state、再包一层 computed 只算件数」的组件不会因为无关字段重新渲染 —— computed 在这里起的作用和 Zustand selector 的 Object.is 一样。第一版 WholeStoreBadge 就因此没能复现「订阅整个 store」，改成模板直接读展开后的对象；两种情况都有测试。
+2. Pinia `$subscribe` 的坑：`$patch` 之后同一个 tick 里的直接修改，在默认 flush（'pre'）下不会再单独回调（Pinia 4 文档的提示原文；3.0.4 实测一样：$patch 期间暂停监听，恢复监听排在同一轮 flush 之后）。用 `$subscribe` 做持久化会漏存这次修改，本题 persistPlugin 改用 `flush: 'sync'`，有测试。
+3. pinia.d.ts 里 onError「Return false to catch the error and stop it from propagating」的注释在 3.0.4 没有实现（pinia.mjs:1403-1416 一律重新抛出），课件写明不要依赖。
+4. `$onAction` 的 detached 是第二个位置参数 `true`，`$subscribe` 是选项 `{ detached: true }`。setup store 返回的 `$reset` 也被当成 action，会出现在 `$onAction` 日志里（浏览器实测）。
+5. zustand persist 下 `getInitialState()` 返回水合前的初始值（middleware.mjs:378），所以官方的测试重置写法在 persist store 上照样可用；localStorage 这类同步存储在 `create` 返回时已经水合完（测试覆盖）。devtools 没装扩展时不包装 setState、直接 return fn(set, get, api)，不会报警告。
+6. `zustand/traditional` 与 `zustand/middleware/immer` 在本仓库无法导入（缺 use-sync-external-store / immer 两个可选 peer），课件只作说明。
+7. react.dev 的 scaling-up 教程把 state / dispatch 拆成两个 Context 当作结构来讲，没说是性能优化；「只读 dispatch 的组件不重渲染」是由 useReducer 参考页「dispatch has a stable identity」推出的，课件这样写并有测试。
+8. Vue 官方 state-management 页仍写 Pinia「works with both Vue 2 and Vue 3」，但 Pinia 3 起只支持 Vue 3，课件注明这句已过时。
+9. 浏览器首次打开本题时，Vite 发现新依赖 `zustand/react/shallow`、`zustand/middleware`，重新预构建后自动刷新一次；刷新前控制台会出现一次「Invalid hook call」（新旧两份预构建的 React 混用），刷新后正常。这是 Vite 开发模式的现象，与代码无关；用户自己的 5173 服务器第一次打开 16 题也会遇到一次。
+
+**复核代理提出、已改的 24 条（要点）**：Profiler 是 16.9.0 起（不是 16.5，React CHANGELOG）；devtools 不写 action 名时 5.0.15 先从调用栈推断函数名、推断不出来才是 "anonymous"（middleware.mjs:75-77，本课隔着 persist 所以推断不出来）；「option / setup store 能力相当」改为官方「Setup stores are more flexible and powerful」；「v5 为了和 React 默认行为一致而去掉 equalityFn」没有出处，已删（那句原文说的是 selector 稳定引用）；「RTK 样板多说的是经典 Redux」改为「RTK 减轻了样板，但比 Zustand 仍多 Provider / configureStore / 带类型 Hook」；「React 只提供 Context」补上 useSyncExternalStore；pinia 4 不只改打包（还重写了错误提示、加了小功能）；Next.js 指南的说明是 2025-10 加的，从【尝鲜】移到七；另有 4 处文件内交叉引用位置写错、1 处引文删了词、RTK 示意代码漏了 react-redux 的导入、换 key 重置的交叉引用改指 06 题，都已改。
+
+**验证**：`npm run check` 通过（lint 0 / typecheck 0 / 189 条测试 / build）；16 的 34 条测试无 act 警告、无 stderr。浏览器用临时 5174 服务器（完成后已停掉、清掉 localStorage 并还原 launch.json）：两侧区块一渲染次数与测试一致（加入购物车：商品列表 1、购物车 2、合计 2、礼品包装 1、整店徽标 2；再勾礼品包装：只有礼品包装与整店徽标 +1）；区块二 getState、模拟退出登录、同一轮调两次结算（两侧都只发 1 次请求）、结算失败 role="alert"、查看 localStorage（只有 items / giftWrap / version）、v0 → migrate、Vue `$patch` / `$reset` / 直接解构不更新；区块三 memo 徽标照样渲染（React）/ 件数不动（Vue）；区块四两个清单互不影响；切到 15 / 14 / 30 再回来，React 购物车在内存里、Vue 购物车从 localStorage 读回；整页刷新后两侧都从 localStorage 恢复；页面宽 1024 时没有卡片溢出；源码查看器 React 9 个、Vue 16 个文件。除新发现 9 那一次之外，捕获到的 console.error / console.warn 为 0（改代码时 HMR 分三步应用，中间出现过两条「statusText 未定义」警告，整页刷新后消失）。
+
 ## 统一措辞（各题改写时照用）
 
 ### Vue 响应式（2-A 定稿，2026-09-17）
@@ -414,11 +458,29 @@
 | 接收回调 | useEffectEvent【较新·19.2 起】包一层，18 用 latest ref（26 题） | 回调直接进依赖，或用 eslint-disable 去掉依赖 |
 | Vue 对应 | composable + ref + onMounted / onUnmounted；Vue 没有 useSyncExternalStore 这类 API，也不需要 | 「没有一一对应关系」 |
 
+### 全局状态（16 定稿，2026-09-18）
+
+| 要说的事 | 这样写 | 不要这样写 |
+|---|---|---|
+| Zustand 怎么判断变没变 | 「selector 的结果用 Object.is 比较」（useShallow 指南原文；README 叫 strict-equality） | 「默认浅比较」 |
+| selector 返回对象 / 数组 | 「v5 下可能无限更新（迁移指南原文 may cause infinite loops）；包 useShallow（只比一层）或拆成原子 selector」 | 「只是多渲染几次」（那是 react-redux 的表现） |
+| Context 与 store | 「Context 是传值机制，没有 selector；value 变了读它的组件都重渲染，memo 挡不住」；适用低频全局值、依赖注入、子树内部 | 「Context 不能做状态管理」「Context 性能差」（不带前提） |
+| Context + useReducer | 【主流 · React 内置】（react.dev scaling-up 教程的正式写法） | 「旧写法」 |
+| Redux Toolkit | 【主流 · 存量】Redux 官方标准写法；为减轻经典 Redux 的样板（原文 help address）而做，比经典写法少得多，但比 Zustand 仍多 Provider / configureStore / 带类型 Hook | 「RTK 样板多、太重」「RTK 没有样板」 |
+| React 官方给了什么 | 「不指定状态库；内置 Context（+ reducer）和给外部 store 用的 useSyncExternalStore」 | 「React 只提供 Context」 |
+| 派生值 | Zustand：在 selector 里算（或导出选择器函数）；Pinia：getter = computed | 「store 里放函数、selector 里调 s.xxx()」 |
+| 服务端渲染 | 模块级 store 会跨请求共享 → createStore + Context 每请求一个；Pinia 每请求 createPinia()；RSC 不读写 store | 「Zustand 不能用于服务端渲染」 |
+| option / setup store | 官方「Options stores are easier to work with while Setup stores are more flexible and powerful」 | 「两种写法等价 / 能力相当」 |
+| Pinia 版本 | 本课用 3.0.4；pinia 4【尝鲜】：破坏性变更只涉及打包，另重写了错误提示；Pinia 3 起只支持 Vue 3 | 「Pinia 支持 Vue 2 和 3」「pinia 4 只改了打包」 |
+| Vue computed | Vue 3.4 起 computed 结果没变就不通知下游（blog 原文），作用相当于 selector 的 Object.is | 「computed 依赖变了，用它的组件就一定重新渲染」 |
+| Profiler | `<Profiler>`【主流 · 16.9 起】，生产构建默认不调用 onRender | 「16.5 起」 |
+
 ## 每题状态（阶段 2 起填写）
 
 | 题号 | 主题 | 状态 | 改动摘要 | 遗留问题 |
 |---|---|---|---|---|
 | 18 | 路由（React Router） | **完成（样板已确认）** | Data 模式主线（loader / action / middleware 守卫 / errorElement / lazy / useBlocker / 面包屑）+ 声明式 RequireAuth 三态并排；十段文件头；React 18 条 + Vue 7 条结论测试；Vue 守卫改为返回值写法；safeRedirect 共享实现；源码查看器支持多文件（5.10）。详见 2.1 | 32 / 34 / 35 题新增后回填交叉引用 |
+| 16 | 全局状态（Zustand） | **完成** | Zustand 5 主线五个区块（selector 与 useShallow + Profiler 渲染计数 / 组件外读写 + subscribe + 异步 action + persist 与 migrate / Context + useReducer 并排 / createStore + Context 每实例一份 / RTK 只读对照）；Vue 侧 Pinia setup store + 迷你持久化插件 + 模块级 reactive；React 19 条 + Vue 15 条测试；了结 P-16-1、3～6（P-16-2 仍是推论）。详见 2.8 | P-16-2（Compiler 与订阅粒度）留给 17 题；33 / 34 / 35 新增后回填交叉引用；首次打开会触发一次 Vite 依赖重新预构建（新发现 9） |
 | 14 | 自定义 Hook 与 Composable | **完成** | useSyncExternalStore 主线（useWindowWidth + getServerSnapshot + useDebugValue）+ Effect 订阅并排 + subscribe 稳定性实验；useInterval（useEffectEvent）与「回调进依赖」反例；防抖搜索（派生 loading，lint 抑制已清）+ let timer 坑；React 12 条 + Vue 8 条测试；了结 P-14-1～5。详见 2.7 | tearing 没有做可视化演示（P-14-3，只讲原理）；32 / 33 / 34 新增后回填交叉引用；03 题 :64「10、14 题会再遇到快照」留给 03 题改写时核对 |
 | 30 | TanStack Query 与服务端状态 | **完成** | v5 主线六个区块（queryKey 与缓存 + status × fetchStatus + 保留上一页 + 断网 / mutation 三种更新方式 / enabled / useSuspenseQuery / 缓存观察窗 / loader 分工）；key 工厂 + queryOptions；React 22 条 + Vue 14 条测试；了结 P-30-1～8、M-8。详见 2.6 | mutation 回调改名的起始版本待核实；31 / 32 / 33 / 34 新增后回填交叉引用；27 题「queryFn({ signal }) 把这一整套自动化了」缺「读了 signal 才取消」的前提，27 题改写时处理 |
 | 11 | API 请求状态 | **完成** | Effect 手写主线（判别联合 + 派生 pending + 取消 + 重试 + 保留旧数据）+ 四种方案速查；lint 抑制已清（M-6 / P-11-2 了结）；React 7 条 + Vue 7 条测试。详见 2.5 | 32 题新增后回填交叉引用；P-11-1 / P-11-3 / P-11-5 留给 30 / 18 / 32 与阶段 4 |

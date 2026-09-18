@@ -1,88 +1,194 @@
 /**
- * 题 16 的 Zustand store（React 侧全局状态）。
+ * 16 题【主线】Zustand 5 的购物车 store（React 侧全局状态）。
+ * 区块一、二都用它；Vue 对照是 vue/cartStore.ts（Pinia setup store）。
  *
- * 选型说明：Zustand 是目前 React 社区最主流的轻量全局状态方案之一——
- * Redux Toolkit 功能更全但更重（样板代码多、概念多），Context + useReducer 不用装库
- * 但样板多且有 Context 的整体重渲染问题（见 15 题）；本项目选 Zustand：API 极小、无 Provider、
- * 天生配 TypeScript，最贴近 Pinia 的使用手感。
+ * 这个 store 按「生产形态」写，但仍有演示简化（Example.tsx 七）：
+ * - devtools 中间件：装了 Redux DevTools 浏览器扩展就能看到每个 action；没装时它什么也不做
+ *   （zustand 5.0.15 esm/middleware.mjs:67-68 直接 return fn(set, get, api)），开发环境默认开启、生产构建默认关闭（:64）。
+ * - persist 中间件：只持久化白名单字段（partialize），带 version + migrate。actions 与结算状态不落盘。
+ * - 异步 action：checkout 里 await 之后再 set；「正在结算时再调一次」用 get() 读当前值挡住。
+ * - 单 store：业务变大后按领域拆 slices（Example.tsx 七有写法）。
  *
- * 什么时候不该用全局状态（判断标准，两个框架通用）：
- * 1) 只被一个组件树用的状态 → 放局部（useState / 状态提升到共同父组件就够了）；
- * 2) 服务端数据（列表、详情这类「远端的缓存」）→ 交给请求层（如 TanStack Query，见 30 题），不要塞进 store；
- * 3) 只有「跨页面 / 跨互不嵌套组件共享的客户端状态」（购物车、登录用户、全局偏好）才值得进全局 store。
+ * 【主流】写法要点（依据见 Example.tsx 二）：
+ * - create<CartState>()(...)：先固定类型、再传创建函数的「柯里化」两层调用；返回值 useCartStore 本身就是 Hook，
+ *   同时挂着 getState / setState / subscribe / getInitialState（zustand esm/react.mjs:14-18 用 Object.assign 挂上去）。
+ * - set 默认浅合并：返回 { items } 只替换 items，其余字段保留（esm/vanilla.mjs:8 的 Object.assign({}, state, nextState)）；
+ *   set(x, true) 是整体替换，会连 actions 一起换掉（README 原文见 Example.tsx 二-4）。
+ * - set 前先用 Object.is 比较（esm/vanilla.mjs:6）：函数返回原来的 state 对象，就不会通知任何订阅者。
+ * - state 仍要不可变更新（新数组 / 新对象）：selector 靠 Object.is 判断「变没变」，原地修改的对象引用不变，组件不会更新（21 题）。
  */
 import { create } from 'zustand'
+import { createJSONStorage, devtools, persist } from 'zustand/middleware'
 import type { CartItem, Product } from '@/shared/types'
 
-/** store 的完整类型：state 和 actions 写在同一个接口里（Zustand 惯例） */
-interface CartState {
+/** 结算请求的状态：判别联合，和 11 / 19 题的请求状态建模同一个思路 */
+export type CheckoutState =
+  | { status: 'idle' }
+  | { status: 'pending' }
+  | { status: 'success'; orderNo: string }
+  | { status: 'error'; message: string }
+
+export interface CheckoutOptions {
+  /** 模拟接口延迟（页面上几百毫秒方便观察，测试里很短） */
+  delayMs?: number
+  /** 演示开关：这一次结算必定失败（代替随机失败，结果可复现） */
+  fail?: boolean
+}
+
+/** store 的完整类型：state 和 actions 写在同一个接口里（Zustand 惯例，actions 也是 state 的一部分） */
+export interface CartState {
   items: CartItem[]
+  /** 是否礼品包装：和购物车条目无关的另一个字段，用来观察「只改它时，谁会重渲染」 */
+  giftWrap: boolean
+  checkout: CheckoutState
   addToCart: (product: Product) => void
   increase: (id: string) => void
   decrease: (id: string) => void
   remove: (id: string) => void
   clear: () => void
-  /** 派生值：函数形式，调用时用 get() 现算（无缓存）——对比 Pinia 的 getter 见下方注释 */
-  totalPrice: () => number
+  setGiftWrap: (value: boolean) => void
+  checkoutCart: (options?: CheckoutOptions) => Promise<void>
 }
 
+/** 持久化的白名单：只存这两个字段 */
+export type PersistedCart = Pick<CartState, 'items' | 'giftWrap'>
+
+/** localStorage 的键。Vue 侧用另一个键（topic16-cart-vue），两边互不干扰 */
+export const CART_STORAGE_KEY = 'topic16-cart'
+/** 持久化数据的版本号：数据结构有破坏性变化时加 1，并在 migrate 里把旧数据转成新结构 */
+export const CART_STORAGE_VERSION = 1
+
+/* ------------------------- 模拟结算接口（演示简化） ------------------------- */
+
+let checkoutRequestCount = 0
+
+/** 服务端累计收到几次结算请求：页面和测试用它证明「同一轮调用两次只发一次请求」 */
+export function getCheckoutRequestCount() {
+  return checkoutRequestCount
+}
+
+function wait(ms: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, ms))
+}
+
+/** 演示简化：真实项目是 POST /api/orders，服务端按购物车重新计价并做幂等（19 题） */
+async function mockCheckoutApi(itemCount: number, { delayMs = 600, fail = false }: CheckoutOptions = {}) {
+  checkoutRequestCount += 1
+  const requestNo = checkoutRequestCount
+  await wait(delayMs)
+  if (fail) throw new Error('网络错误：结算失败，请重试')
+  return { orderNo: `CO-${String(requestNo).padStart(4, '0')}（${itemCount} 件）` }
+}
+
+/* ------------------------------- 选择器 ------------------------------- */
+
 /**
- * create<CartState>()((set, get) => ({...}))：注意是「柯里化」的两层调用——
- * create<CartState>() 先固定 store 类型，再传创建函数；这是 Zustand 官方推荐写法，
- * 为了绕开 TypeScript 的推断限制（部分泛型参数无法只指定一个）。
- * 返回值 useCartStore 本身就是一个 Hook：不需要任何 Provider 包裹，import 即用——
- * Pinia 里对应 defineStore('cart', () => {...}) 返回的 useCartStore（但 Pinia 需要
- * app.use(createPinia())，本项目由桥接组件提供；Zustand 连这一步都没有）。
+ * 派生值写成 store 外的「选择器函数」：组件里 useCartStore(selectTotalCount)。
+ * 返回原始值（number），Object.is 比较稳定：礼品包装这类无关字段变化时，结果相同，组件不重渲染。
+ * 和 Pinia getter 的区别：Pinia getter 是 computed，有缓存；这里每次 store 变化都会重算一遍（便宜的计算无所谓，
+ * 昂贵的计算可以在组件里 useMemo，或者把结果本身存进 store）。
  */
-export const useCartStore = create<CartState>()((set, get) => ({
-  items: [],
+export const selectTotalCount = (s: CartState) => s.items.reduce((sum, it) => sum + it.quantity, 0)
+export const selectTotalPrice = (s: CartState) => s.items.reduce((sum, it) => sum + it.price * it.quantity, 0)
 
-  // set 的规矩和 useState 一样：必须不可变更新（新数组 / 新对象），
-  // 且 set 是「浅合并」——返回 { items: ... } 只覆盖 items 字段，其余字段保留。
-  // Pinia 里对应可以直接 exists.quantity += 1 / items.value.push(...)（响应式可变更新），
-  // 这是两边最大的手感差异。
-  addToCart: (product) =>
-    set((state) => {
-      const exists = state.items.find((it) => it.id === product.id)
-      if (exists) {
-        // 已在购物车：数量 +1（map 出新数组 + 新对象）
-        return {
-          items: state.items.map((it) =>
-            it.id === product.id ? { ...it, quantity: it.quantity + 1 } : it,
+/* -------------------------------- store -------------------------------- */
+
+export const useCartStore = create<CartState>()(
+  // 中间件从外到内：devtools 放最外层（官方 TypeScript 指南建议最后套 devtools，见 Example.tsx 二-8）
+  devtools(
+    persist(
+      (set, get) => ({
+        items: [],
+        giftWrap: false,
+        checkout: { status: 'idle' },
+
+        // set 的第三个参数是 devtools 里显示的 action 名（只有套了 devtools 才有这个参数）
+        addToCart: (product) =>
+          set(
+            (state) => {
+              const exists = state.items.some((it) => it.id === product.id)
+              if (exists) {
+                return {
+                  items: state.items.map((it) => (it.id === product.id ? { ...it, quantity: it.quantity + 1 } : it)),
+                }
+              }
+              const item: CartItem = { id: product.id, name: product.name, price: product.price, quantity: 1 }
+              return { items: [...state.items, item] }
+            },
+            undefined,
+            'cart/addToCart',
           ),
-        }
-      }
-      return {
-        items: [
-          ...state.items,
-          { id: product.id, name: product.name, price: product.price, quantity: 1 },
-        ],
-      }
-    }),
 
-  increase: (id) =>
-    set((state) => ({
-      items: state.items.map((it) => (it.id === id ? { ...it, quantity: it.quantity + 1 } : it)),
-    })),
+        increase: (id) =>
+          set(
+            (state) => ({
+              items: state.items.map((it) => (it.id === id ? { ...it, quantity: it.quantity + 1 } : it)),
+            }),
+            undefined,
+            'cart/increase',
+          ),
 
-  // 数量下限钳在 1：减到 1 后按钮会禁用，移除走单独的 remove
-  decrease: (id) =>
-    set((state) => ({
-      items: state.items.map((it) =>
-        it.id === id ? { ...it, quantity: Math.max(1, it.quantity - 1) } : it,
-      ),
-    })),
+        // 数量下限是 1（移除走 remove）。已经是 1 时返回原 state 对象：set 发现 Object.is 相同，不通知任何订阅者
+        decrease: (id) =>
+          set(
+            (state) => {
+              const target = state.items.find((it) => it.id === id)
+              if (!target || target.quantity <= 1) return state
+              return { items: state.items.map((it) => (it.id === id ? { ...it, quantity: it.quantity - 1 } : it)) }
+            },
+            undefined,
+            'cart/decrease',
+          ),
 
-  remove: (id) => set((state) => ({ items: state.items.filter((it) => it.id !== id) })),
+        remove: (id) => set((state) => ({ items: state.items.filter((it) => it.id !== id) }), undefined, 'cart/remove'),
 
-  clear: () => set({ items: [] }),
+        clear: () => set({ items: [] }, undefined, 'cart/clear'),
 
-  /**
-   * 派生值的 Zustand 写法之一：store 里放函数，用 get() 拿最新 state 现算。
-   * 注意它没有缓存——每次调用都重算（本例数据量小，无所谓）。
-   * 另一种更常见的写法是「组件内直接算」（CartPanel 里的 totalCount 就是，见 Example.tsx）。
-   * Pinia 里对应 getter（computed），自动依赖追踪 + 自动缓存——
-   * Zustand 没有「带缓存的 getter」这个概念，两者没有一一对应关系。
-   */
-  totalPrice: () => get().items.reduce((sum, it) => sum + it.price * it.quantity, 0),
-}))
+        setGiftWrap: (value) => set({ giftWrap: value }, undefined, 'cart/setGiftWrap'),
+
+        /**
+         * 异步 action【主流】：Zustand 不区分同步 / 异步，await 之后再 set 就行（README「Async actions」）。
+         * get() 读的是调用这一刻的最新 state（不是某次渲染的快照）：set 是同步生效的，
+         * 所以同一轮里连调两次，第二次就能看到 'pending' 并直接返回 —— 不需要 19 题那样的 useRef 锁。
+         * 演示简化：提交请求本身在生产里常交给 TanStack Query 的 useMutation（30 题），store 只在成功后 clear()。
+         */
+        checkoutCart: async (options) => {
+          const { items, checkout } = get()
+          if (checkout.status === 'pending' || items.length === 0) return
+          set({ checkout: { status: 'pending' } }, undefined, 'cart/checkout/pending')
+          try {
+            const { orderNo } = await mockCheckoutApi(selectTotalCount(get()), options)
+            set({ items: [], checkout: { status: 'success', orderNo } }, undefined, 'cart/checkout/success')
+          } catch (err) {
+            const message = err instanceof Error ? err.message : String(err)
+            set({ checkout: { status: 'error', message } }, undefined, 'cart/checkout/error')
+          }
+        },
+      }),
+      {
+        name: CART_STORAGE_KEY,
+        // 不写 storage 时默认就是 createJSONStorage(() => localStorage)；写出来是为了看清楚存在哪（换 sessionStorage 改这里）
+        storage: createJSONStorage(() => localStorage),
+        // 白名单：结算状态是一次性的界面状态，刷新后不该还显示「结算中」；actions 是函数，本来也序列化不了
+        partialize: (state): PersistedCart => ({ items: state.items, giftWrap: state.giftWrap }),
+        version: CART_STORAGE_VERSION,
+        /**
+         * 存储里的版本号和 version 不一致时调用（没写 migrate 的话，旧数据直接不用，并 console.error）。
+         * 演示：假设 v0 的条目字段叫 qty、没有 giftWrap，v1 改成 quantity。
+         * 生产注意：localStorage 里的东西不可信（旧版本写的、用户手改的），反序列化后最好用 zod 之类校验一遍。
+         */
+        migrate: (persisted, version): PersistedCart => {
+          if (version === 0) {
+            const old = persisted as { items?: Array<Omit<CartItem, 'quantity'> & { qty?: number }> }
+            return {
+              items: (old.items ?? []).map(({ qty, ...rest }) => ({ ...rest, quantity: qty ?? 1 })),
+              giftWrap: false,
+            }
+          }
+          return persisted as PersistedCart
+        },
+      },
+    ),
+    { name: 'topic16-cart' },
+  ),
+)

@@ -110,7 +110,7 @@ src/
 | 13 | `13-slots-and-children` | children 与组件组合 | children、具名 props 传 JSX、render props，对照 slot / 具名 slot |
 | 14 | `14-composable-and-custom-hook` | 自定义 Hook | 共享逻辑不共享状态、Hooks 规则；订阅浏览器 API 用 useSyncExternalStore（Effect 订阅并排）、接收回调用 useEffectEvent、手写防抖与 let timer 坑，对照 composable |
 | 15 | `15-context` | Context 跨层传值 | createContext / useContext 解决什么问题、可能引发的重渲染，对照 provide/inject |
-| 16 | `16-global-state` | 全局状态（Zustand） | Zustand store 与组件局部状态的取舍，对照 Pinia |
+| 16 | `16-global-state` | 全局状态（Zustand） | Zustand 5 主线（selector 与 useShallow、组件外读写、异步 action、persist / devtools、createStore + Context）；并排 Context + useReducer 与 Redux Toolkit 对照，对照 Pinia |
 | 17 | `17-performance-hooks` | useMemo 与 useCallback | memoization 什么时候有价值、为什么不能无脑用，对照 Vue 的 computed 缓存 |
 
 ### 第四阶段：实际开发常见模式
@@ -177,7 +177,7 @@ src/
 | callback props（`onXxx` 属性传函数） | `emit('xxx')` | React 没有独立的事件系统，「子通知父」就是调用父亲传下来的函数；没有 emits 声明，类型直接写在 props 接口里。 |
 | `children` / 具名 props 传 JSX / render props | 默认 slot / 具名 slot / 作用域插槽 | JSX 是一等公民的值，可以当普通 prop 传递；render props（传一个返回 JSX 的函数）对应作用域插槽——「子把数据回传给父的渲染逻辑」。 |
 | `createContext` + `useContext` | `provide` / `inject` | 语义几乎一致，但 React 的 Context value 变化会让**所有消费组件**重渲染，需拆分 Context 或配合 memo；Vue 注入的 ref 是精准依赖追踪的。 |
-| Zustand | Pinia | Zustand 无需 Provider、import 即用，但订阅粒度靠手写 selector；Pinia 的 store 是响应式对象，「读了才依赖」全自动。 |
+| Zustand | Pinia | Zustand 无需 Provider、import 即用，但订阅粒度靠手写 selector（返回对象 / 数组要包 useShallow）；Pinia 的 store 是响应式对象，渲染时读了什么就依赖什么，不需要 selector。 |
 | React Router（`<Routes>` / `useParams` / `useNavigate`） | Vue Router（路由表 / `useRoute` / `useRouter`） | React Router 的声明式路由就是 JSX 组件树的一部分；Vue Router 是集中式路由表配置。守卫思路也不同：React 常用包装组件 / loader，Vue 用导航守卫。 |
 | custom hook（`useXxx`） | composable（`useXxx`） | 写法惊人地像，但 custom hook 每次渲染都重新执行、受 Hooks 规则约束（顶层调用、不能进条件/循环）；composable 在 setup 里只执行一次，无此限制。 |
 | state 快照 + 重渲染（`UI = f(props, state)`） | 响应式更新（依赖追踪：reactive 用 Proxy，ref 用 getter / setter） | React 每次 setState 都让组件函数整体重跑，本次渲染里的 state / props 是固定快照，setter 不会改当前闭包里的变量；Vue 的 setup 只跑一次，`.value` 永远读到最新值。更新队列、批处理、函数式更新、过期闭包全都由此而来（23 / 24 / 26 题）。 |
@@ -223,7 +223,7 @@ src/
 
 **15 Context 跨层传值** —— createContext / Provider / useContext 解决 props 逐层透传；Context 值变化会让所有消费者重渲染，因此工业界惯例是「低频全局值」（主题、当前用户、国际化）用 Context，高频共享状态交给 16 题的方案。
 
-**16 全局状态（Zustand）** —— `create()` 建 store、selector 收窄订阅、set 不可变更新；什么状态该进全局、什么该留局部。工业界现状：Zustand 是当前 React 社区最主流的轻量全局状态方案之一（详见附录选型说明）。
+**16 全局状态（Zustand）** —— 先分类（服务端数据 → 30、URL → 18、表单草稿 → 07、子树内共享 → 25），剩下的客户端全局状态才进 store。主线 Zustand 5：`create<T>()()` 建 store、selector 决定谁重渲染（五个组件的渲染次数用 `<Profiler>` 实时统计）、返回对象要 `useShallow`（不包会无限更新，有测试）、`set` 浅合并与 `set(x, true)` 会清掉 actions、`getState` / `subscribe` 组件外读写、异步 action 用 `get()` 防重复、`devtools` + `persist`（白名单 + version / migrate）、`createStore` + Context 每实例一份 store（服务端渲染）。并排：Context + useReducer（memo 挡不住 Context 更新）与 Redux Toolkit 只读对照（RTK 是为减轻经典 Redux「样板太多」而做的）。Vue 侧：Pinia setup store、storeToRefs、`$patch` / 自写 `$reset` / `$subscribe` / `$onAction`、迷你持久化插件（`pinia.use`）、模块级 reactive 最小方案。
 
 **17 useMemo 与 useCallback** —— 缓存昂贵计算 / 稳定函数引用以配合 `memo`；不要无脑加（本身有成本，且多数计算根本不贵）。工业界现状：**React Compiler 正在把手动 memo 自动化**（构建期自动记忆化，React 19 生态已可用）——但面试与存量代码仍要求你懂手动写法，先学原生再理解编译器解决了什么。
 
@@ -393,7 +393,7 @@ src/
 | 13 | children 是什么？什么是 render props？React 如何实现 Vue 作用域插槽的效果？ |
 | 14 | 自定义 Hook 共享的是什么？Hooks 为什么不能写在条件 / 循环里（报什么错）？useSyncExternalStore 是干什么的、和 useEffect 订阅有什么区别（getSnapshot 为什么要稳定、服务端快照是什么）？自定义 Hook 接收回调怎么处理依赖？手写一个防抖 Hook（定时器 id 为什么不能用普通变量存？防抖和节流的区别）？为什么不写 useMount？ |
 | 15 | Context 解决什么问题？Context value 变化时哪些组件会重渲染，如何优化？ |
-| 16 | Zustand / Redux / Context 如何选型？Zustand 的 selector 起什么作用？什么状态应该放全局、什么放局部？ |
+| 16 | Context 能当全局状态管理吗？Zustand 为什么不需要 Provider、selector 返回对象会怎样（useShallow）？什么时候选 Redux Toolkit？什么状态不该进 store？服务端渲染时模块级 store 有什么问题？ |
 | 17 | useMemo 和 useCallback 分别缓存什么？什么时候该用、什么时候是负优化？React.memo 和它们如何配合？ |
 | 18 | React Router 三种模式怎么选？登录守卫用 loader 还是 middleware，各有什么坑？RequireAuth 为什么要三态？路由参数变化时 state 会不会重置？`setSearchParams` 为什么会丢参数？v6 → v7 → v8 的导入路径怎么变？ |
 | 19 | 如何防止表单重复提交？只靠 `disabled` 为什么不够、为什么还要 `useRef` 锁？提交出错该 throw 给错误边界还是放进 state？React 19 的 `useActionState` / `useFormStatus` 解决了什么问题，重复提交会怎样？ |
@@ -448,7 +448,7 @@ src/
 ### 技术选型说明
 
 **全局状态为什么选 Zustand，而不是 Redux 或 Context + useReducer？**
-Zustand 轻量（核心几 KB）、无样板（一个 `create()` 就是 store + Hook，不需要 Provider、action type、dispatch）、且是当前 React 社区新项目的主流选择之一，面试认可度高。对比之下：Redux（即使是 Redux Toolkit）概念多、样板重，适合超大团队的强约束场景，作为入门第一个状态库性价比低；Context + useReducer 无需依赖但样板不少，且 Context 的整体重渲染问题使它不适合高频状态。学会 Zustand 的「store + selector」模型后，迁移到任何方案都容易。
+Zustand 轻量、不需要 Provider（一个 `create()` 就是 store + Hook），npm 周下载已超过 react-redux 与 Redux Toolkit（2026-09 数据，16 题文件头有出处）。Redux Toolkit 是 Redux 官方标准写法，就是为了减轻「经典 Redux 样板太多」这类抱怨而做的，存量项目大量在用，16 题有只读对照；Context + useReducer 是 React 内置方案，但没有 selector，适合低频全局值和子树内部状态。三者都用「store + selector / reducer」的心智模型，学会一个再迁移不难。
 
 **路由为什么用 React Router v7 的声明式 API？**
 v7 的声明式用法（`<Routes>` / `<Route>` / `useParams` / `useNavigate`）与 v6 完全相同——这是存量项目与面试题的绝对主流，学一份经验通吃 v6/v7。v7 新增的框架模式（loader/action、文件路由）属于进阶内容，不影响本项目覆盖的核心路由概念。
