@@ -9,7 +9,7 @@
 |---|---|---|---|---|
 | 0 | 审计（只读） | **完成。** 两轮审计均完成；用户 2026-09-17 答复「全部按建议执行」（AUDIT-ROUND2.md §6 D2-1～8，记录在 AUDIT.md §5.13）；两轮合并规则写在 AUDIT.md 附录 C | `docs/upgrade/AUDIT.md`（含 §5.13、§5.14、附录 C）、`docs/upgrade/REAUDIT-PROMPT.md`、`docs/upgrade/AUDIT-ROUND2.md` | 两轮审计与合并说明均已提交（d550e27、1efc217） |
 | 1 | 依赖与工具链调整 | **完成（2026-09-17）**：commit「阶段 1：依赖与工具链调整」（34cd734）+「阶段 1 补充：ESLint 9 → 10（D1-1）」 | package.json / package-lock.json、vitest.config.ts、eslint.config.js + eslint-suppressions.json、tsconfig.json、src/test/、4 处 react-router 导入、README 事实行 | 复核口径与全部记录见下文「阶段 1 记录」；版本决定见 AUDIT.md §5.0 的 5.14、5.15 |
-| 2 | 逐主题修改（先改 18 路由样板） | **进行中**（分支 `phase-2-topics`）：前置 commit（壳修复，2.0）、**18 路由样板**（2.1，风格已确认，AUDIT.md §5.0 的 5.16）、**2-A Vue 响应式措辞批量修正**（2.2，措辞见「统一措辞」）、**2-B 的 07 表单**（2.3）、**19 异步提交**（2.4）、**11 API 请求状态**（2.5）、**30 TanStack Query**（2.6）、**14 自定义 Hook**（2.7）、**16 全局状态**（2.8）、**20 错误边界**（2.9）、**26 过期闭包**（2.10）已完成，**2-B 全部完成**。**下一步：2-C 从 01 开始**（按编号：01 → 02 → 03 → …），做法见 `docs/upgrade/CONTINUE-PROMPT.md` | 每题一个 commit | 样板已确认，其余题不再逐题停 |
+| 2 | 逐主题修改（先改 18 路由样板） | **进行中**（分支 `phase-2-topics`）：前置 commit（壳修复，2.0）、**18 路由样板**（2.1，风格已确认，AUDIT.md §5.0 的 5.16）、**2-A Vue 响应式措辞批量修正**（2.2，措辞见「统一措辞」）、**2-B 的 07 表单**（2.3）、**19 异步提交**（2.4）、**11 API 请求状态**（2.5）、**30 TanStack Query**（2.6）、**14 自定义 Hook**（2.7）、**16 全局状态**（2.8）、**20 错误边界**（2.9）、**26 过期闭包**（2.10）已完成，**2-B 全部完成**；2-C 的 **01 组件与 JSX**（2.11）已完成。**下一步：2-C 的 02 Props**（之后按编号 03 → 04 → …），做法见 `docs/upgrade/CONTINUE-PROMPT.md` | 每题一个 commit | 样板已确认，其余题不再逐题停 |
 | 3 | 补充新主题 | 未开始 | | 按阶段 0 确认的清单 |
 | 4 | 一致性检查 + CHANGELOG | 未开始 | `docs/upgrade/CHANGELOG.md` | |
 
@@ -486,6 +486,46 @@
 
 **验证**：`npm run check` 通过（lint 0 / typecheck 0 / 251 条测试 / build）；26 的 35 条测试无 act 警告、无 stderr。浏览器用临时 5174 服务器（完成后已停掉并还原 launch.json）：React 区块一（坏的保存读到 0、好的读到 3；延迟 +1 把 6 打回 4，函数式更新 4 → 7）、区块二（StrictMode 下注册从第 2 次开始；两次 +1 后写对依赖是第 4 次注册；依赖 [] 与 useCallback [] 读到 0，其余读到 2）、区块三（四种写法日志与测试一致，停止后 2.5 秒无新日志）、区块四（Effect 版 3 次 POST、事件版 1 次；对象依赖打字就断开重连；ref.current 改两次不跑、重渲染后补跑读到 2）；Vue 区块一（现读 3、快照 0、子组件 prop 3、数字打回 4、likes 三种写法 2 / 0 / 2）、区块二（注册次数 1，两个输入框读到 2）、区块三（现读 / 启动时拷一份 / watch 重启与测试一致，停止后无新日志）、区块四（watchEffect 3 次、watch 与事件版各 1 次，清空日志不会重跑；非响应式 source 不触发）；开始轮询后切到 27 → 25 → 回 26 无报错；源码查看器 React 7 个、Vue 8 个文件；899px 宽无横向溢出。捕获到的 console.error / console.warn 为 0（复核修正只改了注释、日志文案与测试，没有影响交互）。
 
+### 2.11 01 组件与 JSX（2026-09-18，2-C 第一题）
+
+**蓝本与依据**：AUDIT-ROUND2.md §5 的 01 大纲；问题表 = R2-01-1～11 + AUDIT.md §3 的 01 各行（:184 Vue 也有渲染函数 / JSX、:185 新 JSX 转换的版本、:186 avatarStyle 类型）。核实：1 个只读研究代理查官方文档（23 项、240 段引文逐字校验：19 项确认、4 项修正）+ 主会话一次性探针测试（小写标签、嵌套定义、数组返回、style 补 px、各种 DOM 属性报错）+ esbuild / @vue/compiler-dom 实际编译 + lint 实测 + 1 个反驳式复核代理（提出 32 条：错 8、措辞 24，已全部处理，见下）。
+
+**结构（React 6 个文件，Vue 5 个文件）**
+- `react/Example.tsx`：十段文件头 + 四个区块的入口。
+- `react/ProfileCards.tsx`【区块一】：`UserCard` 组件用两次（两个独立实例，各自的「关注」按钮互不影响，测试覆盖）；VIP 徽章是存在变量里的 JSX、通过 `badge` 参数传进去；className / style 对象（标「演示简化」）/ 花括号 / Fragment / JSX 注释。
+- `react/JsxRulesDemo.tsx`【区块二】：同一段 JSX 在 automatic（`jsx()` / `jsxs()`）与 classic（`React.createElement`【旧写法】）下的编译结果（esbuild 0.28.2 实测）；style 数字补 px 的实测按钮（读出 DOM 上的 style 属性）；列表里的 `<Fragment key>`。
+- `react/PurityDemo.tsx`【区块三】：react.dev keeping-components-pure 的茶杯例子 —— 渲染时改外部变量（StrictMode 下 #2、#4、#6，重渲染 / 切题回来接着涨）vs 纯的 `Cup`（局部突变）。
+- `react/NestedDefinitionDemo.tsx`【区块四】：在组件里定义组件 → 父组件重渲染后输入被清空；顶层定义的保留。
+- Vue 侧：`ProfileCards.vue`（多根组件 + 具名插槽 #badge）、`UserCard.vue`（:class / :style 对象与数组语法、3.5 响应式 props 解构、CSSProperties 类型、「关注」按钮）、`TemplateRulesDemo.vue`（@vue/compiler-sfc 3.5.42 compileTemplate 的实际输出：补丁标记、静态提升 _hoisted_1、静态节点缓存 -1 CACHED；:style 数字不补单位的实测按钮、`<template v-for>` + key）、`Example.vue`（精简头 + 「区块三、四在 Vue 里」说明卡）。
+- 壳：注册表 01 题 summary；README 01 题目录行、说明段、面试题行。
+- 测试：React 17 条、Vue 5 条。
+
+**问题表处理**：R2-01-1 大写规则（原文 + 两条开发期报错原文 + 测试）；R2-01-2 嵌套定义（区块四 + preserving-and-resetting-state 原文 + static-components 实测文案 + 测试）；R2-01-3 纯函数（区块三 + 原文三条好处 + globals 实测文案 + 测试）；R2-01-4 StrictMode（参考页四项开发期行为原文 + 测试）；R2-01-5 渲染三步与独立实例（render-and-commit、state-a-components-memory 原文）；R2-01-6 八整段（classic runtime、新转换 2020 年「is not required」→ 19「now required」、ReactDOM.render / findDOMNode / 字符串 ref 移除、defaultProps、React.JSX）；R2-01-7 dangerouslySetInnerHTML ↔ v-html（Vue 文档原文，主责 35 待新增）；R2-01-8 JSX 细节（闭合、aria / data、多行括号、Fragment key、default / named export、ReactNode）；R2-01-9 九（Compiler 1.0【较新】、19.3 Fragment Refs / Trusted Types / hydration 双调 Effect【尝鲜】）；R2-01-10 行内 style 标「演示简化」+ common 页原文；R2-01-11 模板残留清零，「React 没有任何模板语法」「一次只能返回单个根节点」「Vue 模板里没有等价写法」改掉（Vue 也有 h() / JSX，返回带 key 的数组也合法）。第一轮 :184 / :185 / :186 已落实。
+
+**待核实项结论**：
+- P-01-1（style 不作默认样式方案的原文）：common 组件页「React does not prescribe how you add CSS files.」「We recommend only using the style attribute when your styles depend on JavaScript variables.」
+- P-01-2（返回带 key 的数组）：合法、无警告（测试覆盖）；课件写「日常写 Fragment 更清楚」。
+- P-01-3（`<Fragment ref>` 的类型）：19.3 博客「both of these are now stable in React 19.3」；本仓库锁 19.2.8，没有 FragmentInstance，只在九作【尝鲜】介绍，升级 19.3 后再核类型。
+- P-01-4（StrictMode 在 hydration 时双调 Effect）：StrictMode 参考页没有提；出处是 19.3 CHANGELOG「Double invoke Effects in Strict Mode during hydration, matching client-rendered roots」（#35961）。
+- P-01-5（小写标签的报错原文）：「<vipBadge /> is using incorrect casing. Use PascalCase for React components, or lowercase for HTML elements.」「The tag <vipBadge> is unrecognized in this browser. If you meant to render a React component, start its name with an uppercase letter.」（react-dom 19.2.8，测试覆盖；后一条每个标签名只报一次）。
+
+**本次新发现（审计没写到）**：
+1. 新 JSX 转换的官方说法前后相反：2020 年发布博客「This upgrade will not change the JSX syntax and is not required.」；React 19 升级指南标题「New JSX Transform is now required」，不启用时控制台报「Your app (or one of its dependencies) is using an outdated JSX transform.」
+2. StrictMode 参考页列的开发期行为是四项（多了「检查已废弃的 API」），原句「All of these checks are development-only and do not impact the production build.」
+3. @vitejs/plugin-react README「For React refresh to work correctly, your file should only export React components.」—— 本课和 26 题都按这个拆文件。
+4. style 的 0 值不补 px（源码 `0 === value` 分支，浏览器规范化成 0px）；aspectRatio、lineClamp、scale 等也在 unitlessNumbers 里。
+5. Vue 的 :style 给 width 这类属性传数字，Chrome 与 jsdom 都直接丢掉（浏览器实测 + 测试），无单位属性照常生效。
+6. Vue 模板编译结果带补丁标记（`1 /* TEXT */`）；SFC 实际编译（compileTemplate）还会把静态 props 提升成常量、把静态节点缓存（`-1 /* CACHED */`）—— `compile()` 默认选项看不到这两项。JSX 编译结果没有这些信息（课件四-2）。
+9. 本项目开发环境（vite dev、Vitest）的 JSX 编译成 react/jsx-dev-runtime 的 `jsxDEV()`（vite 的 esbuild 配置 `jsxDev: !isProduction`，config.js:35692），生产构建才是 `jsx()` / `jsxs()`。
+10. `<ui.button />` 这类带点的成员表达式不看首字母，一律编译成变量引用；lint 对渲染期突变：重新赋值外部变量报 globals、改外部对象属性报 immutability、`arr.push()` 拦不住（复核实测）。
+11. Vue 在渲染函数 / JSX 里现场创建组件对象，每次更新同样卸载重建（isSameVNodeType 比较 type 与 key，复核实测）；只有 `<script setup>` 里定义的才只建一次。
+7. 「State is isolated and private」出自 state-a-components-memory，「Vue templates are compiled into render functions」出自 rendering-mechanism（审计里写的出处不对）。
+8. Vue 文档原文是「Vue JSX transform is different from React's JSX transform, so you can't use React's JSX transform in Vue applications」。
+
+**复核代理提出、已改的 32 条（要点）**：测试文件的类型错误（`errorTexts` 推成 any，会让 check 失败 —— 提交 26 时 01 被暂存，check 没覆盖到，已补返回类型）；「17 题细讲 Compiler」「多根组件见 02 题」两处引用的内容还不存在，改为「改写时补」并记进遗留；「其余组件都用 named export」有反例（20 题 ErrorBoundary）；三、Vue 对照各条与 Vue 侧补齐成熟度标签，`:id` 改【主流·3.4 起】；二-2 补「开发环境是 jsxDEV」；lint 覆盖面改准确（globals / immutability / push 拦不住）；Vue「不会出现区块四的问题」限定为 setup 里定义；React 的重渲染范围按统一措辞改（从该组件起连带子组件，不是整棵树）；Vue 编译输出换成 compiler-sfc 的实际产物并讲静态缓存；patch flags 与 tree flattening 分开说；19.3 那句出处改为发布博客的 Changelog；参考列表补齐 7 处；「两张卡各自独立的 state」没有演示 → 加「关注」按钮与两侧测试；成员表达式、import 顺序、三栏、组件名、Fragment 包了三个节点、「一定」、四-4 / 四-5 的前提、「一个文件一个组件」按官方原文改、jsdom 与浏览器的说法、练习 2 换成 flexShrink（jsdom 把 aspect-ratio 序列化成 1.5 / 1）、ReactNode 的 28 题引用、StrictMode 的双调用范围（useState / set / useMemo / useReducer 的函数）、「very slow」、33 题（待新增）、FunctionComponent 签名、`<template v-if>`、v-once / v-memo、厂商前缀、多根 $attrs.class、错误边界「或用 react-error-boundary」。
+
+**验证**：`npm run check` 通过（lint 0 / typecheck 0 / 275 条测试 / build）；01 的 22 条测试无 act 警告、无 stderr（故意触发的开发期报错都 spy 并断言）。浏览器用临时 5174 服务器（完成后已停掉并还原 launch.json）：不纯茶杯首次 #2、#4、#6，点重渲染后 #8、#10、#12，切到 02 / 26 再回来接着涨；React 读出的 style 为「width: 48px; border-width: 2px; padding: 0px; line-height: 1.5; …」，Vue 侧没有 width / border-width（Chrome 实测）；区块四父组件重渲染后组件里定义的输入框清空、顶层定义的保留；两侧 dl 列表正常；源码查看器 React 6 个、Vue 5 个文件；页面无横向溢出；复核后补的「关注」按钮两侧各点第一张卡，只有那张变成「已关注」。捕获到的 console.error / console.warn 为 0。
+
 ## 统一措辞（各题改写时照用）
 
 ### Vue 响应式（2-A 定稿，2026-09-17）
@@ -597,6 +637,7 @@
 |---|---|---|---|---|
 | 18 | 路由（React Router） | **完成（样板已确认）** | Data 模式主线（loader / action / middleware 守卫 / errorElement / lazy / useBlocker / 面包屑）+ 声明式 RequireAuth 三态并排；十段文件头；React 18 条 + Vue 7 条结论测试；Vue 守卫改为返回值写法；safeRedirect 共享实现；源码查看器支持多文件（5.10）。详见 2.1 | 32 / 34 / 35 题新增后回填交叉引用 |
 | 26 | 过期闭包 | **完成** | 修法优先级（函数式更新 → 写对依赖 → useEffectEvent 主线 → latest ref 并排）四个区块：事件处理函数里的 setTimeout、手动 addEventListener（含被 useCallback 缓存的 JSX 处理函数）、轮询四种写法、让依赖合法消失（搬进事件 / 对象依赖 / ref.current）；Vue 侧现读 .value、手动快照与解构 reactive、3.5 解构 props、watch vs watchEffect；React 22 条 + Vue 15 条测试（含 latest ref 窗口期、Effect Event 身份与换入时机、19.2.x memo / forwardRef bug）；了结 P-26-1～6。详见 2.10 | 19.3 升级后改 memo / forwardRef 那条测试与课件；14 题 useInterval 注释可补一句 19.2.x 的 memo / forwardRef bug；10 题改写时保留「场景二修法三 latest ref」或同步改 26 的引用；31–35 新增后回填交叉引用 |
+| 01 | 组件与 JSX | **完成** | 四个区块：资料卡（UserCard 两个独立实例、JSX 当值传、className / style / Fragment）、JSX 编译成什么（automatic vs classic 编译结果、style 补 px 实测、Fragment key）、组件必须纯（茶杯例子 + StrictMode）、不要在组件里定义组件；Vue 侧 SFC + 具名插槽、:class / :style、compiler-sfc 编译输出；React 17 条 + Vue 5 条测试；了结 P-01-1～5。详见 2.11 | 17 题改写时补 Compiler 小节并回头核对 01 的引用；02 题改写时补「多根组件的 attrs 透传」；28 题改写时补「组件返回类型 / FunctionComponent 签名」；19.3 升级后核 Fragment ref 的类型；33 / 35 新增后回填交叉引用 |
 | 20 | 错误边界 | **完成** | 手写 class 边界主线（fallback / onError / onReset / resetKeys）+ react-error-boundary 可运行并排；「接得住 / 接不住」8 个按钮 + useTransition 同步 / async、顶层 startTransition、lazy 缓存；createRoot 小根演示 onCaughtError / onUncaughtError 与整棵界面被移除；Vue 侧 ErrorBoundary.vue、捕获面、出错组件的两种表现、传播规则与 errorHandler；React 15 条 + Vue 12 条测试；了结 P-20-1～5。详见 2.9 | 31 / 32 / 33 / 34 新增后回填交叉引用；18 题可补一句 RouterProvider onError（7.11 起）与 throw data 404 |
 | 16 | 全局状态（Zustand） | **完成** | Zustand 5 主线五个区块（selector 与 useShallow + Profiler 渲染计数 / 组件外读写 + subscribe + 异步 action + persist 与 migrate / Context + useReducer 并排 / createStore + Context 每实例一份 / RTK 只读对照）；Vue 侧 Pinia setup store + 迷你持久化插件 + 模块级 reactive；React 19 条 + Vue 15 条测试；了结 P-16-1、3～6（P-16-2 仍是推论）。详见 2.8 | P-16-2（Compiler 与订阅粒度）留给 17 题；33 / 34 / 35 新增后回填交叉引用；首次打开会触发一次 Vite 依赖重新预构建（新发现 9） |
 | 14 | 自定义 Hook 与 Composable | **完成** | useSyncExternalStore 主线（useWindowWidth + getServerSnapshot + useDebugValue）+ Effect 订阅并排 + subscribe 稳定性实验；useInterval（useEffectEvent）与「回调进依赖」反例；防抖搜索（派生 loading，lint 抑制已清）+ let timer 坑；React 12 条 + Vue 8 条测试；了结 P-14-1～5。详见 2.7 | tearing 没有做可视化演示（P-14-3，只讲原理）；32 / 33 / 34 新增后回填交叉引用；03 题 :64「10、14 题会再遇到快照」留给 03 题改写时核对 |

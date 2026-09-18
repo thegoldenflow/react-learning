@@ -85,7 +85,7 @@ src/
 
 | 编号 | 目录名 | 标题 | 学习重点 |
 | --- | --- | --- | --- |
-| 01 | `01-component-and-jsx` | 组件与 JSX | 函数组件 + JSX：React 里「一切都是 JavaScript」，对照 Vue 的 SFC 与模板语法 |
+| 01 | `01-component-and-jsx` | 组件与 JSX | 组件是返回 JSX 的函数（名字大写）、JSX 编译成 `jsx()` 调用、几条 JSX 硬规则、组件必须纯（StrictMode 调用两次）、不要在组件里定义组件，对照 Vue 的 SFC、模板语法与插槽 |
 | 02 | `02-props` | Props | 用 TypeScript 类型声明 props、默认值写法、「props 只读」的约定，以及继承原生元素属性 + `{...rest}` 透传 |
 | 03 | `03-state` | State 与 useState | useState 的读与写、不可变更新、渲染快照与函数式更新、多状态收敛到 useReducer，对照 ref/reactive |
 | 04 | `04-events` | 事件处理 | onClick 与事件对象、处理函数的定义与传参，对照 @click 与 $event |
@@ -189,7 +189,7 @@ src/
 
 ### 第一阶段：React 基础
 
-**01 组件与 JSX** —— 函数组件就是「返回 JSX 的普通函数」，JSX 里 `{}` 内是任意 JS 表达式；`className`、`style` 对象写法等与 HTML 的差异。理解「JSX 即 JavaScript」是后面所有题的地基。工业界现状：函数组件 + Hooks 早已全面取代 class 组件，新代码不会再写 class（唯一例外见 20 题）。
+**01 组件与 JSX** —— 课件升级阶段 2 重写（2026-09-18，文件头按十段模板）。四个区块：① 资料卡：同一个 `UserCard` 用两次（两个独立实例，各自的「关注」按钮互不影响），VIP 徽章是存在变量里的 JSX、当参数传进去，`className` / `style` 对象 / 花括号 / Fragment / JSX 注释；② JSX 编译成什么：同一段 JSX 在 automatic runtime（生产构建是 `jsx()` / `jsxs()`，开发环境是 `jsxDEV()`；React 17 起，19 必须）与 classic runtime（`React.createElement`【旧写法】）下的编译结果并排，`style` 数字哪些补 px（点按钮读出 DOM 上的实际值），列表里用 `<Fragment key>`；③ 组件必须是纯函数：react.dev 的「茶杯」例子，渲染时改外部变量在 StrictMode 下显示 #2、#4、#6；④ 不要在组件里定义组件：父组件一重渲染，里面定义的子组件就被卸载重建、输入清空。测试还覆盖了小写组件名被当成 HTML 标签、`class` / `for` / `onclick` / `ariaLabel` 的开发期报错原文、`style` 传字符串抛错、返回带 key 的数组。Vue 侧：SFC + 具名插槽 `#badge`、`:class` / `:style` 对象与数组语法、`:style` 数字不补单位、`<template v-for>`、`@vue/compiler-sfc` 编译出的渲染函数（补丁标记、静态提升、静态节点缓存）。React 17 条、Vue 5 条结论测试。
 
 **02 Props** —— 用 `interface` 声明 props 类型、参数解构 + 默认值、props 只读约定；以及**继承原生元素属性**（`ComponentPropsWithoutRef<'button'>` + `{...rest}`）。后半段是 Vue 老手的盲区：Vue 的 fallthrough attributes 会把 `disabled`/`aria-*` **自动**落到根元素，React 一个都不会自动落，必须显式展开。工业界现状：TS 化的 React 项目 props 就是纯类型声明，不再用运行时的 `prop-types` 库；受控地暴露原生属性是 shadcn/ui、MUI 等组件库的通用 API 设计范式。
 
@@ -378,7 +378,7 @@ src/
 
 | 题号 | 面试问题 |
 | --- | --- |
-| 01 | JSX 是什么？它最终被编译成什么？函数组件和 class 组件有什么区别，为什么现在都用函数组件？ |
+| 01 | JSX 是什么、浏览器能直接运行吗、编译成什么？为什么 React 17 之后不用 `import React`？组件名为什么必须大写？「组件必须是纯函数」是什么意思、StrictMode 为什么调用两次？调用组件函数等于更新 DOM 吗？为什么不能在组件里定义组件？ |
 | 02 | props 为什么是只读的？如何用 TypeScript 给组件的 props 定义类型和默认值？如何让自定义组件支持 `disabled`、`aria-*` 等全部原生属性（对比 Vue 的 `$attrs` 自动透传）？ |
 | 03 | setState 之后发生了什么？为什么直接修改 state 不会触发更新？`setCount(count+1)` 连写两次为什么只加 1？什么时候该从 useState 升级到 useReducer？ |
 | 04 | React 的合成事件（SyntheticEvent）是什么？`onClick={fn()}` 和 `onClick={fn}` 有什么区别？ |

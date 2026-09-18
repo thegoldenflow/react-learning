@@ -34,7 +34,7 @@ export const PHASES: TopicPhase[] = [
       {
         slug: '01-component-and-jsx',
         title: '组件与 JSX',
-        summary: '函数组件 + JSX：React 里「一切都是 JavaScript」，对照 Vue 的 SFC 与模板语法。',
+        summary: '组件是返回 JSX 的函数，JSX 编译成 jsx() 调用：几条 JSX 硬规则、组件必须纯（StrictMode 调用两次）、不要在组件里定义组件，对照 Vue 的 SFC、模板语法与插槽。',
       },
       {
         slug: '02-props',
