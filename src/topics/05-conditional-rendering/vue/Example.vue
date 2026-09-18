@@ -1,145 +1,41 @@
 <script setup lang="ts">
 /**
- * 学习主题：条件渲染（三元、&&、提前 return / switch、映射对象）
+ * 主题：05. 条件渲染（Vue 对照：v-if / v-else、v-show、<KeepAlive>）
+ * 适用版本：Vue 3.5
+ * 最后核对：2026-09-18
+ * 前置主题：01、02、03
+ * 成熟度：本课知识点按【主流】【较新】【尝鲜】【旧写法】逐一标注
  *
- * React 核心概念：
- * - JSX 没有指令，条件渲染就是普通 JavaScript：三元表达式、&& 短路、if / switch 提前 return
- * - 分支多时工业界常用 switch 辅助函数（或子组件）以及「状态 → 内容」的映射对象
- * - && 的经典陷阱：左侧是数字 0 时，JSX 会把 0 渲染到页面上（false/null/undefined 才不渲染）
+ * 完整的十段讲解在 react/Example.tsx；本文件列出 Vue 这一侧的要点。
  *
- * Vue 对应概念：
- * - v-if / v-else-if / v-else 模板指令描述分支；v-show 只切换 display，DOM 一直在
- * - v-if 对任何 falsy 值（包括 0）都不渲染，没有 0 陷阱
- *
- * 最重要的区别：
- * - Vue 用模板指令描述分支；React 用 JS 本身的控制流，JSX 只是表达式
- * - {count && <X/>} 在 React 会把 0 渲染出来；正确写法是 count > 0 && <X/>
- * - v-show 在 React 没有指令对应物（没有一一对应关系），要手动用 style 的 display 控制
+ * Vue 这一侧的要点：
+ * - v-if / v-else-if / v-else【主流】（区块一）：按表达式的 truthy 渲染；v-else / v-else-if 必须紧跟前一个分支；一次切换好几个元素写 <template v-if>（最终 DOM 里没有 template 这一层，测试覆盖）。
+ *   React 没有指令，用 JS 的 if / 三元 / && 写同样的分支。
+ * - 0 陷阱【主流】（区块二）：v-if 对 0、NaN 都不渲染；插值 {{ count && '…' }} 的值就是 0，会显示「0」，false 更会显示成「false」（React 不渲染 false）——
+ *   插值里的条件写三元（cond ? '…' : ''）或改用 v-if（依据是 @vue/shared 的 toDisplayString 源码，文档没写，测试覆盖）。
+ * - 模板里的 v-if / v-else 切换时换一个实例【主流】（区块三）：编译器给每个分支注入不同的 key（key: 0、key: 1，测试覆盖），所以两边即使是同一个组件，
+ *   没包 <KeepAlive> 时切换也会销毁重建 —— React 的三元两边同类型时会复用实例、保留 state。这是模板编译器的行为：Vue 的渲染函数里写三元没有这个 key，
+ *   同类型同样复用（测试覆盖）。模板里只写一个组件、换 prop 时也会复用，同样用 :key 强制换实例（测试覆盖）。
+ * - v-show【主流】（区块四）：只切 display，组件一直在，不走挂载 / 卸载（也不走停用 / 激活）钩子；但组件上的 v-show 每次切换都会让组件被父组件强制更新一次，
+ *   onBeforeUpdate / onUpdated 照常调用（测试覆盖）。不能用在 <template> 上，也不能配 v-else。v-if 是惰性的（初始为假时什么都不渲染），v-show 先渲染再藏；
+ *   频繁切换用 v-show，很少变用 v-if（官方的取舍原文见 HideVsUnmountDemo.vue）。
+ * - <KeepAlive>【主流】（区块四）：缓存实例，停用 / 激活走 onDeactivated / onActivated（首次挂载后也会调一次 onActivated），DOM 被移出文档、激活时插回同一个元素；
+ *   和 React 19.2 的 <Activity> 一样保留 state，不同在于 Activity 用 display: none 把 DOM 留在原地、由 React 清理 Effect，
+ *   KeepAlive 停用期间 watch 照样触发、组件照样重新渲染，要停订阅得自己在 onDeactivated 里做（测试覆盖）。
+ * - v-if 与 v-for 同一元素【主流】：v-if 先求值、读不到循环变量，官方不推荐同用；先用 computed 过滤，或把 v-if 挪到外层容器（06 题改写时补）。
+ *   Vue 2 相反，是 v-for 先求值（v3 迁移指南 breaking-changes/v-if-v-for）。
  */
-import { ref } from 'vue'
-import type { OrderStatus } from '@/shared/types'
-import { ORDER_STATUS_TEXT } from '@/shared/types'
-
-const status = ref<OrderStatus>('pending')
-const itemCount = ref(3)
-const showDetail = ref(true)
+import BranchStylesDemo from './BranchStylesDemo.vue'
+import HideVsUnmountDemo from './HideVsUnmountDemo.vue'
+import PositionDemo from './PositionDemo.vue'
+import ZeroPitfallDemo from './ZeroPitfallDemo.vue'
 </script>
 
 <template>
   <div class="stack">
-    <div class="card stack">
-      <h3>
-        订单状态
-        <!-- 「映射对象」查表取文案：这一点两边写法一致（React 里也是 ORDER_STATUS_TEXT[status]） -->
-        <span :class="`badge badge-${status}`">{{ ORDER_STATUS_TEXT[status] }}</span>
-      </h3>
-
-      <!-- 切换状态的按钮组：当前状态的按钮禁用 -->
-      <div class="row">
-        <button
-          :disabled="status === 'pending'"
-          @click="status = 'pending'"
-        >
-          设为待支付
-        </button>
-        <button
-          :disabled="status === 'paid'"
-          @click="status = 'paid'"
-        >
-          设为已支付
-        </button>
-        <button
-          :disabled="status === 'cancelled'"
-          @click="status = 'cancelled'"
-        >
-          设为已取消
-        </button>
-      </div>
-
-      <!-- 三分支「完全不同的 UI」：Vue 用 v-if / v-else-if / v-else 就地表达，无需子组件。
-           React 那边是 switch + return 的 StatusPanel 子组件（且与父组件同文件——
-           React 允许一个文件多个组件，Vue SFC 是一文件一组件） -->
-      <div
-        v-if="status === 'pending'"
-        class="stack"
-      >
-        <p class="error-text">
-          订单待支付，请在 30 分钟内完成付款
-        </p>
-        <p class="muted">
-          超时未支付将自动取消
-        </p>
-      </div>
-      <div
-        v-else-if="status === 'paid'"
-        class="stack"
-      >
-        <p class="success-text">
-          支付成功！
-        </p>
-        <p class="muted">
-          商品将在 48 小时内发出
-        </p>
-      </div>
-      <div
-        v-else
-        class="stack"
-      >
-        <p class="muted">
-          订单已取消
-        </p>
-      </div>
-
-      <!-- 二选一：模板插值里同样可以写三元，与 React 一致 -->
-      <p>支付进度：{{ status === 'paid' ? '已完成' : '未完成' }}</p>
-
-      <!-- 只有「渲染 / 不渲染」时 Vue 用 v-if；React 那边对应 && 短路 -->
-      <p
-        v-if="status === 'cancelled'"
-        class="muted"
-      >
-        已取消的订单可在 24 小时内联系客服恢复
-      </p>
-    </div>
-
-    <div class="card stack">
-      <h3>&& 的 0 陷阱（Vue 没有）</h3>
-      <div class="row">
-        <button @click="itemCount = 0">
-          清空商品（数量设为 0）
-        </button>
-        <button @click="itemCount = 3">
-          恢复为 3 件
-        </button>
-      </div>
-
-      <!-- v-if="itemCount"：0 是 falsy，直接不渲染，页面不会出现「0」。
-           React 里 {itemCount && <span>…</span>} 却会把 0 渲染出来——
-           这是 React 特有的坑，Vue 中没有一一对应关系（用 v-if 时才成立；插值里写 itemCount && '…'
-           同样会把 0 渲染出来）；React 的正确写法是 itemCount > 0 && -->
-      <div>
-        v-if="itemCount" 的渲染结果：<span v-if="itemCount">购物车共 {{ itemCount }} 件商品</span>
-      </div>
-      <p class="muted">
-        清空后这里什么都不显示（对照 React 反例会多出一个 0）
-      </p>
-    </div>
-
-    <div class="card stack">
-      <h3>「隐藏但保留 DOM」：v-show</h3>
-      <button @click="showDetail = !showDetail">
-        {{ showDetail ? '隐藏' : '显示' }}订单详情
-      </button>
-      <!-- v-show：DOM 保留，只切换 display。React 没有对应指令（没有一一对应关系），
-           要手写 style={{ display: show ? 'block' : 'none' }}。
-           对比：v-if（= React 的三元 / &&）是真正卸载/挂载节点 -->
-      <div v-show="showDetail">
-        <p>订单号：SO-20260828-001</p>
-        <p>收货地址：上海市浦东新区张江高科技园区</p>
-        <p class="muted">
-          （打开浏览器 DevTools 看：隐藏时这段 DOM 依然存在）
-        </p>
-      </div>
-    </div>
+    <BranchStylesDemo />
+    <ZeroPitfallDemo />
+    <PositionDemo />
+    <HideVsUnmountDemo />
   </div>
 </template>

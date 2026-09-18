@@ -9,7 +9,7 @@
 |---|---|---|---|---|
 | 0 | 审计（只读） | **完成。** 两轮审计均完成；用户 2026-09-17 答复「全部按建议执行」（AUDIT-ROUND2.md §6 D2-1～8，记录在 AUDIT.md §5.13）；两轮合并规则写在 AUDIT.md 附录 C | `docs/upgrade/AUDIT.md`（含 §5.13、§5.14、附录 C）、`docs/upgrade/REAUDIT-PROMPT.md`、`docs/upgrade/AUDIT-ROUND2.md` | 两轮审计与合并说明均已提交（d550e27、1efc217） |
 | 1 | 依赖与工具链调整 | **完成（2026-09-17）**：commit「阶段 1：依赖与工具链调整」（34cd734）+「阶段 1 补充：ESLint 9 → 10（D1-1）」 | package.json / package-lock.json、vitest.config.ts、eslint.config.js + eslint-suppressions.json、tsconfig.json、src/test/、4 处 react-router 导入、README 事实行 | 复核口径与全部记录见下文「阶段 1 记录」；版本决定见 AUDIT.md §5.0 的 5.14、5.15 |
-| 2 | 逐主题修改（先改 18 路由样板） | **进行中**（分支 `phase-2-topics`）：前置 commit（壳修复，2.0）、**18 路由样板**（2.1，风格已确认，AUDIT.md §5.0 的 5.16）、**2-A Vue 响应式措辞批量修正**（2.2，措辞见「统一措辞」）、**2-B 的 07 表单**（2.3）、**19 异步提交**（2.4）、**11 API 请求状态**（2.5）、**30 TanStack Query**（2.6）、**14 自定义 Hook**（2.7）、**16 全局状态**（2.8）、**20 错误边界**（2.9）、**26 过期闭包**（2.10）已完成，**2-B 全部完成**；2-C 的 **01 组件与 JSX**（2.11）、**02 Props**（2.12）、**03 State**（2.13）、**04 事件处理**（2.14）已完成。**下一步：2-C 的 05 条件渲染**（之后按编号 06 → 08 → …），做法见 `docs/upgrade/CONTINUE-PROMPT.md` | 每题一个 commit | 样板已确认，其余题不再逐题停 |
+| 2 | 逐主题修改（先改 18 路由样板） | **进行中**（分支 `phase-2-topics`）：前置 commit（壳修复，2.0）、**18 路由样板**（2.1，风格已确认，AUDIT.md §5.0 的 5.16）、**2-A Vue 响应式措辞批量修正**（2.2，措辞见「统一措辞」）、**2-B 的 07 表单**（2.3）、**19 异步提交**（2.4）、**11 API 请求状态**（2.5）、**30 TanStack Query**（2.6）、**14 自定义 Hook**（2.7）、**16 全局状态**（2.8）、**20 错误边界**（2.9）、**26 过期闭包**（2.10）已完成，**2-B 全部完成**；2-C 的 **01 组件与 JSX**（2.11）、**02 Props**（2.12）、**03 State**（2.13）、**04 事件处理**（2.14）、**05 条件渲染**（2.15）已完成。**下一步：2-C 的 06 列表与 key**（已有半成品在 `git stash` 里，stash 说明含 wip06，接续方法见 CONTINUE-PROMPT §3.3；之后按编号 08 → 09 → …），做法见 `docs/upgrade/CONTINUE-PROMPT.md` | 每题一个 commit | 样板已确认，其余题不再逐题停 |
 | 3 | 补充新主题 | 未开始 | | 按阶段 0 确认的清单 |
 | 4 | 一致性检查 + CHANGELOG | 未开始 | `docs/upgrade/CHANGELOG.md` | |
 
@@ -651,6 +651,43 @@
 
 **验证**：`npm run check` 通过（lint 0 / typecheck 0 / 测试 383 条 / build）；04 的 37 条测试无 act 警告、无 stderr。浏览器用临时 5174 服务器（完成后已停掉并还原 launch.json；面板隐藏，滚动 / 焦点用手动派发事件验证）：React 六个区块 —— 计数与点击位置、Shift 删除只减一件、❌ 列表一挂载就空、事件对象表格（nativeEvent.currentTarget 是 <div id="root">，setTimeout 里 currentTarget 为 null）、传播日志与测试顺序完全一致（勾选 stop 后停在「React 按钮 onClick」）、onScroll 1 / 外层 0 / onFocus 1、链接 preventDefault 冒泡计数 1、requestSubmit 被拦住且路径没变、.self、.once / ref 标记、按键（Ctrl+Shift+Enter 与组字回车被忽略）、右键 contextmenu defaultPrevented、onWheel 原生 defaultPrevented false / passive: false 的为 true 且缩放 110%；Vue 六个区块同样逐项通过（Vue 监听器与原生监听器交错顺序与测试一致、@focusin 1、@wheel.prevent defaultPrevented true）。捕获到的 console.error / warn 为 0。复核后的修改（勾选框、onScrollCapture 计数、链接文案）由测试覆盖，未再开浏览器。源码查看器 React 10 个、Vue 9 个文件；无横向溢出。
 
+### 2.15 05 条件渲染（2026-09-18，2-C 第五题）
+
+**蓝本与依据**：AUDIT-ROUND2.md §5 的 05 大纲；问题表 = R2-05-1～10 + AUDIT.md §3 的 05 各行。核实：1 个只读文档研究代理（38 条、161 段引文脚本逐字校验全部通过：37 确认、1 修正〔Activity 参考页没写起始版本，「19.2」只能引发布博客〕、1 查无〔插值怎么显示 null / undefined 文档没写〕）+ 主会话读源码（@types/react 的 ReactNode 与 Activity、react 的 Activity 导出、@vue/compiler-core 给 v-if 分支注入 key、@vue/shared 的 toDisplayString）+ 主会话一次性探针（同类型同位置保留 / key 重置 / 换类型重置、Activity 的 display: none !important 与 Effect、return null、NaN）+ 1 个反驳式复核代理（见下）。
+
+**结构（React 8 个文件，Vue 8 个文件）**
+- `react/Example.tsx`：十段文件头 + 四个区块的入口。
+- `react/BranchStylesDemo.tsx`【区块一】：switch 提前 return 的 StatusPanel、return null 的 RestoreHint（注明官方说不常见）、把 JSX 存进 ReactNode 变量、三元、&&、查表。
+- `react/ZeroPitfallDemo.tsx`【区块二】：itemCount && …（清空后显示 0）、average && …（显示 NaN）、> 0 与 Number.isFinite 的正确写法；TypeScript 拦不住。
+- `react/PositionDemo.tsx`【区块三】：三行 DraftEditor（每行有看得见的小标题）—— 三元同类型（草稿保留，bug）、不同 key（重置）、两个 &&（渲染到不同位置，重置）。
+- `react/HideVsUnmountDemo.tsx`【区块四】：三块面板（点赞 state + 非受控输入 + 记日志的 Effect）—— && 卸载、hidden 属性、<Activity mode>；日志用 demoKit 的外部 store。
+- `react/demoKit.ts` + `react/LogPanel.tsx`。
+- Vue 侧：`BranchStylesDemo.vue`（v-if / v-else-if / v-else、<template v-if>）、`ZeroPitfallDemo.vue`（v-if 没有 0 陷阱、插值里的 && 有，false 显示成「false」、三元写法）、`PositionDemo.vue` + `DraftEditor.vue`（模板 v-if / v-else 切换重建、只写一个组件换 prop 会保留、:key 重置）、`HideVsUnmountDemo.vue` + `LifecyclePanel.vue`（v-if / v-show / KeepAlive，生命周期钩子记日志）、`Example.vue`（精简头）。
+- 壳：注册表 05 题 summary；README 05 题目录行、说明段、面试题行。
+- 测试：React 7 条、Vue 9 条（Vue 测试里另用渲染函数写了三个探针组件：渲染函数三元复用实例、组件上的 v-show 触发 onUpdated、KeepAlive 停用期间 watch 不停；文件级 `eslint-disable vue/one-component-per-file`）。
+
+**问题表处理**：R2-05-1（「条件渲染 = 卸载」讲反）→ 速答第 3、4 条与二-4 按「同位置同类型保留、换类型 / 去掉 / 换 key 才卸载」重写，区块三三行对照（测试覆盖），Vue 侧写明「模板里的 v-if / v-else、没包 KeepAlive」两个前提；R2-05-2 换类型重置 + key / 不同位置两种重置办法 + 状态提升（区块三、区块四的说明段）；R2-05-3 <Activity>（区块四，【较新·19.2 起】，display: none !important 与 Effect 清理测试覆盖）、hidden 属性（MDN ③）、19.3 <ViewTransition>（九，【尝鲜】）；R2-05-4 return null（附官方「不常见」原文）、JSX 存进变量、三元与 if「completely equivalent」；R2-05-5 ReactNode 类型依据（index.d.ts:436-449）+ TS 拦不住 + lint 能拦（eslint-plugin-react 的 jsx-no-leaked-render，本项目没装）；R2-05-6 status 联合驱动分支（区块一，指向 03 区块五与 11 题）；R2-05-7 class 组件 render() / renderX()（八）；R2-05-8 <template v-if>、v-show 的限制、v-if 惰性与取舍原文、v-if 与 v-for 优先级（「06 题改写时补」）；R2-05-9 演示不再用 style display（改 hidden 属性，Activity 自带），Hooks 在提前 return 之前（二-1、六），按权限隐藏只是体验（七）；R2-05-10 「没有一一对应关系」本题清零，true 也不渲染（二-2 一次说全并测试），「只能」去掉。第一轮 05 的两条（补 <Activity>、return null）已落实。
+
+**待核实项结论**：
+- P-05-1（v-if / v-for 优先级的版本变化）：v3 迁移指南 breaking-changes/v-if-v-for 原文「In 2.x, when using v-if and v-for on the same element, v-for would take precedence.」「In 3.x, v-if will always have the higher precedence than v-for.」（vuejs/v3-migration-guide 仓库原文），已写进三的 v-if 与 v-for 条。
+- P-05-2（hidden / display: none 与 Activity 在 Effect / Suspense 上的差异细节）：本题只写 Effect 的差别（测试覆盖），Suspense 部分留给 32 题。
+- P-05-3（''、[]、NaN 的实际输出）：true / false / null / undefined / '' / [] 都不产生节点，0、NaN、0n 渲染成文本（React 测试覆盖）。
+- P-05-4（StrictMode 下三元同类型切换是否仍保留 state）：一致，保留（复核代理探针 D）。
+
+**本次新发现（审计没写到）**：
+1. Vue 模板里 v-if / v-else 切换重建，是因为 @vue/compiler-core 给每个分支注入了 key（compiler-core.cjs.js:4702-4732 按分支序号算 key、4837-4883 生成并注入）；Vue 用渲染函数写三元时没有这个 key，两边同一个组件时和 React 一样复用实例（测试覆盖）。审计「Vue 的 v-if 总是销毁重建」要加「模板、没包 KeepAlive」两个前提。
+2. 组件上的 v-show 并非「不走任何钩子」：vnode 带指令时 shouldUpdateComponent 直接返回 true（runtime-core.cjs.js:4842），每次切换子组件都走 onBeforeUpdate / onUpdated（测试覆盖）。演示面板不能在 onUpdated 里写父组件的日志，否则父组件重渲染 → 强制更新子组件 → 再写日志，循环。
+3. KeepAlive 停用（runtime-core.cjs.js:2919-2936）只把 DOM 移进存储容器、调 onDeactivated，不停组件的 effect：停用期间 watch 照样触发、组件照样重新渲染（测试覆盖）。这是它和 Activity（React 清理 Effect）最大的区别；DOM 被移出文档（isConnected 为 false），激活时插回的是同一个元素（测试覆盖）。
+4. Vue 插值里 false 显示成「false」（toDisplayString 对非 null / undefined 的原始值一律 String），比 React 的 0 陷阱更容易踩；插值里的条件写三元或改用 v-if。
+5. <Activity mode="hidden"> 给子元素写的是 style="display: none !important;"，再显示时 style 变回空字符串（测试覆盖）；@types/react 19.2.18 的 Activity 标注 @version 19.2.0（index.d.ts:2013），参考页没写版本。
+6. return null 时组件自己的 state 和 Effect 都在，但它原来渲染的子组件会被卸载（Effect 清理、state 丢失，测试覆盖）。
+7. eslint-plugin-react 7.30.0（2022-05-18）起有 jsx-no-leaked-render（不在 recommended 里）；本项目没装 eslint-plugin-react，0 陷阱 lint 不拦。
+8. ViewTransition 要放在条件里面（{show && <ViewTransition>…}），它自己被加上 / 移除才触发 enter / exit（19.3 博客原文）。
+
+**复核代理提出、已改的 27 条（要点）**：速答第 4 条「切到别的分支就是卸载」与第 3 条矛盾 → 加「从树上去掉（&& 变 false、换类型、换 key）」前提；v-show「不走任何钩子」→ 只是不走挂载 / 卸载 / 停用 / 激活，onBeforeUpdate / onUpdated 照常（三处 + 测试标题，补测试）；Activity「更接近 KeepAlive 的停用」→ 改写副作用差别（KeepAlive 停用 watch 与渲染不停，补测试）；Vue 空字符串「测试覆盖」不实 → 改成「测试覆盖 0 与 NaN」；「11 题四态」→ 三值判别联合；「&& 返回左边」补「左边是假值时」；「v-if / v-else 总是重建」补模板与 KeepAlive 前提（5 处，补渲染函数三元测试），四-1 补 Vue 渲染函数 / JSX；「三层以上 / 一律」去掉；「只能靠」→「主要靠」并补外部数据源；「（06 题）」→「06 题改写时补」并补【主流】；ViewTransition 放在条件里面；编译器行号改成 4702-4732、4837-4883；Troubleshooting 补 useLayoutEffect 原文；Activity 测试改断言精确 style 字符串；KeepAlive 测试补 isConnected 与同一元素；Vue 区块一测试补 v-else-if / v-else 与 parentElement；补 Vue 插值 false（演示 + 测试）；补 v-if 惰性原文与 React 对照；补 true / 0n（测试）；补 lint 能拦；return null 补子组件被卸载（测试）；区块三两侧加看得见的行标题、「栏」改「行」；StrictMode 说明改引 Activity 参考页原文；版本依据补 @version 19.2.0；六补「以为 hidden / CSS 隐藏就是卸载」、P-05-1 核实后写入。
+
+**验证**：`npm run check` 通过（lint 0 / typecheck 0 / 测试 399 条（31 个文件） / build）；05 的 16 条测试无 act 警告、无 stderr。浏览器用临时 5174 服务器（完成后已停掉并还原 launch.json）：复核前逐区块验证过 —— 区块一三种状态切换、区块二清空后「0」「NaN」、区块三同位置草稿保留 / 另两行清空、区块四 && 卸载 / hidden 保留 / Activity 的 display: none !important 与日志（StrictMode 下多一轮清理 → 建立）；Vue 四个区块同样逐项通过，console.error / warn 为 0。复核后又开了一次：React 与 Vue 区块三的行标题与三行结果（React ① 保留 ②③ 清空；Vue ② 保留 ①③ 清空）、Vue 区块二「false」与三元两行、Activity 隐藏时 style 为「display: none !important;」显示后为空、StrictMode 说明段的原文，console.error / warn 为 0，无横向溢出。
+
 ## 统一措辞（各题改写时照用）
 
 ### Vue 响应式（2-A 定稿，2026-09-17）
@@ -806,6 +843,20 @@
 | Vue 组件事件 | 「emit 不冒泡；没声明 emits 的监听器透传到单根组件的根元素，根节点是组件时继续往下透传（看起来像冒泡，其实是透传）」 | 「Vue 组件事件会冒泡」、不带单根前提的「自动透传」 |
 | 输入法组字 | 「判断 e.isComposing \|\| e.keyCode === 229（MDN ③，React 里 isComposing 从 e.nativeEvent 读）」 | 只判断 isComposing |
 
+### 条件渲染（05 定稿，2026-09-18）
+
+| 要说的事 | 这样写 | 不要这样写 |
+|---|---|---|
+| 什么时候是卸载 | 「组件从树上被去掉（&& 变成 false、三元换成别的类型或别的 key）就是卸载；三元两边同一个组件、同一位置时是复用，state 保留」 | 「条件渲染切到别的分支就是卸载」「条件渲染 = v-if，会真正卸载」 |
+| && 的返回值 | 「左边是假值时，&& 返回的就是左边这个值本身（不是 false）」 | 不带条件的「&& 返回左边的值」 |
+| 哪些值不渲染 | 「true / false / null / undefined / '' / [] 不产生节点；数字（0、NaN）和 bigint（0n）当作文本渲染」 | 「false / null / undefined 才不渲染」（漏 true）「假值都不渲染」 |
+| Vue 的 v-if / v-else | 「模板里的 v-if / v-else 切换会重建（编译器注入了不同的 key；前提是没包 KeepAlive）；渲染函数里写三元和 React 一样复用」 | 「Vue 的 v-if 总是销毁重建」（不带模板与 KeepAlive 前提）「Vue 不复用、React 复用」 |
+| v-show | 「只切 display，不走挂载 / 卸载 / 停用 / 激活钩子；组件上的 v-show 切换时组件被强制更新，onBeforeUpdate / onUpdated 照常」 | 「v-show 不走任何生命周期钩子」 |
+| Activity 与 KeepAlive | 「都保留 state；Activity 由 React 清理 Effect、DOM 用 display: none 留在原地；KeepAlive 停用时 watch 与重新渲染都不停、DOM 移出文档」 | 「Activity 就是 React 版的 KeepAlive」「Activity 更接近 KeepAlive 的停用」 |
+| Activity 的版本 | 「19.2 起（19.2 发布博客、@types/react 的 @version 19.2.0）」 | 引参考页说版本（参考页没写） |
+| 0 陷阱怎么拦 | 「左边写成布尔值（> 0）；TypeScript 拦不住（ReactNode 含 number / bigint）；eslint-plugin-react 的 jsx-no-leaked-render 能拦（本项目没装）」 | 「TS 会报错」「lint 会报」（不说是哪个插件） |
+| Vue 插值里的 && | 「插值里 0 显示「0」，false 显示「false」；插值里的条件写三元或改用 v-if」 | 「Vue 没有 0 陷阱」（不区分 v-if 与插值） |
+
 ## 每题状态（阶段 2 起填写）
 
 | 题号 | 主题 | 状态 | 改动摘要 | 遗留问题 |
@@ -816,6 +867,7 @@
 | 02 | Props | **完成** | 四个区块：props 的类型、解构与默认值（默认值实验表：没传 / undefined / null / 空串 / 无值写法）、props 只读与回调上浮（开发构建 TypeError、onAmountChange、快照）、不要把 props 复制进 state（useState 镜像 vs 直接读、initialPrice + 换 key）、接收原生属性（ComponentPropsWithRef + {...rest}、className / style 合并、ref 作为 prop）；Vue 侧 3.5 响应式 props 解构、布尔转型、改 props 只警告、props 是响应式对象、inheritAttrs + useAttrs、多根组件、组件 ref + defineExpose；React 20 条 + Vue 13 条测试；了结 P-02-1～5。详见 2.12 | 12 题改写时补：ref 回调与清理函数、useImperativeHandle、RefObject / MutableRefObject、useRef 必传参数、组件 ref + defineExpose（02 已写「12 题改写时补」，12 改完回头改成「见 12 题」）；28 题改写时补：ReactNode 与 ReactElement 的取舍、全局 JSX → React.JSX、useRef 必传参数、Vue 泛型组件 generic（同上）；17 题改写时核对 02 的「默认值新引用让 memo 失效」；19.3 升级后核 forwardRef 是否标弃用；35 新增后回填交叉引用 |
 | 03 | State 与 useState | **完成** | 七个区块：为什么需要 state（局部变量 vs useState、state 属于实例）、setter 只影响下一次渲染（快照、A / B、设成当前值）、对象 / 数组整体替换（原地改 + 同一个引用被跳过）、惰性初始化（调用次数面板）、state 的结构（存 id vs 存对象、status vs 两个布尔值）、useReducer（reducer 导出单测）、两个常见报错（Too many re-renders、函数存进 state）；Vue 侧普通 let 变量、DOM 在 nextTick 才变、setup 只执行一次、存同一个响应式对象 / 副本 / id、渲染中改数据的 Maximum recursive updates；React 24 条 + Vue 14 条测试；了结 P-03-1～3。详见 2.13 | 21 题改写时补：深嵌套拍平（03 二-10 已写原文，21 只讲了 Immer）与 Vue 侧 reactive 的三条限制 / ref 首选（R2-21-9；03 已写，21 可指回 03）；17 题改写时补 Compiler 小节（03 九已写「17 题改写时补」）；33 / 34 / 35 新增后回填交叉引用；19.3 升级后无需改（本课没用到 19.3 的 API） |
 | 04 | 事件处理 | **完成** | 六个区块：绑定与传参（传函数不要调用、回调 prop 以 on 开头、❌ 列表渲染时就删光）、事件对象（target / currentTarget / nativeEvent.currentTarget 是 root 容器、setTimeout 里 currentTarget 为 null）、事件传播（React 捕获 / 冒泡与原生监听器同一份日志比先后、stopPropagation 挡住谁、onScroll 不冒泡 / onScrollCapture / onFocus 冒泡）、默认行为（preventDefault 只拦默认动作、只 stopPropagation 的勾选框、form onSubmit、.self）、Vue 修饰符的 React 写法（.once、按键与 .exact、输入法组字、鼠标键与右键菜单）、onWheel 是被动监听；Vue 侧 v-on 直接绑元素（与原生监听器交错）、修饰符实现、@click.right 改写成 contextmenu、@wheel.prevent 生效、组件事件不冒泡与透传反例；React 22 条 + Vue 15 条测试；了结 P-04-1～5。详见 2.14 | 17 题改写时补 Compiler 对内联处理函数的记忆化（04 九已写「17 题改写时补」）；07 题可补「提交按钮 onClick 跑在校验之前」的一句（04 二-6 已有测试）；31 / 34 / 35 新增后回填交叉引用；19.3 升级后核 onFullscreenChange 与 submitter |
+| 05 | 条件渲染 | **完成** | 四个区块：分支就是 JavaScript（switch 提前 return、return null、JSX 存进变量、三元、&&、查表）、&& 的 0 陷阱（0 / NaN 渲染出来、> 0 与 Number.isFinite、true / 0n 等取值表、TS 拦不住）、UI 树里的位置决定 state 的去留（三行对照：三元同类型保留、key 重置、不同位置重置）、隐藏还是卸载（&& / hidden 属性 / <Activity>，日志记 Effect 建立与清理）；Vue 侧模板 v-if / v-else 注入 key（compileTemplate 测试）与渲染函数三元复用、插值里 0 与 false、v-show 触发 onUpdated、KeepAlive 停用期间 watch 不停与 DOM 移出文档；React 7 条 + Vue 9 条测试；了结 P-05-1 / 3 / 4。详见 2.15 | 06 题改写时补 v-if 与 v-for 同用（05 三已写「06 题改写时补」）；P-05-2（Activity 与 Suspense）留给 32 题；32 新增后回填 Activity 的交叉引用；19.3 升级后核 <ViewTransition> 与 Activity 的配合 |
 | 20 | 错误边界 | **完成** | 手写 class 边界主线（fallback / onError / onReset / resetKeys）+ react-error-boundary 可运行并排；「接得住 / 接不住」8 个按钮 + useTransition 同步 / async、顶层 startTransition、lazy 缓存；createRoot 小根演示 onCaughtError / onUncaughtError 与整棵界面被移除；Vue 侧 ErrorBoundary.vue、捕获面、出错组件的两种表现、传播规则与 errorHandler；React 15 条 + Vue 12 条测试；了结 P-20-1～5。详见 2.9 | 31 / 32 / 33 / 34 新增后回填交叉引用；18 题可补一句 RouterProvider onError（7.11 起）与 throw data 404 |
 | 16 | 全局状态（Zustand） | **完成** | Zustand 5 主线五个区块（selector 与 useShallow + Profiler 渲染计数 / 组件外读写 + subscribe + 异步 action + persist 与 migrate / Context + useReducer 并排 / createStore + Context 每实例一份 / RTK 只读对照）；Vue 侧 Pinia setup store + 迷你持久化插件 + 模块级 reactive；React 19 条 + Vue 15 条测试；了结 P-16-1、3～6（P-16-2 仍是推论）。详见 2.8 | P-16-2（Compiler 与订阅粒度）留给 17 题；33 / 34 / 35 新增后回填交叉引用；首次打开会触发一次 Vite 依赖重新预构建（新发现 9） |
 | 14 | 自定义 Hook 与 Composable | **完成** | useSyncExternalStore 主线（useWindowWidth + getServerSnapshot + useDebugValue）+ Effect 订阅并排 + subscribe 稳定性实验；useInterval（useEffectEvent）与「回调进依赖」反例；防抖搜索（派生 loading，lint 抑制已清）+ let timer 坑；React 12 条 + Vue 8 条测试；了结 P-14-1～5。详见 2.7 | tearing 没有做可视化演示（P-14-3，只讲原理）；32 / 33 / 34 新增后回填交叉引用（03 题 :64「10、14 题」那句已随 03 重写删除，2.13） |

@@ -54,7 +54,7 @@ export const PHASES: TopicPhase[] = [
       {
         slug: '05-conditional-rendering',
         title: '条件渲染',
-        summary: '三元表达式与 && 的用法及陷阱（误渲染 0），对照 v-if / v-else-if。',
+        summary: '分支就是 JavaScript、&& 的 0 陷阱、UI 树里的位置决定 state 的去留（key 重置）、隐藏还是卸载（hidden 属性与 <Activity>），对照 Vue 的 v-if / v-else、v-show 与 <KeepAlive>。',
       },
       {
         slug: '06-list-and-key',
