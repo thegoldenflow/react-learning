@@ -2,7 +2,7 @@
 
 > **用法**：在新会话里发送「读 `docs/upgrade/CONTINUE-PROMPT.md`，按它继续执行」。
 > **一次只开一个会话**执行本文件：`PROGRESS.md`、`eslint-suppressions.json`、README、注册表、`src/shared/` 是共享文件，并行会互相覆盖。
-> 本文件写于 2026-09-17（同日第三次更新），可以反复使用：每个会话都从 `docs/upgrade/PROGRESS.md` 的「下一步」接着做。两者冲突时以 PROGRESS.md 为准。
+> 本文件写于 2026-09-17，2026-09-18 第四次更新（完成 16、20 之后），可以反复使用：每个会话都从 `docs/upgrade/PROGRESS.md` 的「下一步」接着做。两者冲突时以 PROGRESS.md 为准。
 
 ---
 
@@ -10,7 +10,7 @@
 
 你是资深前端工程师兼技术讲师，在继续升级 `D:\code\AI\learning\react`：一个「学 React（Vue 3 对照版）」学习站点，每题一个 React 示例（主教学文件，大量中文注释）+ 一个 Vue 3 对照。读者熟悉 Vue、在系统学 React 并准备面试。目标：**学得对、学的是主流、面试能用、上生产不踩坑**。
 
-阶段 0（两轮审计）、阶段 1（依赖与工具链）已完成；阶段 2 的 18 路由样板已完成并**经用户确认**，随后已完成 2-A（Vue 响应式措辞）与 2-B 的 **07、19、11、30、14** 五题。你要做的是：**接着 2-B 的 16 题往下做**（16 → 20 → 26），然后 2-C 其余题 → 阶段 3 新题 31–35 → 阶段 4 一致性检查与交付文档。
+阶段 0（两轮审计）、阶段 1（依赖与工具链）已完成；阶段 2 的 18 路由样板已完成并**经用户确认**，随后已完成 2-A（Vue 响应式措辞）与 2-B 的 **07、19、11、30、14、16、20** 七题。你要做的是：**接着 2-B 的最后一题 26 往下做**，然后 2-C 其余题 → 阶段 3 新题 31–35 → 阶段 4 一致性检查与交付文档。
 
 ## 1. 开工前按顺序读
 
@@ -19,14 +19,14 @@
 3. `docs/upgrade/AUDIT.md` §5.0 决定表（5.1–5.16）和附录 C（两轮审计怎么合起来用）。
 4. `docs/upgrade/AUDIT-ROUND2.md` §3（主线判定）和 §6（D2 决定）。
 5. **样板**：`src/topics/18-routing/` 下全部文件，以及 PROGRESS.md 的 2.1 节。风格、深度、注释密度、测试写法都照它来。
-6. **已完成各题的成品**（同样是样板，越往后写法越接近现在的节奏）：`src/topics/07-forms/`、`19-async-submit/`、`11-api-request-state/`、`30-tanstack-query-server-state/`、`14-composable-and-custom-hook/`，以及 PROGRESS.md 的 2.3–2.7 节（每节都写了「问题表处理」「待核实项结论」「新发现」「验证」四块，新题照这个格式记录）。最新的 30、14 两题最能代表现在的做法：先用只读工作流核实事实，再写代码，测试覆盖每条结论。
-7. PROGRESS.md 的「**统一措辞**」一节（Vue 响应式、表单与事件类型、服务端状态 / TanStack Query、自定义 Hook 与订阅外部数据源四张表）：这些说法已定稿，后续各题直接照用，不要再自己另起一套。
+6. **已完成各题的成品**（同样是样板，越往后写法越接近现在的节奏）：`src/topics/07-forms/`、`19-async-submit/`、`11-api-request-state/`、`30-tanstack-query-server-state/`、`14-composable-and-custom-hook/`、`16-global-state/`、`20-error-handling/`，以及 PROGRESS.md 的 2.3–2.9 节（每节都写了「问题表处理」「待核实项结论」「新发现」「验证」四块，新题照这个格式记录）。最新的 16、20 两题最能代表现在的做法：研究代理核实事实 → 主会话读源码 + 一次性探针测试 → 写代码与测试 → 写文件头 → 反驳式复核代理逐条复核 → 修正后提交。
+7. PROGRESS.md 的「**统一措辞**」一节（Vue 响应式、表单与事件类型、服务端状态 / TanStack Query、自定义 Hook 与订阅外部数据源、全局状态五张表）：这些说法已定稿，后续各题直接照用，不要再自己另起一套。
 
 然后：`git status`（只应有两个未跟踪的规格文件）、`git log --oneline -5`、跑一次 `npm run check` 确认基线是绿的。
 
-## 2. 当前状态（2026-09-17 第三次更新）
+## 2. 当前状态（2026-09-18 第四次更新）
 
-- 分支：`phase-1-toolchain`（34cd734 工具链、b7bcb90 ESLint 10）→ `phase-2-topics`：0e2874b 壳修复、4252967 **18 样板**、c03ae3b / 622bec1 文档、ccfd3db **2-A 统一 Vue 响应式措辞**、111ddfa **07 表单**、b9cc7b1 **19 异步提交**、659c24d **11 请求状态**、6358cbc 接续 prompt、5c04d9e **30 TanStack Query**、61281d7 **14 自定义 Hook**。都**没有 push、没有 PR**，不要自己推送或合并。
+- 分支：`phase-1-toolchain`（34cd734 工具链、b7bcb90 ESLint 10）→ `phase-2-topics`：0e2874b 壳修复、4252967 **18 样板**、c03ae3b / 622bec1 文档、ccfd3db **2-A 统一 Vue 响应式措辞**、111ddfa **07 表单**、b9cc7b1 **19 异步提交**、659c24d **11 请求状态**、6358cbc 接续 prompt、5c04d9e **30 TanStack Query**、61281d7 **14 自定义 Hook**、d869301 接续 prompt、1eb2d3f **16 全局状态**、036fdba **20 错误边界**，之后是本 prompt 的第四次更新。都**没有 push、没有 PR**，不要自己推送或合并。
 - 依赖基线：React 19.2.8、react-router 7.18.3（从 `react-router` 导入，`RouterProvider` 从 `react-router/dom`）、vue 3.5.42、vue-router 5.2.0、pinia 3.0.4、zustand 5.0.15、@tanstack/*-query 5.102.8、react-error-boundary 6.1.3、ESLint 10.8.1、Vitest 4.1.11 + jsdom 29.1.1 + Testing Library（React / Vue）+ @vue/test-utils 2.4.11、TypeScript ~5.9.3、Vite 7.3.6。
 - 已确认的样板风格（5.16）：
   1. 完整十段文件头只写在 `react/Example.tsx`；`vue/Example.vue` 写题目信息 + Vue 侧要点，并指向 React 文件；
@@ -36,8 +36,8 @@
   5. 引用还没建的新题写「（32 题，待新增）」；
   6. 模拟服务可注入延迟（页面上几百毫秒，测试里 0）。
 - 其余已定决定（详见 AUDIT.md §5.0）：不启用 React Compiler（手写记忆化是主线，编译器作【较新】小节）；新增 31–35，36（样式方案）/ 37（表单工程化，需装 react-hook-form + zod）可选、放最后问用户；01–30 不重编号；Redux Toolkit 并入 16（只讲概念，不装依赖）；工程化与 StrictMode 并入 README + 10 / 23；心智模型总结和面试总索引是阶段 4 文档；「严重」按外延解读（D2-1）；22 题保留 effect 手写，在「七、生产环境注意」写三种生产改写（D2-2）；新装或升级依赖取「满 30 天的最新补丁」，已装在用的不降级（5.14）。
-- 当前数字（2026-09-17 第三次更新）：`没有一一对应关系` 90 处 / 46 个文件；`永远` 124 处、`根本没有` 6、`完全相同` 5、`完全一样` 7；`eslint-suppressions.json` 剩 **11 条 / 6 个文件**（10 / 12 / 21 / 23 / 24 / 27）。全量测试 155 条、15 个测试文件。
-- **已经积累的可复用做法**（前五题实测过，后面各题优先照用）：
+- 当前数字（2026-09-18 第四次更新）：`没有一一对应关系` 84 处 / 41 个文件；`永远` 121 处、`根本没有` 6、`完全相同` 5、`完全一样` 7；`eslint-suppressions.json` 剩 **11 条 / 6 个文件**（10 / 12 / 21 / 23 / 24 / 27）。全量测试 215 条、19 个测试文件。
+- **已经积累的可复用做法**（前面各题实测过，后面各题优先照用）：
   1. **请求 / 提交类状态尽量派生，不要在 Effect 体里同步 setState**：把「结果属于哪一次参数」（参数指纹）记进结果，`pending` 由它算出来。一次解决三件事：不碰 `set-state-in-effect` 规则、过期响应不会被当成当前结果（等价官方 ignore 标记）、切换参数时旧数据能留着不闪（等价 `placeholderData: keepPreviousData`）。见 11 题。
   2. **可复现的演示开关**代替随机失败：`failRate: 开关 ? 1 : 0`、`delayMs` 作为组件 prop（页面几百毫秒、测试 20ms；要断言「加载中 / 提交中」这种中间态时用 300ms，20ms 在全量测试里会先结束）。
   3. **焦点要等重新渲染之后再移**：提交中输入框是 disabled，`catch` 里直接 `focus()` 不生效 —— React 侧放进 effect，Vue 侧 `await nextTick()`。
@@ -49,7 +49,13 @@
   9. **测试的几个坑**：自己的 `afterEach` 比 RTL 的自动 cleanup 先执行（Vitest 的 after 钩子倒序），要清 QueryClient 之类的外部状态时先调 `cleanup()`；同一个 `act` 里的多次更新会合并成一次渲染，要观察中间渲染（fake timers 推进、useSyncExternalStore 更新）就分多段 act，比如 100ms 一步；userEvent 之后不要在两次 await 之间做同步断言，把「旧数据还在 + 新状态」放进同一个 waitFor；故意触发错误边界 / Hooks 规则报错的用例要 spy `console.error` 并断言，别让它进 stderr；Vue 测试文件里有多个 `defineComponent` 探针时加文件级 `/* eslint-disable vue/one-component-per-file -- 原因 */`。
   10. **浏览器面板是隐藏的**（`tabs_context` 会说 hidden）：`document.visibilityState` 是 hidden，定时器被节流、不跑渲染帧。视口模拟会改 innerWidth 但不派发 resize，要手动 `window.dispatchEvent(new Event('resize'))`；依赖「页面可见」的逻辑（TanStack 的暂停请求恢复）可以用一次性探针把 `visibilityState` 改成 visible 再派发 `visibilitychange`，并在 PROGRESS 里写明。
   11. **lint 会直接拦下的反例**：教学反例（条件调用 Hook、Vue 式 `let timer`、Effect 里同步 setState 等）要保留时，在报错那一行加 `eslint-disable-next-line <规则> -- 原因`，并在注释里写上实测报错文案；React Compiler 系规则有时会在两处各报一次（赋值处和使用处），两处都要加。
-  12. 外部 store 做演示日志（`createDemoLog` / `createRequestLog`）：queryFn、mutation 回调、Effect 里写日志都不碰 React state，用 `useSyncExternalStore` 读；计数类实验的显示放在兄弟组件里，免得「重渲染 → 重订 → 计数 → 重渲染」绕圈（14 题 SubscribeLab）。
+  12. 外部 store 做演示日志（`createDemoLog` / `createRequestLog` / 20 题 `errorLog.ts`）：queryFn、mutation 回调、Effect 里写日志都不碰 React state，用 `useSyncExternalStore` 读；计数类实验的显示放在兄弟组件里，免得「重渲染 → 重订 → 计数 → 重渲染」绕圈（14 题 SubscribeLab）。
+  13. **没开 Ultracode 时不能用 Workflow**（工具说明要求用户明确同意）：改用 Agent 工具，写代码前起 2 个只读研究代理（一个查官方文档原文并用脚本逐字校验引文，一个查 npm / node_modules 源码行号），写完文件头后再起 1 个**反驳式复核代理**逐条查引文、行号、版本、绝对化措辞、交叉引用（16 题复核出 24 条、20 题 10 条，都是实打实的问题，这一步不要省）。并发上限 2；研究期间主会话照样读源码、写代码。结果让代理写成 scratchpad 里的 JSON，再用 node 脚本拍平成文本读。
+  14. **一次性探针测试**：对「实际行为是什么」拿不准时，先在题目录里写一个 `probe.test.tsx` 跑 `npx vitest run <文件> --silent=false --reporter=verbose`（不加这两个参数看不到 console.log），把结果写进课件后删掉探针。16 题的 selector 行为、20 题的「接得住 / 接不住」矩阵、Vue 渲染错误的两种表现都是这样定下来的。
+  15. **做下一题时想先提交上一题**：`git stash push --include-untracked -m wip -- src/topics/<下一题目录>` → `npm run check` → 按显式路径 `git add` + commit → `git stash pop`。检查必须在「只有要提交的改动」的状态下跑。
+  16. **渲染次数**用 React 自带的 `<Profiler onRender>`（16.9 起；生产构建不调用）统计，计数放外部 store、单独面板显示（16 题 `renderCounts.tsx`）；Vue 侧用 onMounted / onUpdated 计数、provide / inject 传计数器。
+  17. **错误类测试的坑**（20 题）：被边界接住的错误 React 开发环境默认 console.error 打印，每个用例 spy 并断言；jsdom 没有 `window.reportError`，React 会自己派发 window 的 error 事件（用 `preventDefault` 收住）；Vitest jsdom 环境的 setTimeout 是 Node 定时器，回调里 throw 会变成进程级错误让整个测试失败，用 fake timers + `expect(() => vi.runOnlyPendingTimers()).toThrow()`；async 函数的拒绝走 Node 的 `unhandledRejection`，临时 `process.on` 收住；**act 里没接住的错误会被 act 重新抛出，onUncaughtError 不会被调用**，要测它得临时把 `IS_REACT_ACT_ENVIRONMENT` 设成 false、用原生 `.click()`；在 effect cleanup 里用 queueMicrotask 卸载的嵌套 root，测试末尾要 `await act(async () => view.unmount())`，否则报「An update to Root inside a test was not wrapped in act」。
+  18. 新引入的依赖子路径（如 `zustand/react/shallow`、`zustand/middleware`）第一次在 dev 服务器里被请求时，Vite 会重新预构建并自动刷新一次，刷新前控制台会出现一次「Invalid hook call」（两份预构建的 React 混用），属于 Vite 开发模式现象；浏览器验证时刷新一次再开始收集控制台。
 
 ## 3. 还要做的事（按这个顺序）
 
@@ -66,16 +72,16 @@
 
 ### 3.2 阶段 2-B：主线判定题（每题 1 个 commit，按顺序）
 
-`07 → 19 → 11 → 30 → 14 → 16 → 20 → 26`。**07（111ddfa）、19（b9cc7b1）、11（659c24d）、30（5c04d9e）、14（61281d7）已完成，从 16 开始做。** 主线口径已确认（AUDIT-ROUND2.md §3 有官方原文依据，直接采用）：
+`07 → 19 → 11 → 30 → 14 → 16 → 20 → 26`。**07（111ddfa）、19（b9cc7b1）、11（659c24d）、30（5c04d9e）、14（61281d7）、16（1eb2d3f）、20（036fdba）已完成，从 26 开始做。** 主线口径已确认（AUDIT-ROUND2.md §3 有官方原文依据，直接采用）：
 - **07 表单 —— 已完成（111ddfa，见 PROGRESS 2.3）**：受控（`value` + `onChange`）与非受控（`defaultValue` + `FormData`）两种基础写法都是主线；加 `useId`【主流】；Actions 写法指向 31（待新增）。「八、旧写法对照」只放 React 18 差异（`useFormState` → `useActionState` 更名、18 没有 `<form action>`），**不要把受控写法标成旧写法**。`FormEvent` 在 @types/react 19.2 已 `@deprecated`，改用 `SubmitEvent`（待核实项 M-2，先核实 `node_modules/@types/react/index.d.ts`）。
 - **19 异步提交 —— 已完成（b9cc7b1，见 PROGRESS 2.4）**：手写 `submitting` + 防重复（useState + ref 锁）是主线；`useTransition` / `useActionState` 的 `isPending` 作并排，指向 31。
 - **11 请求状态 —— 已完成（659c24d，见 PROGRESS 2.5）**：在 Effect 里手写请求，讲透四态建模（判别联合）+ 竞态 + 取消 + 重试；文件头写明「教学用，生产用缓存层，见 30」，并引用 react.dev useEffect 页对 Effect 取数缺点的原文。路由 loader 作并排（指向 18），`use(promise)` 只作【较新】引用（指向 32，待新增）。
-- **下一题 16 之前先看**：30 题已经把「服务端状态不进 store」讲透（does-this-replace-client-state 页原文、区块五缓存观察窗），16 题只需交叉引用、不要重复；14 题已核实 zustand 5.0.15 的 `useStore` 就是 `React.useSyncExternalStore(api.subscribe, useCallback(() => selector(api.getState())), useCallback(() => selector(api.getInitialState())))` + `useDebugValue`（`node_modules/zustand/esm/react.mjs:5-13`），「selector 返回新对象会怎样」「为什么要 useShallow」可以直接接 14 题「getSnapshot 必须稳定」的结论（14 题有测试）。pinia 已装 3.0.4，pinia 4 于 2026-07-14 首发、不满 3 个月，按规格 §4 只作【尝鲜】介绍；Redux Toolkit 只讲概念、不安装（决定 5.0 表）。16 题有无 lint 抑制：没有（剩下的 11 条在 10 / 12 / 21 / 23 / 24 / 27）。
+- **（16 题做之前的提示，保留备查）**：30 题已经把「服务端状态不进 store」讲透（does-this-replace-client-state 页原文、区块五缓存观察窗），16 题只需交叉引用、不要重复；14 题已核实 zustand 5.0.15 的 `useStore` 就是 `React.useSyncExternalStore(api.subscribe, useCallback(() => selector(api.getState())), useCallback(() => selector(api.getInitialState())))` + `useDebugValue`（`node_modules/zustand/esm/react.mjs:5-13`），「selector 返回新对象会怎样」「为什么要 useShallow」可以直接接 14 题「getSnapshot 必须稳定」的结论（14 题有测试）。pinia 已装 3.0.4，pinia 4 于 2026-07-14 首发、不满 3 个月，按规格 §4 只作【尝鲜】介绍；Redux Toolkit 只讲概念、不安装（决定 5.0 表）。16 题有无 lint 抑制：没有（剩下的 11 条在 10 / 12 / 21 / 23 / 24 / 27）。
 - **30 TanStack Query —— 已完成（5c04d9e，见 PROGRESS 2.6）**：v5 作生产默认【主流】；讲 `status × fetchStatus` 两个维度，v4 术语标【旧写法】；补 `useSuspenseQuery` 一节。和 18 交叉说明两种主流组合：「Data 模式 loader 取数」和「任意路由 + TanStack Query」，各自由谁负责 pending / 错误 / 失效重取。`fetchQuery` 已标 `@deprecated`，指向 `queryClient.query()`（M-8，先核实版本）。
 - **14 自定义 Hook —— 已完成（61281d7，见 PROGRESS 2.7）**：`useWindowWidth` 这类订阅浏览器 API 的 Hook 主线改为 `useSyncExternalStore`；`useEffect` + `setState` 订阅作过渡对照（讲撕裂与 SSR 快照）。防抖 Hook 仍用 `useEffect`。把 `react/*.ts` 的 lint 抑制清掉。
-- **16 全局状态**：Zustand 5 主线（`create` + selector + `useShallow`）对照 Pinia；Context + `useReducer` 作 React 内置并排；Redux Toolkit 作【主流·存量】对照一节（概念 + 示意代码，不安装）。
-- **20 错误边界**：手写 class 是主线（解释为什么必须是 class）；`react-error-boundary`（已安装）作可运行的并排（`fallbackRender`、`onError`、`resetKeys`、`useErrorBoundary`）。补「异步错误一般捕获不到，例外是 `useTransition` 返回的 `startTransition`」（官方原文见 AUDIT-ROUND2.md §3.6）和 React 19 的 `onCaughtError` / `onUncaughtError`。Vue 侧 `onErrorCaptured` 对 Promise 拒绝的捕获范围先运行验证（M-3、D2-5）。
-- **26 过期闭包**：修法优先级为 ① 函数式更新 → ② 写对依赖 → ③ `useEffectEvent`【较新·19.2 起】作主线示例（写全官方四条限制）→ ④ latest ref 作并排（React 18 项目仍需要）。以 AUDIT-ROUND2 §3.7 为准；AUDIT.md §4.3 表里「latest ref 回到主线」那句已被附录 C 覆盖。
+- **16 全局状态 —— 已完成（1eb2d3f，见 PROGRESS 2.8）**：Zustand 5 主线五个区块（selector / useShallow + Profiler 渲染计数、组件外读写 + subscribe + 异步 action + persist / migrate、Context + useReducer 并排、createStore + Context、RTK 只读对照）；Vue 侧 Pinia setup store + 迷你持久化插件（注册表 vuePlugins 装到新建的 pinia 上）+ 模块级 reactive。
+- **20 错误边界 —— 已完成（036fdba，见 PROGRESS 2.9）**：手写 class 边界主线（fallback / onError / onReset / resetKeys 做成 props）+ react-error-boundary 可运行并排；「接得住 / 接不住」8 个按钮逐条测试（含 useTransition 例外与顶层 startTransition 进不了）；createRoot 小根演示 onCaughtError / onUncaughtError；Vue 侧可复用 ErrorBoundary.vue、捕获面、传播规则与 errorHandler。
+- **26 过期闭包（下一题）**：修法优先级为 ① 函数式更新 → ② 写对依赖 → ③ `useEffectEvent`【较新·19.2 起】作主线示例（写全官方四条限制）→ ④ latest ref 作并排（React 18 项目仍需要）。以 AUDIT-ROUND2 §3.7 为准；AUDIT.md §4.3 表里「latest ref 回到主线」那句已被附录 C 覆盖。
 
 ### 3.3 阶段 2-C：其余题（每题 1 个 commit，按编号）
 
@@ -180,6 +186,8 @@ node -e "const {execSync}=require('child_process');const fs=require('fs');const 
 - Chrome 实测记录（写课件可直接引用，注明「Chrome 实测」）：`type="number"` 的 value 设成「12.」「1e」「-」读回来都是空串、`valueAsNumber` 为 NaN；受控输入拒绝输入时值被改回、光标跳到末尾；文本框的原生 `change` 在失焦时才触发。
 - 30 题已核实、可以直接引用的 TanStack Query 事实（详见 PROGRESS 2.6）：5.102.8 三个包共用 query-core；isLoading = isPending && isFetching、isRefetching = isFetching && !isPending（queryObserver.js:237-265）；默认 staleTime 0、gcTime 客户端 5 分钟 / 服务端 Infinity、retry 客户端 3 / 服务端 0（间隔 1s、2s、4s…上限 30s）、mutation retry 0；hashKey 对纯对象键排序；取消只在 queryFn 读过 signal 时发生（query.js:132-141）；请求失败自动 isInvalidated；mutation 回调顺序（useMutation 级先、mutate 级后且只对最后一次、组件卸载后不执行）；`queryClient.query()` 5.102.0 起、同版弃用 fetchQuery / prefetchQuery / ensureQueryData；`staleTime: 'static'` 5.79.0 起；vue-query-devtools 版本号走 6.x；vue-query 的 `suspense()` 默认不 reject；onlineManager 是全局单例、React / Vue 两侧共用；暂停的请求要在线且页面可见才继续。
 - 14 题已核实的事实（详见 PROGRESS 2.7）：react-dom 19.2.8 的 useSyncExternalStore 在开发环境连调两次 getSnapshot，不同就 console.error「should be cached」（:8130），随后无限重渲染抛「Maximum update depth exceeded」；subscribe 换引用就重订（effect 依赖 [subscribe]）；服务端渲染缺 getServerSnapshot 抛「Missing getServerSnapshot ... Will revert to client rendering.」；「Rendered more hooks than during the previous render.」（:7848）/「Rendered fewer hooks than expected. This may be caused by an accidental early return statement.」（:7718）；eslint-plugin-react-hooks 7.1.1 的 isHookName 是 `/^use[A-Z0-9]/` 或单独的 use；Vue watcher 停止时 onWatcherCleanup / onCleanup 注册的清理函数会执行（reactivity effect.onStop），组件卸载时 `scope.stop()`；toValue 3.3+、onWatcherCleanup 3.5+；React 18 博客里没有 tearing 这个词。
+- 16 题已核实的事实（详见 PROGRESS 2.8）：zustand 5.0.15 的 useStore 就是 `React.useSyncExternalStore(api.subscribe, useCallback(() => selector(api.getState())), useCallback(() => selector(api.getInitialState())))`（esm/react.mjs:5-13），服务端快照读 getInitialState；selector 返回新对象时开发环境先 console.error「The result of getSnapshot should be cached」再抛「Maximum update depth exceeded」；useShallow 只比较一层；set 先 Object.is 判断、返回原 state 不通知；persist 下 getInitialState 返回水合前的值、localStorage 同步水合、版本不一致没 migrate 会 console.error 并丢弃；devtools 没装扩展时不包装 setState，不写 action 名时先从调用栈推断；`zustand/traditional` 与 `zustand/middleware/immer` 在本仓库缺可选 peer、无法导入。Pinia 3.0.4：setup store 调默认 $reset 开发环境抛「does not implement $reset()」；$subscribe 默认 flush 'pre' + deep，$patch 同步回调一次，**$patch 之后同一 tick 的直接修改默认不回调**（要 flush: 'sync'）；$onAction 的 detached 是第二个位置参数；onError 注释里的「return false」没有实现。Vue 3.4 起 computed 结果没变不通知下游。`<Profiler>` 16.9 起。
+- 20 题已核实的事实（详见 PROGRESS 2.9）：react-dom 19.2.8 默认 onCaughtError = console.error（传了回调就不打印），onUncaughtError = reportError + 开发环境 console.warn；被接住的错误不触发 window 的 error 事件（Component 页「bubble up to window」是旧行为）；事件处理函数错误在 executeDispatch 里 try / catch 后交给 reportError，其他监听照常执行；只有 useTransition 返回的 startTransition 的错误进边界，顶层 startTransition 不进；lazy 失败被缓存，重置边界不会重新下载；act 里没接住的错误由 act 重新抛出、不调 onUncaughtError。Vue：模板上的事件处理函数（含 async 被拒绝）、watch 回调进 onErrorCaptured；渲染函数里抛错的组件渲染成空注释，computed 在更新前抛错时 info 是 'component update' 且界面停在上一次；onUnmounted 里模板 ref 已是 null。`<RouterProvider onError>` 7.11.0 起稳定；react-error-boundary 6.1.3（6.0 起只发 ESM，6.1.4 修了 throw null 重置）。
 - 18 题已核实、可以直接引用的 React Router 事实：同一次导航里父子 loader 并行（`defaultDataStrategy` 里的 `Promise.all`）；多个 loader 同时 redirect 时最深一层优先（`findRedirect` 从后往前找）；middleware 不调用 `next()` 会自动继续，`next()` 只能调用一次；Data 模式专有 hook 在非 Data 路由下会抛「must be used within a data router」；redirect 到跨域绝对地址会整页跳转；memory history 只有第一条记录的 key 是 `"default"`。vue-router 5 的 memory history 不记录 `back`。
 
 ## 7. 会话结束前（或上下文快满时）
