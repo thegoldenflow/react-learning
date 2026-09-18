@@ -214,7 +214,7 @@ export const PHASES: TopicPhase[] = [
         slug: '30-tanstack-query-server-state',
         title: 'TanStack Query 与服务端状态',
         summary:
-          'query key、缓存与 staleTime、loading / error / data、refetch、mutation 与失效重取；服务端状态不等于本地 UI state，React Query 对照 Vue Query。',
+          'TanStack Query v5：queryKey 与缓存、status × fetchStatus、mutation 与失效、两种乐观更新、分页 / 依赖查询、useSuspenseQuery；服务端状态不等于客户端状态，react-query 与 vue-query 共用 query-core。',
         vuePlugins: async () => {
           // 懒加载 30 题的 Vue Query 插件（每次挂载新建 QueryClient，与 React 侧 useState(() => new QueryClient()) 对称）
           const { createTopic30QueryPlugin } = await import('../topics/30-tanstack-query-server-state/vue/queryPlugin')

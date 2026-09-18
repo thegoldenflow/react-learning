@@ -9,7 +9,7 @@
 |---|---|---|---|---|
 | 0 | 审计（只读） | **完成。** 两轮审计均完成；用户 2026-09-17 答复「全部按建议执行」（AUDIT-ROUND2.md §6 D2-1～8，记录在 AUDIT.md §5.13）；两轮合并规则写在 AUDIT.md 附录 C | `docs/upgrade/AUDIT.md`（含 §5.13、§5.14、附录 C）、`docs/upgrade/REAUDIT-PROMPT.md`、`docs/upgrade/AUDIT-ROUND2.md` | 两轮审计与合并说明均已提交（d550e27、1efc217） |
 | 1 | 依赖与工具链调整 | **完成（2026-09-17）**：commit「阶段 1：依赖与工具链调整」（34cd734）+「阶段 1 补充：ESLint 9 → 10（D1-1）」 | package.json / package-lock.json、vitest.config.ts、eslint.config.js + eslint-suppressions.json、tsconfig.json、src/test/、4 处 react-router 导入、README 事实行 | 复核口径与全部记录见下文「阶段 1 记录」；版本决定见 AUDIT.md §5.0 的 5.14、5.15 |
-| 2 | 逐主题修改（先改 18 路由样板） | **进行中**（分支 `phase-2-topics`）：前置 commit（壳修复，2.0）、**18 路由样板**（2.1，风格已确认，AUDIT.md §5.0 的 5.16）、**2-A Vue 响应式措辞批量修正**（2.2，措辞见「统一措辞」）、**2-B 的 07 表单**（2.3）、**19 异步提交**（2.4）、**11 API 请求状态**（2.5）已完成。**下一步：2-B 的 30 TanStack Query**（其后 14 → 16 → 20 → 26，再做 2-C），做法见 `docs/upgrade/CONTINUE-PROMPT.md` | 每题一个 commit | 样板已确认，其余题不再逐题停 |
+| 2 | 逐主题修改（先改 18 路由样板） | **进行中**（分支 `phase-2-topics`）：前置 commit（壳修复，2.0）、**18 路由样板**（2.1，风格已确认，AUDIT.md §5.0 的 5.16）、**2-A Vue 响应式措辞批量修正**（2.2，措辞见「统一措辞」）、**2-B 的 07 表单**（2.3）、**19 异步提交**（2.4）、**11 API 请求状态**（2.5）、**30 TanStack Query**（2.6）已完成。**下一步：2-B 的 14 自定义 Hook**（其后 16 → 20 → 26，再做 2-C），做法见 `docs/upgrade/CONTINUE-PROMPT.md` | 每题一个 commit | 样板已确认，其余题不再逐题停 |
 | 3 | 补充新主题 | 未开始 | | 按阶段 0 确认的清单 |
 | 4 | 一致性检查 + CHANGELOG | 未开始 | `docs/upgrade/CHANGELOG.md` | |
 
@@ -281,6 +281,47 @@
 
 **验证**：`npm run check` 通过（lint 0 / typecheck 0 / 99 条测试 / build）；11 的 14 条测试无 act 警告、无 stderr。浏览器用临时 5174 服务器（完成后已停掉并还原 launch.json）：两侧初始 8 行；React 切换关键词时「刷新中…」出现且旧 8 行仍在，完成后 1 行、指纹 `张|1|false`；失败开关 → role="alert" + 重试按钮 → 关掉后恢复；Vue 侧同样（指纹 `王|1|false`）。捕获到的 console.error / console.warn 为 0。
 
+### 2.6 30 TanStack Query 与服务端状态（2026-09-17）
+
+**蓝本与依据**：AUDIT-ROUND2.md §5 的 30 大纲 + §3.3（TanStack v5 生产默认，loader 并排指向 18，`use(promise)` 只作【较新】引用指向 32）；问题表 = R2-30-1～12 + AUDIT.md §3 的 30 各行（含 §4 备注里「以第一轮为准」的 :809 uSES subscribe、:810 `<script setup>` 导出类型、:811 `as` 断言、:813 交叉引用）。核实用了一个只读工作流（3 个研究代理：query-core / react-query / vue-query 源码 19 条、官方文档 15 条、进阶文档 + npm / CHANGELOG 10 条；每份结果再配一个反驳式复核代理），44 条里 38 条确认、6 条措辞修正，修正后的说法已写进课件。
+
+**结构（React 8 个文件，Vue 13 个文件）**
+- `react/Example.tsx`：十段文件头 + 入口（`useState` 建 QueryClient 与演示工具）+ `OrdersWorkbench`（本地 UI state：筛选、页码、保留上一页、选中行、每秒时钟）。
+- `react/ordersDemo.ts`：key 工厂（`['orders','list',{status,page}]` / `['orders','detail',id]` / `['orders','stats']`）+ `queryOptions()` 定义 + `createDemoQueryClient`（演示配置，测试可调 staleTime）+ 每次进入新建的演示工具（外部 store 日志、「下一次失败」开关、延迟）。queryFn 从 context 取 queryKey / signal。
+- `react/OrdersListPanel.tsx`【区块一、二】：筛选 / 翻页 / 「保留上一页」/ 刷新 / 模拟失败 / 模拟断网（Effect 同步到全局 onlineManager，cleanup 恢复）；status × fetchStatus 实时状态表；同 key 徽标；mutation 三种做法（失效重取 / 乐观·variables / 乐观·onMutate 改缓存 + 回滚）+ 失败开关 + mutation 状态表；两层回调写进日志。`select` 改用类型守卫。
+- `react/OrderDetailPanel.tsx`【区块三】：`enabled` 依赖查询，pending + idle 状态表。
+- `react/SuspenseStatsPanel.tsx`【区块四】：`useSuspenseQuery` + 自带 `Suspense` + `QueryErrorResetBoundary` + react-error-boundary；`resetQueries` 触发重新挂起 / 首次失败进错误边界。
+- `react/CacheInspector.tsx`【区块五】：本地 UI state 与 QueryCache 全部条目（queryHash、status、fetchStatus、观察者、已失效、几秒前）并排 + 运行日志；`useSyncExternalStore` 的 subscribe 用 `useCallback`（修第一轮 :809 的 Pitfall）+ `notifyManager.batchCalls`。
+- `react/LoaderVsQueryCard.tsx`【区块六，只读】：路由 loader 与 TanStack 的分工表 + 并用骨架（官方 examples/react/react-router 的 `ensureQueryData` + `useSuspenseQuery`；`queryClient.query()` 标【尝鲜】）。
+- Vue 侧：`Example.vue`（精简头）、`OrdersWorkbench.vue`、`OrdersListPanel.vue`（`defineModel` 的 filters / keepPrevious；key 里放 getter；`placeholderData` 传 computed；不解构的坑演示；watch + `onWatcherCleanup` 同步 onlineManager）、`OrdersCountBadge.vue`、`QueryStatusTable.vue`、`OrderDetailPanel.vue`、`SuspenseStatsPanel.vue` + `OrderStatsView.vue`（`<Suspense :timeout="0">` + 顶层 `await suspense()` + `onErrorCaptured`，换 key 重新挂起）、`CacheInspector.vue`、`LoaderVsQueryCard.vue`、`ordersDemo.ts`、`queryPlugin.ts`（改用 `createDemoQueryClient`）。
+- 壳：`topicRegistry.ts` 30 题 summary 改为 v5 术语（去掉「React Query」「loading / error / data」）。README 只改 30 题相关的事实行（目录行、对照表 useQuery 行、说明段、面试题行、「待完善」里 30 题那条）。
+- 测试：React 22 条、Vue 14 条（全仓库 13 个文件 135 条）。
+
+**问题表处理**：R2-30-1 react.dev 原文 + overview 四个特征原文 + 区块六（loader / 并用）+ 四-3/4（`use(promise)` → 32）；R2-30-2 哈希规则原文 + 测试 + 区块五显示排序后的 queryHash；R2-30-3 status × fetchStatus 全组合（含 paused、enabled 时的 pending + idle）与重取触发默认值；R2-30-4 mutation 默认不重试、两层回调先后、卸载后 mutate 级不执行、mutateAsync（都有测试）；R2-30-5 两种乐观更新可运行并排 + 测试，useOptimistic 指向 31；R2-30-6 取消是 opt-in（读 signal 才 abort），StrictMode 下读 / 不读 signal 两个测试；R2-30-7 结构共享 + tracked properties（`...rest`）+ select，两条测试；R2-30-8 keepPreviousData 与 enabled 都做成可运行区块 + 测试；R2-30-9 useSuspenseQuery 可运行区块 + throwOnError 默认值 + QueryErrorResetBoundary；R2-30-10 v4 → v5 改名清单 + 包名 v4 起改名 + 全文成熟度标签，注册表 summary 同步；R2-30-11 演示简化全部标出 + SSR（模块级 client 会跨用户共享、`useState` 建、gcTime Infinity、HydrationBoundary → 33）+ response.ok；R2-30-12 残留清零、删掉「React 本身只有 useState / useEffect」、两侧 devtools 都写。第一轮：isPending 不再讲成「首次加载」（改为 status 维度，首次加载中是 isLoading）；:809 subscribe 用 useCallback；:810 `<script setup>` 不能导出类型的错误说法已删（类型放进 `vue/ordersDemo.ts`）；:811 `as` 改守卫（Vue 侧 v-model 绑 `:value` 原值，不需要守卫）；:812 取消的前提写清；:813 Vue 侧文件头已重写，不再引用 16 题 cartStore 注释；:814 useSuspenseQuery / Vue devtools 已补。
+
+**待核实项结论**：
+- P-30-1（StrictMode 日志）：**已核实**。测试 + Chrome 实测：进入本题时 React 侧列表查询 queryFn 执行 2 次、「被取消」1 次，统计查询 1 次；queryFn 不读 signal 时只执行 1 次（测试）；Vue 侧各 1 次。
+- P-30-2（「用最新一次渲染的 queryFn」）：**改写**。普通 useQuery 发请求用的是最近一次提交后 effect 里 `setOptions` 同步给观察者的选项（useBaseQuery.js:35-37、queryObserver.js:139）；复核代理补了反例：Suspense 模式在渲染期 `fetchOptimistic` 就用这次渲染的选项发请求（queryObserver.js:106-120）。课件「五」按两种情况写，并有「同 key 不同 queryFn」测试。
+- P-30-3 / M-8：**已核实**。`staleTime: 'static'` 从 5.79.0（2025-05-29，PR #9139）起，标【较新】；`queryClient.query()` 从 5.102.0（2026-08-22，PR #10658）起，同一版本把 fetchQuery / prefetchQuery / ensureQueryData 标 `@deprecated`（5.102.8 `hydration-Bjs0MSgg.d.ts:465-485`），发布不满 30 天标【尝鲜】。迁移页说旧方法「will be removed in v6」。补充：'static' 只看观察者上的 staleTime，在 `query()` 里传只影响那一次调用（query.js:99-102 `isStatic()`）。
+- P-30-4：迁移页链接 GitHub Discussion #5279，正文指向维护者博客《Breaking React Query's API on purpose》（③，2023-04-16）：回调行为不一致（每个组件各触发一次、从缓存读时不触发、拿来同步状态会失步）；替代按场景：派生状态 / QueryCache 全局回调 / 实在要同步再 useEffect。
+- P-30-5：v4 迁移页「react-query is now @tanstack/react-query」；旧包 `react-query` latest 停在 3.39.3。
+- P-30-6：`@tanstack/react-query-devtools` 有 5.102.8；`@tanstack/vue-query-devtools` 从 2025-11 起版本号走 6.x，6.1.48 对应 vue-query 5.102.8（peer `@tanstack/vue-query ^5.102.8`）。两个都没装，课件只说明。
+- P-30-7：官方 prefetching 指南的 Router Integration 现在用 `queryClient.query()`（并说明 prefetchQuery / ensureQueryData 已弃用）；官方 examples/react/react-router 仍是 loader 里 `await queryClient.ensureQueryData(...)` + 组件 `useSuspenseQuery`。区块六按示例写，新写法标【尝鲜】。
+- P-30-8：vue-query `useBaseQuery.js:69-70` 为 `toRefs(readonly(state))`，已写进 Vue 对照。
+- 仍待核实：mutation 回调第三个参数从 `context` 改名 `onMutateResult`、并新增第四个参数 `context`（含 client）是从哪个 5.x 起（query-core CHANGELOG 没搜到）。
+
+**本次新发现（审计没写到）**：
+1. 5.102.0 起 `ensureQueryData` / `prefetchQuery` / `fetchQuery` 已弃用，大纲「loader 里 ensureQueryData 预取」在新文档里已换成 `queryClient.query()`；课件按「官方示例仍用、旧方法 v5 可用、新方法【尝鲜】」三层写。
+2. Vue Query 官方 reactivity 指南以「queryKey / enabled 里放 ref 或 getter」为主（「enabled and queryKey are the two query options that can accept reactive values」）；类型上整个选项也能写成 getter，但指南没展开，课件不用。另外 **`queryOptions()` + key 里放 ref 这个组合 vue-tsc 推断不出来**（No overload matches，2026-09-17 实测），改成放 getter 就通过 —— Vue 侧工厂参数因此收 `T | (() => T)`。
+3. vue-query 的 `suspense()` 默认不 reject（只有 `throwOnError` 为真才 reject，useBaseQuery.js），所以 Vue 侧要把 throwOnError 写成与 React `useSuspenseQuery` 默认值相同的函数，错误才到得了 `onErrorCaptured`。
+4. Vue `<Suspense>` 显示过内容后，只有 #default 根节点被替换才回到 pending（Vue 文档原文），缓存被清空不会自动重新挂起：Vue 侧用 `removeQueries` + 换 key + `:timeout="0"`；React 侧只要 `resetQueries`。
+5. `onlineManager` 是 query-core 的全局单例，同页 React / Vue 两侧共用（Chrome 实测：React 侧勾「模拟断网」，Vue 侧显示「离线」）；两侧都在 cleanup 里恢复在线，离开本题后两侧都显示「在线」（Chrome 实测 + Vue 卸载测试）。
+6. 暂停的请求要「在线且页面可见」才继续（retryer.js:51 `canContinue`）。Chrome 实测：预览面板隐藏（visibilityState hidden）时恢复网络仍停在 paused，页面一可见就继续。浏览器验证时用一次性探针把 visibilityState 改成 visible 并派发 visibilitychange。
+7. 测试写法：同一个 `act` 里的几次 uSES 更新会合并成一次渲染，要观察「开始请求」「请求完成」两次渲染得分两段 act；自己的 `afterEach` 比 RTL 的自动 cleanup 先执行（Vitest 的 after 钩子倒序），先 `client.clear()` 会让还挂着的组件在 act 之外更新 —— 先调 `cleanup()` 再清缓存。
+8. Vue 3.5.42 开发环境第一次用 `<Suspense>` 会用 console.info 打印「<Suspense> is an experimental feature and its API will likely change.」（测试输出里是 stdout，不是警告）。
+
+**验证**：`npm run check` 通过（lint 0 / typecheck 0 / 135 条测试 / build）；30 的 36 条测试连跑 3 次稳定，无 act 警告、无 stderr（只有上面第 8 条的 stdout）。浏览器用临时 5174 服务器（完成后已停掉并还原 launch.json）：两侧六个区块渲染；StrictMode 日志（React 列表 2 次 + 取消 1 次，Vue 1 次）；keepPreviousData 翻页（isPlaceholderData true、「下一页」禁用、之后换成第 2 页）；模拟断网 → paused → 恢复（见新发现 6）；乐观·改缓存立即「已支付」→ 失败回滚、日志「存了 5 份快照」；乐观·variables「已支付（待确认）」→ 成功后离开待支付列表；只重取正在使用的查询；依赖查询 pending + idle → fetching → 成功；两侧 Suspense fallback / 错误边界（onErrorCaptured）/ 重试；Vue 不解构的坑显示「请求中」；切到 18 / 11 再回来两侧都「在线」；源码查看器 React 8 个、Vue 13 个文件。捕获到的 console.error 1 条：React 开发环境对区块四故意触发的、被错误边界接住的错误的默认报告（页面上已注明）；console.warn 0 条。
+
 ## 统一措辞（各题改写时照用）
 
 ### Vue 响应式（2-A 定稿，2026-09-17）
@@ -314,11 +355,25 @@
 | 开发期报错 | 「开发环境报错（console.error）」 | 「控制台警告」（生产构建没有这些检查） |
 | useId | React 18.0 起；Vue 3.5 起也有 `useId()`（多应用 `app.config.idPrefix`） | 「Vue 没有 useId 对应物」 |
 
+### 服务端状态 / TanStack Query（30 定稿，2026-09-17）
+
+| 要说的事 | 这样写 | 不要这样写 |
+|---|---|---|
+| isPending | 「status === 'pending'，还没有数据」；首次加载中是 isLoading（= isPending && isFetching） | 「isPending = 首次加载中」「isPending = 正在请求」 |
+| 两个维度 | status 回答「有没有数据」，fetchStatus 回答「queryFn 在不在跑」（queries 页原文） | 只用 isPending / isFetching 两个布尔讲 |
+| 取消 | 「queryFn 读了 signal，库才会在 key 切换 / 最后一个观察者离开时 abort；不读就只是不再重试，请求照样跑完」 | 「库自动取消在途请求」「把竞态取消全自动化了」（不带前提） |
+| paused | 「想请求但被暂停：默认 networkMode 'online' 下断网，或重试等待期间页面不可见；在线且页面可见才继续」 | 「paused = 断网」 |
+| 预取 API | ensureQueryData / prefetchQuery / fetchQuery：v5 可用、存量代码最常见，5.102.0 起标 @deprecated；queryClient.query()【尝鲜·5.102.0 起】 | 把 query() 当主线，或不提弃用 |
+| staleTime: 'static' | 【较新·5.79.0 起】，连 invalidateQueries 也不重取；只看观察者上的 staleTime | 「和 Infinity 一样」 |
+| 包名 | @tanstack/react-query（v4 起）；旧名 React Query | 「React Query」当现名 |
+| Vue 响应式参数 | 「把 ref 或 getter 放进 queryKey / enabled」（官方 reactivity 指南）；返回值是一组 ref，要解构 | 「vue-query 返回 reactive 对象」 |
+
 ## 每题状态（阶段 2 起填写）
 
 | 题号 | 主题 | 状态 | 改动摘要 | 遗留问题 |
 |---|---|---|---|---|
 | 18 | 路由（React Router） | **完成（样板已确认）** | Data 模式主线（loader / action / middleware 守卫 / errorElement / lazy / useBlocker / 面包屑）+ 声明式 RequireAuth 三态并排；十段文件头；React 18 条 + Vue 7 条结论测试；Vue 守卫改为返回值写法；safeRedirect 共享实现；源码查看器支持多文件（5.10）。详见 2.1 | 32 / 34 / 35 题新增后回填交叉引用 |
+| 30 | TanStack Query 与服务端状态 | **完成** | v5 主线六个区块（queryKey 与缓存 + status × fetchStatus + 保留上一页 + 断网 / mutation 三种更新方式 / enabled / useSuspenseQuery / 缓存观察窗 / loader 分工）；key 工厂 + queryOptions；React 22 条 + Vue 14 条测试；了结 P-30-1～8、M-8。详见 2.6 | mutation 回调改名的起始版本待核实；31 / 32 / 33 / 34 新增后回填交叉引用；27 题「queryFn({ signal }) 把这一整套自动化了」缺「读了 signal 才取消」的前提，27 题改写时处理 |
 | 11 | API 请求状态 | **完成** | Effect 手写主线（判别联合 + 派生 pending + 取消 + 重试 + 保留旧数据）+ 四种方案速查；lint 抑制已清（M-6 / P-11-2 了结）；React 7 条 + Vue 7 条测试。详见 2.5 | 32 题新增后回填交叉引用；P-11-1 / P-11-3 / P-11-5 留给 30 / 18 / 32 与阶段 4 |
 | 19 | 异步提交与防重复 | **完成** | 手写 submitting 主线（防重复三道关 + 错误分层 + a11y）+ React 19 Actions 可运行并排；共享 mockApi 加 `ApiFieldError`；React 10 条 + Vue 7 条测试；了结 P-19-1/3/4、M-3 与「12.」的待核实。详见 2.4 | 31 / 35 题新增后回填交叉引用；P-19-2（回车与 disabled）无法核实，已从课件去掉 |
 | 07 | 表单与受控组件 | **完成** | 受控、非受控两条主线（各一个可运行表单）+ TextField（useId、ref 作为 prop、aria）+ onChange / v-model 触发时机实验；十段文件头；React 19 条 + Vue 13 条结论测试；FormEvent → SubmitEvent；更正审计「Vue 无 useId」。详见 2.3 | 31 / 32 / 34 / 35 题新增后回填交叉引用；「SubmitEvent.submitter 是否随 19.3 发布」待核实 |
@@ -329,7 +384,7 @@
 - 已决定：AUDIT.md §5.0（5.1–5.12 + 5.13 第二轮 + 5.14 阶段 1 复核 + 5.15 D1-1 升级 ESLint 10）。当前没有待决事项。
 - 第二轮审计已完成（2026-09-17）：`docs/upgrade/AUDIT-ROUND2.md`（§1 逐题目标大纲 vs 现状、§2 缺失汇总、§3 主线判定、§4 与第一轮差异、§5 每题十段重写大纲、§6 待决 D2-1～8、附录待核实）。统计：35 题 371 条（严重 54 / 概念 228 / 生产 32 / 小问题 57）；待核实 182 条 + 主会话 M-1～M-10。
 - 合并规则（已按 §6 答复执行，写在 AUDIT.md 附录 C）：阶段 2 每题以 AUDIT-ROUND2.md §5 的十段大纲为蓝本；逐题问题表 = 本轮 §2 缺失清单 + 第一轮 §3 讲错清单，其中 AUDIT-ROUND2.md §4 第 4 条列出的约 20 条「第一轮有依据、本轮标已讲对」的条目以第一轮为准；§4 第 5 条的可关闭项（P-25-1、P-22-1）关闭；§3 主线判定与 §6 决定覆盖第一轮 §4.2 里与之冲突的处置建议（18 主线、14 uSES 主线、26 latest ref 标签、Vue 3.5 特性标【主流】）。
-- 待核实：AUDIT-ROUND2.md 附录（各题 P-NN-k 共 182 条 + M-1～M-10）。阶段 1 已了结：M-1（recommended 实跑清单，见 1.4）、M-4（@testing-library/vue 8.1.0 与 vue 3.5.42 / vitest 4.1.11 实测可用）、M-5（react-error-boundary 已安装）、M-10（采用情况复核：本次复核发布日期、engines 与 deprecated 状态，未重抓周下载）。仍待核实：M-7、M-8。M-2 已在 07 题了结（成立，见 2.3）；M-3 已在 19 题了结（成立，见 2.4，20 / 31 题可直接引用）；M-6 已在 11 题了结（官方示例确实命中 `set-state-in-effect`，见 2.5）。
+- 待核实：AUDIT-ROUND2.md 附录（各题 P-NN-k 共 182 条 + M-1～M-10）。阶段 1 已了结：M-1（recommended 实跑清单，见 1.4）、M-4（@testing-library/vue 8.1.0 与 vue 3.5.42 / vitest 4.1.11 实测可用）、M-5（react-error-boundary 已安装）、M-10（采用情况复核：本次复核发布日期、engines 与 deprecated 状态，未重抓周下载）。仍待核实：M-7。M-8 已在 30 题了结（query() 5.102.0 起、同一版本弃用 fetchQuery 等，见 2.6）。M-2 已在 07 题了结（成立，见 2.3）；M-3 已在 19 题了结（成立，见 2.4，20 / 31 题可直接引用）；M-6 已在 11 题了结（官方示例确实命中 `set-state-in-effect`，见 2.5）。
 - 阶段 1 新增待核实：vue-router 从哪个 5.x 版本开始对 `next()` 发 R0025 警告。
 - 阶段 1 遗留：README 叙述性章节留阶段 4；@testing-library/vue 内嵌 DTL 9，Vue 测试里的 `screen` 来自 DTL 9（34 题讲 Vue 测试时注明）；冒烟测试在 34 题落地后并入或删除；已装的 6 个不满 30 天的包满 30 天后也不主动升级，除非有需要。
 - 第二轮工作方式记录：大纲阶段 5 批（按文档域分组、禁读课件）→ 对照阶段 10 批（按代码体量 ≤ 125 KB 分组）→ 主线回填 1 批 → 与第一轮对比 3 批；全部 2 并发，共 19 个只读子代理，约 4.5 小时；产物先写 scratchpad 的 parts 再由脚本合并并做机械校验（`file:line` 存在、原文片段命中、`grep0` 复跑为 0、枚举 / 编号合法、无残留标记）；脚本与 parts 不入库。

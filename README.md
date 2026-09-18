@@ -136,7 +136,7 @@ src/
 | 27 | `27-async-race-and-cancellation` | 异步竞态、取消与过期响应 | 快速改关键词时先发的慢请求后返回并覆盖新结果：坏版本可复现，ignore 标志 vs AbortController、cleanup 里取消，以及 loading / error / empty 的处理 |
 | 28 | `28-react-typescript-basics` | React + TypeScript 基础 | Props / 可选属性 / 字符串联合 / useState 泛型 / 事件类型 / callback props / ReactNode 的类型建模，对照 defineProps / defineEmits / `ref<T>` |
 | 29 | `29-use-reducer-and-action-types` | useReducer 与判别联合 Action | 购物车的添加 / 删除 / 改数量 / 清空收敛为纯函数 reducer + 判别联合 Action；什么时候 useState 就够，对照 Vue 的 reactive + 类型化 action 函数 |
-| 30 | `30-tanstack-query-server-state` | TanStack Query 与服务端状态 | query key、缓存与 staleTime、loading / error / data、refetch、mutation 与失效重取；服务端状态不等于本地 UI state，React Query 对照 Vue Query |
+| 30 | `30-tanstack-query-server-state` | TanStack Query 与服务端状态 | TanStack Query v5：queryKey 与缓存、status × fetchStatus、mutation 与失效、两种乐观更新、分页 / 依赖查询、useSuspenseQuery；服务端状态不等于客户端状态，react-query 与 vue-query 共用 query-core |
 
 ## Vue → React 速查表
 
@@ -183,7 +183,7 @@ src/
 | state 快照 + 重渲染（`UI = f(props, state)`） | 响应式更新（依赖追踪：reactive 用 Proxy，ref 用 getter / setter） | React 每次 setState 都让组件函数整体重跑，本次渲染里的 state / props 是固定快照，setter 不会改当前闭包里的变量；Vue 的 setup 只跑一次，`.value` 永远读到最新值。更新队列、批处理、函数式更新、过期闭包全都由此而来（23 / 24 / 26 题）。 |
 | `React.ChangeEvent<HTMLInputElement>` 等事件类型 | `Event` + `(e.target as HTMLInputElement)` | React 的合成事件带泛型，`e.target.value` 直接有类型；Vue 模板里 `@input` 拿到的是原生 `Event`，要自己断言 target——这正是 `v-model` 替你省掉的那一步（28 题）。 |
 | `useReducer` + 判别联合 Action | `reactive` + 类型化 action 函数（无内置对应） | React 把「所有修改收敛成一个纯函数」做成了内置 Hook，`never` 穷尽检查保证漏掉的 Action 在编译期报错；Vue 没有对应原语，日常写 `addItem()` 这类方法或 Pinia action，纯 reducer 风格也能手写（29 题）。 |
-| `useQuery` / `useMutation`（React Query） | `useQuery` / `useMutation`（Vue Query） | 两侧共用同一个 `@tanstack/query-core`，API 几乎逐字相同——它是生态库而非 React 核心 API；差别只在触发方式：React 靠重渲染把新的 queryKey 传进去，Vue 把 ref 放进 queryKey 由库自动监听（30 题）。 |
+| `useQuery` / `useMutation`（@tanstack/react-query） | `useQuery` / `useMutation`（@tanstack/vue-query） | 两侧共用同一个 `@tanstack/query-core`，缓存规则、key 哈希、默认值一样——它是生态库而非 React 核心 API；差别只在响应式接口：React 靠重渲染把新的 queryKey 传进去、返回普通值，Vue 把 ref / getter 放进 queryKey / enabled 由库自动追踪、返回一组 ref（30 题）。 |
 
 ## 每个知识点的学习重点
 
@@ -255,7 +255,7 @@ src/
 
 **29 useReducer 与判别联合 Action** —— 购物车的添加 / 删除 / 改数量 / 清空全部收敛为组件外的纯函数 `cartReducer(state, action)`；`Action` 是 `add / remove / changeQuantity / clear` 四种形状的判别联合，`switch` 的 `default` 用 `const exhaustive: never = action` 做穷尽检查，漏掉一种 Action 编译期就报错；业务规则（数量 < 1 视为移除）集中在 reducer 里。页面有 action 日志面板（每条 dispatch 的 JSON）、「撤销上一步」（清空 + 重放剩余 action，同一事件内批处理成一次渲染——24 题）、以及一行「重放 N 条 action 得到的购物车与当前一致 ✓」——纯函数带来的日志 / 撤销 / 重放 / 可单测都是免费的。注释里明确：什么时候 `useState` 就够、setter 分散在各处的信号、`dispatch` 引用稳定、StrictMode 会调用 reducer 两次所以必须纯、联合类型优于 `{ type: string; payload?: unknown }`。Vue 侧同一个 `Action` 类型 + `reactive` + 类型化 `apply(items, action)`（原地修改，Vue 风格）：useReducer 没有内置对应，日常写 `addItem()` 或 Pinia action，纯 reducer 风格也能用。与 03 题区块二的区别：03 讲「为什么从 useState 升级」，29 是列表上的完整模式。工业界现状：useReducer + Context 是「不装状态库」时的标准组合，Redux Toolkit 的 slice 本质就是这套 reducer + Action 模式，学会它读 Redux 代码零障碍。
 
-**30 TanStack Query 与服务端状态** —— `useQuery({ queryKey: ['orders', status], queryFn })` 取订单列表：切筛选再切回，`staleTime` 5 秒内直接出缓存不发请求；`isPending` / `isError` + 重试 / 空态 / `refetch`，头部「数据更新于 …」与「后台刷新中…」（`isFetching && !isPending`）；`useMutation` 把订单标记为已支付，`onSuccess` 里 `invalidateQueries({ queryKey: ['orders'] })` 前缀匹配所有筛选下的缓存并自动重取；可选的 `OrdersCountBadge` 用同一个 key 再 `useQuery`，只发一次请求（去重 / 共享缓存）。`status` 下拉与选中高亮是**本地 UI state**，与服务端状态并排对比。它**不是 React 核心 API**：`queryFn` 的 `signal` 就是 27 题手工取消的自动版；Zustand / Pinia / Context 管客户端状态、不管服务端缓存；`useState` 不等于服务端状态管理；不要把 loading / error / 缓存全部手写成一堆本地 state（对照 11 / 22 题的手写状态机）。本项目里每次挂载各建一个 `QueryClient`——React 在示例内 `useState(() => new QueryClient())`，Vue 通过注册表的 `vuePlugins` 工厂安装 `VueQueryPlugin`——真实应用在 `main.ts(x)` 里只建一次，原因见附录。Vue 侧 API 几乎逐字相同，`queryKey` 里放 ref 会被自动解包并监听。工业界现状：TanStack Query 是 React 生态服务端数据的事实标准，Vue 侧同一个库同样可用；生产默认 `retry: 3` + 指数退避、devtools 常驻，本题为了教学把 retry 关掉了。
+**30 TanStack Query 与服务端状态** —— 主线是 TanStack Query v5【主流】（React 官方在 useEffect 页推荐「客户端缓存」时点名的方案之一），六个区块：① queryKey 与缓存：key 工厂 + `queryOptions()` 集中定义，换筛选 / 翻页就是换 key，`staleTime` 5 秒内直接出缓存；实时状态表把 `status`（有没有数据）× `fetchStatus`（在不在请求）以及 `isLoading` / `isRefetching` / `isPaused` / `isPlaceholderData` 摆出来，「保留上一页」对比 `placeholderData: keepPreviousData`，「模拟断网」看 pending + paused；② mutation：失效重取、两种乐观更新（`variables` 渲染 / `onMutate` 改缓存 + 快照回滚）三种做法并排，日志里能看到 useMutation 级回调先于 mutate 级；③ 依赖查询 `enabled`（pending + idle）；④ `useSuspenseQuery` + `QueryErrorResetBoundary` + react-error-boundary；⑤ 缓存观察窗（queryHash 里对象的键被排序、观察者数、已失效）与本地 UI state 并排；⑥ 路由 loader 与 Query 的分工（两种【主流】组合与并用）。文件头讲清默认值（staleTime 0、gcTime 5 分钟、失败重试 3 次指数退避）、取消要 queryFn 读了 signal 才会发生、v4 → v5 改名清单，以及 `queryClient.query()`【尝鲜·5.102.0 起】和 `staleTime: 'static'`【较新·5.79.0 起】。Vue 侧用 `@tanstack/vue-query`（同一个 query-core）：getter 放进 queryKey / enabled、返回值要解构（不解构的坑有演示）、实验性的 `<Suspense>` + `suspense()` + `onErrorCaptured`。React 22 条、Vue 14 条结论测试（含 StrictMode 下读 / 不读 signal 的差别、tracked properties、结构共享、同一个 key 两份 queryFn）。本项目每次进入本题新建 `QueryClient`（React 在 `useState` 里建，Vue 由注册表的 `vuePlugins` 工厂安装 `VueQueryPlugin`）；真实应用在入口建一个，服务端渲染时必须每个请求一个。
 
 ## React 和 Vue 最重要的 11 个思维差异
 
@@ -407,7 +407,7 @@ src/
 | 27 | 什么是请求竞态？如何用 AbortController 在 cleanup 里取消？接口不支持取消时如何丢弃过期响应？AbortError 该当错误展示吗？TanStack Query 如何自动处理？ |
 | 28 | 如何给 props / 可选属性 / callback props 定义类型？useState 什么时候需要显式泛型？ChangeEvent / FormEvent / MouseEvent 怎么用？ReactNode 和 ReactElement 的区别？为什么不该用 any？对比 defineProps / defineEmits 的泛型写法。 |
 | 29 | useState 和 useReducer 怎么选？reducer 为什么必须是纯函数？判别联合 Action 带来什么安全性（never 穷尽检查）？dispatch 的引用稳定吗？useReducer + Context 能替代 Redux 吗？Vue 里如何实现类似模式？ |
-| 30 | 服务端状态和客户端状态有什么区别？query key 起什么作用？staleTime 和 gcTime 的区别？mutation 成功后为什么要 invalidateQueries？TanStack Query 与 Zustand / Pinia / Context 各解决什么？为什么不用 useState + useEffect 手写？ |
+| 30 | 服务端状态和客户端状态有什么区别？queryKey 怎么设计（哈希规则、前缀失效）？staleTime 和 gcTime 的区别？status 与 fetchStatus 为什么分开、v5 的 isLoading 是什么？mutation 之后怎么更新（失效 / 两种乐观更新）？onSuccess 写在 useMutation 还是 mutate 上？v4 → v5 改了哪些名？TanStack Query 与 Zustand / Pinia / Context 各解决什么？ |
 
 ## 当前完成状态
 
@@ -420,7 +420,7 @@ src/
 
 **部分完成**
 
-- 30 题只演示 `useQuery` / `useMutation` / `invalidateQueries` 的核心流程，没有接入 TanStack Query devtools，也没有演示 persist（缓存持久化）。
+- 30 题没有接入 TanStack Query devtools（文件头只说明用法和版本号），也没有演示 persist（缓存持久化）。
 - 19 题只在注释里提到 React 19 的 `useActionState`，实现仍是手写 `submitting` 的基础写法，没有实现 form actions。
 - 17 题提到的 React Compiler 没有在本项目启用，手动 `useMemo` / `useCallback` 仍是教学重点。
 
