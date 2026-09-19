@@ -2,7 +2,8 @@
  * 【主线：受控】个人资料表单。每个字段的值都来自 state，每次输入都走一遍 onChange → setState → 重新渲染。
  *
  * 本文件演示：
- * - 一个对象 state + 按 name 分发的通用 handleChange + 函数式不可变更新（03 / 21 题）；
+ * - 一个对象 state + 按 name 分发的通用 handleChange + 函数式不可变更新（03 / 21 题）：字段多、要统一提交和重置时这样组织；
+ *   字段少时每个字段一个 useState（区块三 InputEventLab.tsx）。两种都常见（react.dev 两种都有示例）；
  * - 各种元素的受控写法：文本、type="number"、<select value>、<textarea value>、radio / checkbox 用 checked；
  * - 输入过滤：onChange 不把非法输入写进 state，事件结束后 React 把 DOM 改回 state（手机号只收数字）；
  * - 校验结果是派生值（09 题）：点过一次「保存」之后，错误信息随输入实时更新，不另存一份 state；
@@ -17,7 +18,7 @@ import { TextField } from './TextField'
 
 type ContactChannel = 'email' | 'phone'
 
-/** 整个表单收进一个对象 —— 字段不多时最常见的组织方式 */
+/** 整个表单收进一个对象 —— 字段多、要统一提交和重置时这样组织（learn/updating-objects-in-state 的主示例就是这种写法） */
 export interface ProfileForm {
   name: string
   /** 只存数字，最多 11 位 */
@@ -157,6 +158,10 @@ export function ControlledProfileForm() {
       <h3>区块一：受控表单【主线】—— 个人资料</h3>
       <p className="muted">
         每个输入框的值都来自 state。每输入一个字符：onChange → setForm → 组件重新渲染 → 新的 value 写回输入框。
+      </p>
+      <p className="muted">
+        字段多：一个对象 state + 按 name 分发；字段少：每个字段一个 useState（见区块三）—— 两种都常见。
+        label：包在 &lt;label&gt; 里【最常用】（角色、简介、订阅）；htmlFor + id【常用】（姓名、手机号、年龄，id 由 useId 生成）。
       </p>
 
       {/* noValidate：校验和错误提示由我们自己做，关掉浏览器自带的校验气泡，免得两套提示打架 */}

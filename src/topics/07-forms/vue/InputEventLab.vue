@@ -96,7 +96,7 @@ function onDigitsInput(e: Event) {
     </ul>
 
     <p class="muted">
-      实验二：两个输入框都只想收数字，敲个字母试试。
+      实验二：两个输入框都只想收数字，敲个字母试试。要过滤输入时只能用 :value + @input（v-model 做不到把字母弹回）。
     </p>
     <label class="row">
       反例：v-model + 会拒绝的 computed

@@ -2,11 +2,11 @@
 /**
  * 带 label、提示、错误信息的文本输入组件（React 对照：react/TextField.tsx）。
  *
- * - defineModel()【较新·Vue 3.4 起，官方推荐】：父组件写 v-model="form.name"，这里拿到一个 ref，
+ * - defineModel()【较新·Vue 3.4 起】【最常用】（频率：工程经验，新写的组件基本都这样写；官方把它定为推荐写法）：父组件写 v-model="form.name"，这里拿到一个 ref，
  *   读它就是父组件的值，给它赋值就通知父组件更新。编译器把它展开成 modelValue prop + update:modelValue 事件；
  *   3.4 之前要手写 defineProps(['modelValue']) + defineEmits(['update:modelValue'])【旧写法】。
  *   React 没有 v-model 语法糖，自定义输入组件照样收 value + onChange。
- * - useId()【主流·Vue 3.5 起】：和 React 的 useId 一样，服务端和客户端生成的 id 一致；
+ * - useId()（Vue 3.5 起）【常用】：和 React 的 useId 一样，服务端和客户端生成的 id 一致；
  *   同一组件调用多次、同一组件渲染多份，得到的都是不同的 id；一页多个 Vue 应用用 app.config.idPrefix 区分。
  * - 父组件想聚焦里面的 <input>：Vue 组件上的 ref 拿到的是组件实例，要用 defineExpose 暴露方法；
  *   React 19 的 ref 是普通 prop，子组件直接转给 <input>。

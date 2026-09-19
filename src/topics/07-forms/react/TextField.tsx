@@ -2,12 +2,13 @@
  * 带 label、提示、错误信息的文本输入组件。它是受控的：值和变化都交给父组件管。
  *
  * 本课用它演示三件事：
- * 1. useId【主流·18.0 起】：生成 id，再用 htmlFor / aria-describedby 把 label、提示、错误信息和输入框关联起来；
+ * 1. useId（18.0 起）：生成 id，再用 htmlFor / aria-describedby 把 label、提示、错误信息和输入框关联起来。
+ *    label 用 htmlFor + id【常用】（包在 <label> 里【最常用】，见下面 JSX 的注释）；提示和错误信息不管哪种都要靠 aria-describedby + id；
  * 2. ref 作为普通 prop【主流·19.0 起】：父组件传 ref 就能拿到里面的 <input>（提交失败时用它聚焦）。
  *    React 18 要用 forwardRef 包一层，写法见 Example.tsx「八、旧写法对照」；
  * 3. 自定义输入组件的受控约定：和原生 <input> 一样收 value + onChange，父组件的 handleChange 不用改。
  *
- * Vue 对照：vue/TextField.vue —— defineModel()【较新·3.4 起】代替 value + onChange，useId()【主流·3.5 起】。
+ * Vue 对照：vue/TextField.vue —— defineModel()【较新·3.4 起】代替 value + onChange，useId()（3.5 起）。
  */
 import { useId, type ChangeEvent, type HTMLAttributes, type Ref } from 'react'
 

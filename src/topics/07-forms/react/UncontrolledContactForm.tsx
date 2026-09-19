@@ -59,13 +59,13 @@ export function UncontrolledContactForm({ saveDelayMs = 300 }: { saveDelayMs?: n
   // 「换 key」实验：key 一变，React 丢掉旧的 <form> 子树，重新挂载一份
   const [formKey, setFormKey] = useState(0)
 
-  // 取值方式二：ref 拿到真实 DOM 节点，读 .value（12 题讲 useRef 的这个用途）。
+  // 取值方式二【常用】：ref 拿到真实 DOM 节点，读 .value（12 题讲 useRef 的这个用途；频率：工程经验）。
   // 和 FormData 的区别：FormData 一次读全部字段，ref 适合只读某一个字段
   const nameInputRef = useRef<HTMLInputElement>(null)
 
   async function handleSubmit(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault()
-    // 取值方式一：new FormData(表单节点)，一次读出所有带 name 的字段（官方示例写 e.target，提交事件的 target 就是表单）。
+    // 取值方式一【最常用】：new FormData(表单节点)，一次读出所有带 name 的字段（官方示例写 e.target，提交事件的 target 就是表单）。
     // 这两行必须在 await 之前：React 派发完事件就把 e.currentTarget 置成 null
     // （react-dom 19.2.8 的 executeDispatch 里 `event.currentTarget = null`），async 函数在第一个 await 处就已经返回了。
     const form = e.currentTarget
@@ -98,6 +98,7 @@ export function UncontrolledContactForm({ saveDelayMs = 300 }: { saveDelayMs?: n
       <h3>区块二：非受控表单【主线】—— 快速新增联系人</h3>
       <p className="muted">
         这个表单没有任何 state 存输入内容：输入时组件不重新渲染，点「提交」的那一刻才从 DOM 里把值读出来。
+        读值：FormData【最常用】；只读一个字段用 ref【常用】。
       </p>
 
       {/* key={formKey}：key 变了，React 把整个 <form> 卸载再重新挂载 —— 让 defaultValue 重新生效的标准做法。
@@ -188,7 +189,7 @@ export function UncontrolledContactForm({ saveDelayMs = 300 }: { saveDelayMs?: n
       </p>
 
       <p className="muted">
-        并排【主流·React 19.0 起】：也可以写 {'<form action={fn}>'}，fn 直接收到 FormData、在 Transition 里执行，
+        并排【常用】（React 19.0 起）：也可以写 {'<form action={fn}>'}，fn 直接收到 FormData、在 Transition 里执行，
         不用 preventDefault；action 成功后 React 会把这些非受控字段重置成默认值（受控字段不会被重置）。
         配合 useActionState / useFormStatus 的完整写法在 31 题（待新增）。
       </p>

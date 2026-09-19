@@ -2,7 +2,7 @@
 /**
  * 【主线：受控】个人资料表单（React 对照：react/ControlledProfileForm.tsx，字段和校验一致）。
  *
- * v-model 就是 Vue 里的受控写法：输入框显示什么由 form 决定，官方原文
+ * v-model【最常用】就是 Vue 里的受控写法：输入框显示什么由 form 决定，官方原文
  * 「v-model will ignore the initial value, checked or selected attributes ... treat the current bound JavaScript state
  * as the source of truth」。和 React 的差别：
  * - 不用写 value + onChange + name 分发，v-model 按元素类型自动选属性和事件；
@@ -116,6 +116,9 @@ function handleReset() {
     <h3>区块一：受控表单【主线】—— 个人资料</h3>
     <p class="muted">
       v-model 就是 Vue 的受控写法：输入框显示什么由 form 决定，输入时 v-model 把新值写回 form。
+    </p>
+    <p class="muted">
+      v-model【最常用】；.trim / .number【常用】；姓名用组件 v-model（TextField 里 defineModel()【最常用】）。
     </p>
 
     <!-- @submit.prevent：修饰符阻止默认提交；noValidate 关掉浏览器自带的校验气泡，和 React 侧一样 -->

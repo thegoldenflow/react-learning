@@ -10,6 +10,9 @@
  * - Vue 的 v-model 在合成期间不更新，vue/InputEventLab.vue 是同一个实验。
  *
  * 「非法输入被弹回」的实验在区块一的手机号字段（ControlledProfileForm.tsx）。
+ * 输入框本身是字段少时的受控写法：一个 useState + value + onChange（react.dev input 页受控示例的写法）。
+ * 只想在选好字之后处理：监听 compositionstart / end 自己记标记，或者在处理函数里判断 e.nativeEvent.isComposing（04 题统一措辞），
+ * 两种都常见（工程经验）。
  */
 import { useEffect, useRef, useState } from 'react'
 
@@ -41,6 +44,9 @@ export function InputEventLab() {
       <h3>区块三：onChange 什么时候触发（换成中文输入法试试）</h3>
       <p className="muted">
         先用英文输入几个字母，再点页面空白处让输入框失焦；然后切到拼音输入法打「你好」。对照日志里 onChange 和原生 change 各出现在什么时候。
+      </p>
+      <p className="muted">
+        这个输入框就是字段少时的写法：一个 useState + value + onChange（字段多时见区块一的对象 state）。
       </p>
       <label className="row">
         实验输入框

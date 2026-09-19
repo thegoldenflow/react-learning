@@ -4,6 +4,9 @@
  *
  * Vue 同样可以不用 v-model：初始值写成静态的 value / checked 属性（挂载时写一次，之后由 DOM 保管），
  * 提交时 new FormData(表单) 读一次，或者用 useTemplateRef 拿到节点读 .value。两种模式两边都有。
+ * 频率：Vue 项目里读表单值基本用 v-model，这种写法【少用】（工程经验，多见于上传文件时拼 FormData）。
+ * 本课仍保留为主线、照常运行：它是 React 非受控主线的逐行对照（2-B 定的），也承载 :value 语义的 ❌ 实验（下方）——
+ * 行业频率和本课主线不一致，记在 PROGRESS「待用户定」07-1。
  *
  * 和 React 的差别集中在「初始值」的写法：
  * - Vue 没有 defaultValue 这个 prop。静态 value 属性对应 React 的 defaultValue；
@@ -86,6 +89,9 @@ const renderTick = ref(0)
     <h3>区块二：非受控表单【主线】—— 快速新增联系人</h3>
     <p class="muted">
       不用 v-model：初始值写成静态属性，值由 DOM 保管，点「提交」时才用 FormData 读出来。
+    </p>
+    <p class="muted">
+      Vue 项目里这种写法【少用】（多见于上传文件）；这里作为 React 非受控主线的对照保留。
     </p>
 
     <!-- :key 变了，整个 <form> 重新挂载，静态初始值重新生效（React 同样是换 key）。

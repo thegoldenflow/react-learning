@@ -938,6 +938,35 @@
 
 **复核**：反驳式复核代理提出 25 条（高 1、中 9、低 15），全部处理：「action 失败时 loader 重新执行把界面改回」讲反了（抛错进 errorElement，4xx / 5xx 默认不重新验证，界面回到旧值是因为 formData 被清掉）→ 七改写，二-6 / 四-8 / 五 / 注释补「action 成功后」前提；星标测试「不影响 useNavigation」的断言挪到提交进行中并加「不显示提交中」；middleware 守卫补「被拦地址不进历史栈」测试；六处【主流】与频率标签叠用；lazy、onBeforeRouteLeave、middleware 的依据改成「讲的是用途 / 工程经验」；KeepAlive 包 RouterView 改成插槽写法；v5 是 <Switch> 不是 <Routes>；补声明式的 React.lazy + Suspense；RequireAuth、声明式 useNavigate 不再打【最常用】（只能这样做），补布局路由写法；useNavigate【常用】写明跨模式判断；errorElement / ErrorBoundary、throw / return redirect、NavLink 两种样式写法、createRoutesFromElements（附 6）；二-4 / 二-6 标题补回【主流】；二-8 标题去掉「频率都是工程经验」；Vue 的 :key / watch 按 06 统一措辞；Vue 侧几处补「工程经验」；测试文件头的「零延迟」；练习 3 补提醒；引文补全 them 的指代；dataPages / dataRouter 文件头补 useFetcher；README 18 行。
 
+### 2.23 07 表单按「使用频率」改写（2026-09-19）
+
+**起因**：同 2.22，RETROFIT-REST 第二题。受控、非受控两条主线不改。
+
+**改动**
+- 文件头：加「使用频率」说明行；速答只留最常用（useId 一条降到正文，补「label 包在 <label> 里、提交写 onSubmit」，大表单改成「交给表单库」）；二-1 按「要做的事」写：输入过程中就要用值多用受控（非受控也能挂 onChange，输入过滤只有受控做得到）、只在提交时读两种都常见、接第三方 DOM 组件用非受控；二-3 FormData【最常用】/ ref【常用】，恢复默认值换 key【最常用】/ form.reset()【常用】；二-4 每字段 useState / 对象 + name 分发「两种都常见」（补 learn/updating-objects-in-state 的出处）；二-5 包在 label 里【最常用】/ htmlFor + id【常用】，aria-describedby 另说；二-8 onSubmit【最常用】/ <form action>【常用】（19.0 起）；二-11 大表单「表单库 / 拆小组件两种都常见」，选库 react-hook-form【最常用】（npm，同类库之间比）；三的 Vue 侧 v-model【最常用】、.trim / .number【常用】、defineModel【较新·3.4 起】【最常用】、label 两种都常见、非受控【少用】但保留为主线（决定点 07-1）；九的 SubmitEvent.submitter 了结（19.3 Changelog「Include the submitter in submit events」）；练习 3（再加一个字段对比两种 state 组织）；附 1–4（源码行号、useId 前缀与 identifierPrefix、useDeferredValue、Vue .lazy）。
+- 演示：没有需要注释的【少用】演示；三个 React 区块、Vue 三个区块的界面补频率说明（Vue 非受控区块写明「Vue 项目里【少用】，作为 React 非受控主线的对照保留」）；各组件注释补标签。
+- 测试：条数不变（React 19、Vue 13）。
+
+**频率判断与依据**
+
+| 要做的事 | 写法与标签 | 依据 |
+|---|---|---|
+| 输入过程中就要用值 | 多用受控（非受控 + onChange、表单库订阅也能做；输入过滤只有受控能做） | 工程经验；input 页「A controlled input makes sense if you needed state anyway」讲用途 |
+| 只在提交时读值 | 受控 / 非受控 + FormData 两种都常见 | 工程经验 |
+| 读非受控的值 | FormData【最常用】；ref【常用】 | input 页「Reading the input values when submitting a form」示例；ref：工程经验 |
+| 恢复非受控表单 | 换 key【最常用】；form.reset() / type="reset"【常用】 | 工程经验；input 页示例的 reset 按钮；react-dom updateInput :1673-1674 同步 defaultValue |
+| state 组织 | 每字段 useState / 对象 + name 分发两种都常见 | input 页受控示例（两个 useState）；updating-objects-in-state 主示例与 Deep Dive「Using a single event handler for multiple fields」 |
+| label | 包在 <label> 里【最常用】；htmlFor + id【常用】 | 「Typically, you will place every <input> inside a <label> tag.」；htmlFor：工程经验 |
+| 提交 | onSubmit + preventDefault【最常用】；<form action>【常用】（19.0 起） | 工程经验 |
+| 大表单 / 选表单库 | 表单库、拆小组件两种都常见；react-hook-form【最常用】 | npm 2026-09-12～18：react-hook-form 42,316,056 / formik 3,142,348 / @tanstack/react-form 2,166,389 / react-final-form 411,893 |
+| Vue | v-model【最常用】；.trim / .number【常用】；.lazy【少用】；defineModel【较新·3.4 起】【最常用】；label 两种都常见；useId【常用】；非受控【少用】（保留为主线，07-1） | forms「we often need to sync the state of form input elements with corresponding state in JavaScript」；其余工程经验 |
+
+**注释掉了什么**：没有（运行中的都是最常用 / 常用 / 两种都常见、❌ 反例或讲机制的实验；Vue 非受控是决定点 07-1，保留运行）。
+
+**验证**：`npm run check` 通过（在只含 07 改动的暂存区导出目录里跑）；07 测试 32 条；引文 51 条命中 40，其余 11 条逐条手工核对：3 条是 react-hook-form FAQ（.mdx，脚本不读）、2 条「...」三点省略的 Vue / react.dev 原文、3 条 @types/react 与 react-dom 源码字符串、3 条是 Vue 模板字符串（不是引文）；旧版引文保留 57 / 0；【少用】注释块 0 个；浏览器（临时 5174）：两侧频率说明显示正常，手机号输入被拦下、区块三 onChange 日志正常，console.error / warn 为 0。
+
+**复核**：反驳式复核代理提出 22 条（高 1、中 5、低 16），全部处理：「输入过程中就要有反应只能用受控」是新引入的事实错误（非受控也能挂 onChange，表单库就是这样）→ 速答与二-1 改写；每字段 useState / 对象 + name 分发改成「两种都常见」并补 updating-objects-in-state 出处；二-11 不再用 npm 撑「用表单库」的跨类别排序；Vue 非受控不再说「不打标签」，写成「Vue 项目里【少用】，本课保留为主线」并进待用户定 07-1、界面补说明；defineModel 的依据改成工程经验、成熟度四处统一【较新·3.4 起】；label / useId 的关系改准（aria-describedby 不管哪种关联都要 id）；五处【主流·x 起】与频率叠用；二-5 / 7 / 8 / 11 标题补回【主流】；二-8 删掉「两种写法是并列关系」；速答的大表单与二-11 对齐；补回「接第三方 DOM 组件」；Vue label 按 Vue 官方示例（<label for> + id）写；<form action> 回到【主流】成熟度（写成【常用】（19.0 起））；九的 submitter 了结；附 2 的「测试覆盖」写准；练习 3 换成有信息量的；key={record.id} 改成 ✅ / ❌；补 form.reset()；composition 事件写成两种都常见、自定义输入组件去掉频率标签；Vue 附 idPrefix 标【少用】；Vue 三个区块补界面说明；README:301 记进遗留。
+
 ## 待用户定（九题改写，2026-09-19 起，九题做完一起问）
 
 按 RETROFIT-REST §1 / §7：行业最常用和本课主线不一致时不改主线，分开写，记在这里。
@@ -945,6 +974,7 @@
 | 编号 | 题 | 行业最常用（依据） | 本课主线（理由） | 推荐 |
 |---|---|---|---|---|
 | 18-1 | 路由模式 | 存量项目：声明式 <BrowserRouter> + <Routes>（工程经验，v6.4 之前只有这一种）；官方给新项目推荐 Framework（modes 页「Use Framework Mode if you: … are too new to have an opinion」） | Data 模式（AUDIT-ROUND2 §3.1：Framework 的底座，Vite SPA 里不上框架也能用 loader / action / useFetcher / useBlocker） | 保持 Data 主线；声明式并排照常运行（已是行业最常用写法，页面上两者都能看） |
+| 07-1 | Vue 侧非受控表单 | Vue 项目里读表单值基本用 v-model，「静态属性 + FormData / 模板 ref 读值」【少用】（工程经验，多见于上传文件） | vue/UncontrolledContactForm.vue 保留为主线、照常运行（2-B 定的：React 非受控主线的逐行对照，也承载 :value 语义的 ❌ 实验与测试） | 维持现状（文件头与界面已写明 Vue 项目里少用）；另一个选项是按【少用】把 Vue 区块二整块注释、测试改成直接挂载组件 |
 
 ## 统一措辞（各题改写时照用）
 
@@ -1149,7 +1179,7 @@
 | 30 | TanStack Query 与服务端状态 | **完成** | v5 主线六个区块（queryKey 与缓存 + status × fetchStatus + 保留上一页 + 断网 / mutation 三种更新方式 / enabled / useSuspenseQuery / 缓存观察窗 / loader 分工）；key 工厂 + queryOptions；React 22 条 + Vue 14 条测试；了结 P-30-1～8、M-8。详见 2.6 | mutation 回调改名的起始版本待核实；31 / 32 / 33 / 34 新增后回填交叉引用；27 题「queryFn({ signal }) 把这一整套自动化了」缺「读了 signal 才取消」的前提，27 题改写时处理 |
 | 11 | API 请求状态 | **完成** | Effect 手写主线（判别联合 + 派生 pending + 取消 + 重试 + 保留旧数据）+ 四种方案速查；lint 抑制已清（M-6 / P-11-2 了结）；React 7 条 + Vue 7 条测试。详见 2.5 | 32 题新增后回填交叉引用；P-11-1 / P-11-3 / P-11-5 留给 30 / 18 / 32 与阶段 4 |
 | 19 | 异步提交与防重复 | **完成** | 手写 submitting 主线（防重复三道关 + 错误分层 + a11y）+ React 19 Actions 可运行并排；共享 mockApi 加 `ApiFieldError`；React 10 条 + Vue 7 条测试；了结 P-19-1/3/4、M-3 与「12.」的待核实。详见 2.4 | 31 / 35 题新增后回填交叉引用；P-19-2（回车与 disabled）无法核实，已从课件去掉 |
-| 07 | 表单与受控组件 | **完成** | 受控、非受控两条主线（各一个可运行表单）+ TextField（useId、ref 作为 prop、aria）+ onChange / v-model 触发时机实验；十段文件头；React 19 条 + Vue 13 条结论测试；FormEvent → SubmitEvent；更正审计「Vue 无 useId」。详见 2.3 | 31 / 32 / 34 / 35 题新增后回填交叉引用；「SubmitEvent.submitter 是否随 19.3 发布」待核实 |
+| 07 | 表单与受控组件 | **完成** | 受控、非受控两条主线（各一个可运行表单）+ TextField（useId、ref 作为 prop、aria）+ onChange / v-model 触发时机实验；十段文件头；React 19 条 + Vue 13 条结论测试；FormEvent → SubmitEvent；更正审计「Vue 无 useId」。详见 2.3 | 31 / 32 / 34 / 35 题新增后回填交叉引用；SubmitEvent.submitter 已了结（19.3 起，2.23）；2026-09-19 按使用频率改写（见 2.23；Vue 非受控是待用户定 07-1）；阶段 4 改 README :301「表单的每一次 onChange 都是『不可变地更新一个对象』」（07 现在的口径是每字段 useState / 对象两种都常见） |
 | 其余 01–30 | — | 未开始 | — | 10 / 12 / 21 / 23 / 24 / 27 有 lint 抑制待清（共 11 条，1.4；11、14 题的已在 2.5、2.7 清掉） |
 
 ## 遗留 / 待核实
