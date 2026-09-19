@@ -90,7 +90,7 @@ src/
 | 03 | `03-state` | State 与 useState | 为什么局部变量不行、setter 只影响下一次渲染（快照、函数式更新、Object.is 跳过）、对象 / 数组整体替换、惰性初始化、state 的结构（存 id、status 代替多个布尔值）、多状态收敛到 useReducer、常见报错（Too many re-renders），对照 ref / reactive 与 setup 只执行一次 |
 | 04 | `04-events` | 事件处理 | 传函数不要调用、合成事件与 nativeEvent（17 起委托到 root 容器）、冒泡与 stopPropagation（document 监听器与 { capture: true }）、preventDefault 与表单、Vue 修饰符的 JS 写法（捕获阶段、被动滚轮等少用写法注释保留），对照 v-on、修饰符与原生事件 |
 | 05 | `05-conditional-rendering` | 条件渲染 | 分支就是 JavaScript（if / switch 提前 return、return null、存进变量、三元、&&、查表）、&& 的 0 / NaN 陷阱、UI 树里的位置决定 state 的去留（同类型同位置保留、key 重置）、隐藏还是卸载（&&、hidden 属性、`<Activity>`），对照 v-if / v-else、v-show 与 `<KeepAlive>` |
-| 06 | `06-list-and-key` | 列表渲染与 key | .map() 渲染列表、key 为什么必须稳定唯一、index 作 key 的坑、用 key 强制重置组件状态，对照 v-for |
+| 06 | `06-list-and-key` | 列表渲染与 key | 列表就是 filter / sort / map（排序前拷贝、`<Fragment key>`）、key 是身份（id / index / `Math.random()` 三种 key 对比、前端新建数据在创建时生成 id）、换 key 重置组件状态，对照 v-for + :key、就地更新、v-if 与 v-for、换 :key 与 watch 重置 |
 
 ### 第二阶段：表单和数据流
 
@@ -197,9 +197,9 @@ src/
 
 **04 事件处理** —— 课件升级阶段 2 重写（2026-09-18，文件头按十段模板）。页面上五个区块（区块六与几处少用写法在两侧都注释保留，组件文件与测试照常）：① 绑定与传参：`onClick={fn}` 传函数、传参包箭头函数（每行「减一件」）、回调 prop 以 on 开头，以及写成 `onClick={removeItem(item.id)}` 的列表 —— 渲染时就被删光（更新会收敛，所以不报错）；② 事件对象：点按钮里的图标，`e.target` 是图标、`e.currentTarget` 是按钮、`e.nativeEvent.currentTarget` 是 root 容器，`setTimeout` 里 `currentTarget` 已是 `null`；③ 事件传播：`onClick` 冒泡（按钮 → 中层 → 外层 → document），勾选后在按钮里 `stopPropagation`，外层和 document 冒泡阶段的监听器收不到、`{ capture: true }` 的照样收到，外加 `onScroll` 不冒泡、`onFocus` 冒泡（捕获阶段与原生监听器的完整顺序拆到 CaptureOrderDemo，少用，已注释）；④ 默认行为：`preventDefault` 只拦跳转、事件照样冒泡，`<form onSubmit>` 拦提交，`e.target !== e.currentTarget` 实现 `.self`；⑤ Vue 修饰符的 React 写法：`e.key` 判断回车（排除 Shift 与输入法组字）、Esc 清空、state + disabled 的 `.once`（ref 标记、组合键精确区分、鼠标按键与右键菜单拆到 RareModifiersDemo，少用，已注释）；⑥（少用，已注释）`onWheel` 是被动监听，`preventDefault` 拦不住，要用 `addEventListener(…, { passive: false })`。Vue 侧：模板里的「调用」会被编译成函数（每行也有「减一件」）、`v-on` 直接绑在元素上、冒泡 + `.stop` 与 document 监听器、`.enter.exact` / `.esc` / `.once`、组件事件不冒泡；`.capture` 与原生监听器交错执行、组合键精确区分与鼠标键、`@wheel.prevent` 这些少用的演示和 React 侧一样拆出、注释保留。React 27 条 + Vue 19 条测试。
 
-**05 条件渲染** —— 课件升级阶段 2 重写（2026-09-18，文件头按十段模板）。四个区块：① 分支就是 JavaScript：switch 提前 return、`return null`（以及官方说它不常见的原因）、把 JSX 存进变量、三元、`&&`、查表；② `&&` 的 0 陷阱：清空商品后多出「0」、没有商品时均价显示「NaN」，改成布尔值就好，TypeScript 拦不住；③ UI 树里的位置决定 state 的去留：三元两边是同一个组件时，切换客户后上一位的草稿还在，加 key 或渲染到不同位置才会重置；④ 隐藏还是卸载：`&&` 卸载丢 state 和 DOM，`hidden` 属性全保留且 Effect 照跑，React 19.2 的 `<Activity mode="hidden">` 保留 state 和 DOM、清理 Effect。Vue 侧：模板里 `v-if` / `v-else` 的两个分支被编译器注入不同的 key、没包 `<KeepAlive>` 时切换就重建（渲染函数里写三元、或模板里只写一个组件换 prop，才会出现 React 那种保留）、`v-if` 没有 0 陷阱但插值里的 `&&` 有（`false` 还会显示成「false」）、`v-show`（组件上的 v-show 切换时照样触发 onUpdated）与 `<KeepAlive>`（DOM 被移出文档、停用期间 watch 不停）对照 hidden 与 Activity。React 7 条 + Vue 9 条测试。
+**05 条件渲染** —— 课件升级阶段 2 重写（2026-09-18，文件头按十段模板）。四个区块：① 分支就是 JavaScript：switch 提前 return、`return null`（以及官方说它不常见的原因）、把 JSX 存进变量、三元、`&&`、查表；② `&&` 的 0 陷阱：清空商品后多出「0」、没有商品时均价显示「NaN」，改成布尔值就好，TypeScript 拦不住；③ UI 树里的位置决定 state 的去留：三元两边是同一个组件时，切换客户后上一位的草稿还在，加 key 或渲染到不同位置才会重置；④ 隐藏还是卸载：`&&` 卸载丢 state 和 DOM，`hidden` 属性全保留且 Effect 照跑，React 19.2 的 `<Activity mode="hidden">` 保留 state 和 DOM、清理 Effect。Vue 侧：模板里 `v-if` / `v-else` 的两个分支被编译器注入不同的 key、没包 `<KeepAlive>` 时切换就重建（渲染函数里写三元、或模板里只写一个组件换 prop，才会出现 React 那种保留）、`v-if` 没有 0 陷阱但插值里的 `&&` 有（`false` 还会显示成「false」）、`v-show`（组件上的 v-show 切换时照样触发 onUpdated）与 `<KeepAlive>`（DOM 被移出文档、停用期间 watch 不停）对照 hidden 与 Activity。React 8 条 + Vue 9 条测试。
 
-**06 列表渲染与 key** —— `.map()` 渲染列表，key 帮 React 在 diff 时识别「哪一项还是哪一项」；index 作 key 在增删/排序时导致状态错位。本题还演示 key 的第二种用法：**换 key 强制重置组件状态**（`<EditForm key={selectedId}>`），这是官方文档给「prop 变了要重置 state」的标准答案，比在 useEffect 里同步好。面试必考，工业界代码评审必查。
+**06 列表渲染与 key** —— 课件升级阶段 2 重写（2026-09-19，文件头按十段模板，同一件事的几种写法按使用频率标【最常用】【常用】【少用】）。三个区块：① 列表就是 filter / sort / map：先过滤再排序再 map，排序前先拷贝（没选筛选条件时拿到的就是模块常量），key 用数据自带的 id，一项多个节点能包一层就包一层、不能包时（表格里一项占两行 `<tr>`）用 `<Fragment key>`；② key 是身份：同一张订单表切换 id / index / `Math.random()` 三种 key，开头插入、删除第一行、末尾追加、重渲染之后看备注跟着谁走，前端新建的行在创建数据时生成 id（`crypto.randomUUID()`，没有时退回计数器）；③ 换 key = 换一个实例：切换订单时不换 key 的编辑器留着上一单的草稿、换 key 的重新初始化（在 Effect 里 setState 重置会先配着旧草稿渲染一次，测试里验证）。Vue 侧：computed 过滤排序、把 v-if 挪进 `<template v-for>` 里面或外层容器（v-if 与 v-for 同一元素时 v-if 先求值，用编译结果证明）、`<template v-for>` 的 key、不写 :key 的就地更新（运行时不报警）、变更方法 unshift / push / splice、重复 key 在更新时才警告且界面会出错、换 :key 与 watch 手动重置（watch 在组件更新前执行，不会先用旧值渲染）；of / 遍历对象 / 整数范围 / 解构这些少用写法拆在 RareVForDemo.vue、页面上注释着。React 19 条 + Vue 17 条测试。
 
 ### 第二阶段：表单和数据流
 
@@ -383,7 +383,7 @@ src/
 | 03 | 为什么不能用普通变量存会变的数据？setState 是同步还是异步、之后立刻读是什么值？`setCount(count+1)` 连写两次为什么只加 1、一定要用函数式更新吗？设成同一个值会重渲染吗？为什么直接修改 state 不会触发更新？`useState(expensive())` 有什么问题？两个布尔值 `isSending` / `isSent` 有什么问题？什么时候该从 useState 升级到 useReducer？class 的 `setState` 和 Hooks 的 setter 有什么区别？ |
 | 04 | `onClick={fn()}` 和 `onClick={fn}` 有什么区别？内联箭头函数每次渲染都是新函数有问题吗？React 的合成事件是什么、监听器挂在哪（React 17 改了什么）？`e.currentTarget` 和 `e.nativeEvent.currentTarget` 为什么不同？捕获和冒泡的顺序？`stopPropagation` 与 `preventDefault` 的区别，能挡住 `document` 上的监听吗？Vue 的 `.self` / `.once` / `.exact` 在 React 里怎么写？为什么 `onWheel` 里 `preventDefault` 没用？ |
 | 05 | `count && <List/>` 为什么会出现 0（`NaN`、空串呢）？TypeScript 能拦住吗？`return null` 和用 CSS 隐藏有什么区别？三元两个分支都渲染 `<Counter>`，切换时 state 会重置吗、怎么强制重置？React 里有 v-show 吗（hidden 属性与 `<Activity>` 的区别）？Vue 模板里的 `v-if` / `v-else` 切换会销毁重建，React 同类型同位置默认复用，这会带来什么 bug？ |
-| 06 | key 的作用是什么？为什么不能用 index 作 key？key 变化时组件会发生什么（卸载旧 Fiber、state 与 effect 全部丢弃）？如何用 key 重置子组件状态？ |
+| 06 | key 的作用是什么？为什么不推荐 index 作 key、什么时候 index 可以？`key={Math.random()}` 有什么问题，前端新建的数据 key 从哪来？组件里能读到 key 吗？一项渲染多个节点时 key 写在哪？key 变化时组件会发生什么，怎么用 key 重置子组件状态、比在 Effect 里 setState 好在哪？Vue 不写 key 和 React 不写 key 一样吗？v-for 和 v-if 谁先？ |
 | 07 | 受控组件和非受控组件的区别是什么？各适用什么场景？`value` 不配 `onChange`、初始值给 `undefined` 分别会怎样？`onChange` 和原生 `change` 一样吗？`useId` 为什么不用自增计数器？为什么 react-hook-form 性能好？ |
 | 08 | React 的父子组件如何通信？什么是状态提升？为什么 React 强调单向数据流？（状态提升的完整讨论见 25 题） |
 | 09 | 什么是派生状态？为什么「用 useEffect 同步一份派生 state」是反模式？ |

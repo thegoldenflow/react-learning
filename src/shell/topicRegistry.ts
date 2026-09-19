@@ -59,7 +59,7 @@ export const PHASES: TopicPhase[] = [
       {
         slug: '06-list-and-key',
         title: '列表渲染与 key',
-        summary: '.map() 渲染列表、key 为什么必须稳定唯一、index 作 key 的坑，以及用 key 强制重置组件状态。',
+        summary: '列表就是 filter / sort / map、key 是身份（id / index / Math.random() 对比、创建时生成 id）、<Fragment key>，以及换 key 重置组件状态，对照 Vue 的 v-for + :key、就地更新与换 :key / watch 重置。',
       },
     ],
   },

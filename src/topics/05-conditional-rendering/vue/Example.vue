@@ -21,7 +21,7 @@
  *   频繁切换用 v-show，很少变用 v-if（官方的取舍原文见 HideVsUnmountDemo.vue）。
  * - 缓存：<KeepAlive>【常用】（区块四）：缓存实例，停用 / 激活走 onDeactivated / onActivated（首次挂载后也会调一次 onActivated）；项目里最常见的是包住 <router-view> 做后台多标签页（工程经验）。
  *   和 React 19.2 的 <Activity> 一样保留 state，不同在于 Activity 由 React 清理 Effect，KeepAlive 停用期间 watch 照样触发、组件照样重新渲染，要停订阅得自己在 onDeactivated 里做（测试覆盖）。
- * - v-if 与 v-for 同一元素：v-if 先求值、读不到循环变量，官方不推荐同用；先用 computed 过滤，或把 v-if 挪到外层容器（06 题改写时补）。
+ * - v-if 与 v-for 同一元素：v-if 先求值、读不到循环变量，官方不推荐同用；先用 computed 过滤，或把 v-if 挪到外层容器（见 06 题的 vue/ListBasicsDemo.vue）。
  *
  * 附：细节（了解即可，完整出处见 react/Example.tsx 的附 4）
  * - 编译器注入的 key 是 key: 0、key: 1（@vue/compiler-core 3.5.42）。这是模板编译器的行为：Vue 的渲染函数里写三元没有这个 key，两边同一个组件时和 React 一样复用（测试覆盖）。

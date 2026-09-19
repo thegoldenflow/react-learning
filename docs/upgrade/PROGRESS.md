@@ -9,7 +9,7 @@
 |---|---|---|---|---|
 | 0 | 审计（只读） | **完成。** 两轮审计均完成；用户 2026-09-17 答复「全部按建议执行」（AUDIT-ROUND2.md §6 D2-1～8，记录在 AUDIT.md §5.13）；两轮合并规则写在 AUDIT.md 附录 C | `docs/upgrade/AUDIT.md`（含 §5.13、§5.14、附录 C）、`docs/upgrade/REAUDIT-PROMPT.md`、`docs/upgrade/AUDIT-ROUND2.md` | 两轮审计与合并说明均已提交（d550e27、1efc217） |
 | 1 | 依赖与工具链调整 | **完成（2026-09-17）**：commit「阶段 1：依赖与工具链调整」（34cd734）+「阶段 1 补充：ESLint 9 → 10（D1-1）」 | package.json / package-lock.json、vitest.config.ts、eslint.config.js + eslint-suppressions.json、tsconfig.json、src/test/、4 处 react-router 导入、README 事实行 | 复核口径与全部记录见下文「阶段 1 记录」；版本决定见 AUDIT.md §5.0 的 5.14、5.15 |
-| 2 | 逐主题修改（先改 18 路由样板） | **进行中**（分支 `phase-2-topics`）：前置 commit（壳修复，2.0）、**18 路由样板**（2.1，风格已确认，AUDIT.md §5.0 的 5.16）、**2-A Vue 响应式措辞批量修正**（2.2，措辞见「统一措辞」）、**2-B 的 07 表单**（2.3）、**19 异步提交**（2.4）、**11 API 请求状态**（2.5）、**30 TanStack Query**（2.6）、**14 自定义 Hook**（2.7）、**16 全局状态**（2.8）、**20 错误边界**（2.9）、**26 过期闭包**（2.10）已完成，**2-B 全部完成**；2-C 的 **01 组件与 JSX**（2.11）、**02 Props**（2.12）、**03 State**（2.13）、**04 事件处理**（2.14）、**05 条件渲染**（2.15）已完成；2026-09-19 按用户要求定了「使用频率」写法，**05 按它改写成样板并经用户确认**（2.16）。2026-09-19 **01–04 已按使用频率改写**（2.17–2.20；fdbff97、9ee15d0、ade42f8、1a8ffe7）。用户 2026-09-19 定了：**先做 06**，02 题原生属性类型**保持 ComponentPropsWithRef**。**下一步：按 `docs/upgrade/TOPIC06-PROMPT.md` 在新会话里把 06 做完**（半成品在 `git stash` 里，说明含 wip06；直接按使用频率写法完成，一个 commit），做完停下来问用户：其余九题（18、07、19、11、30、14、16、20、26）的使用频率改写，还是先写 08 起的新题 | 每题一个 commit | 样板已确认，其余题不再逐题停 |
+| 2 | 逐主题修改（先改 18 路由样板） | **进行中**（分支 `phase-2-topics`）：前置 commit（壳修复，2.0）、**18 路由样板**（2.1，风格已确认，AUDIT.md §5.0 的 5.16）、**2-A Vue 响应式措辞批量修正**（2.2，措辞见「统一措辞」）、**2-B 的 07 表单**（2.3）、**19 异步提交**（2.4）、**11 API 请求状态**（2.5）、**30 TanStack Query**（2.6）、**14 自定义 Hook**（2.7）、**16 全局状态**（2.8）、**20 错误边界**（2.9）、**26 过期闭包**（2.10）已完成，**2-B 全部完成**；2-C 的 **01 组件与 JSX**（2.11）、**02 Props**（2.12）、**03 State**（2.13）、**04 事件处理**（2.14）、**05 条件渲染**（2.15）已完成；2026-09-19 按用户要求定了「使用频率」写法，**05 按它改写成样板并经用户确认**（2.16）。2026-09-19 **01–04 已按使用频率改写**（2.17–2.20；fdbff97、9ee15d0、ade42f8、1a8ffe7）。用户 2026-09-19 定了：**先做 06**，02 题原生属性类型**保持 ComponentPropsWithRef**。2026-09-19 按 `docs/upgrade/TOPIC06-PROMPT.md` **把 06 列表与 key 做完**（从 wip06 stash 恢复，直接按使用频率写法完成，2.21）。**下一步：等用户定** —— 其余九题（18、07、19、11、30、14、16、20、26）按 01–04 的方式做使用频率改写，还是先写 08 起的 2-C 新题（08 → 09 → 10 → …，直接按使用频率写法） | 每题一个 commit | 样板已确认，其余题不再逐题停 |
 | 3 | 补充新主题 | 未开始 | | 按阶段 0 确认的清单 |
 | 4 | 一致性检查 + CHANGELOG | 未开始 | `docs/upgrade/CHANGELOG.md` | |
 
@@ -830,6 +830,81 @@
 
 **复核**：反驳式复核代理提出 27 条（高 1、中 6、低 20），全部处理：Vue 侧标了【少用】却照常运行 → 和 React 侧一样拆出 CaptureOrderDemo.vue / RareModifiersDemo.vue、区块六注释，定下 .vue 的注释块格式；正文补「11. Vue 修饰符的 JS 写法」一节（按键 e.key、回车排除 Shift、Esc、state + disabled、.self 各自的标签与依据）；README / 注册表的 04 描述与测试条数；区块六的 ❌ 随场景注释写成文件头里的例外；useCallback 不再标【少用】（官方那句讲的是该不该用），改写成「什么时候才需要」；回车排除 Shift 拆出来标【常用】并放进运行中的演示，只有多个组合键精确区分留在【少用】；「点击外部关闭」碰到的 document 监听器问题放进运行中的区块三并补 17 RC 博客的修法 { capture: true }（两侧都有测试）；stopPropagation 作为唯一写法不打频率标签；几处【常用】补「工程经验」或原文（*EventHandler 的「Depending on your code-style preferences」）；附 2 的「都有测试覆盖」改准确；二-9 补回 globalThis.WheelEvent 的指向并写明官方示例用 React.ChangeEvent；测试标题去掉频率字样；小节标题补回【主流】；「少用」统一加方括号；Vue 的按键修饰符补原文依据、.esc 降为【常用】；Vue 主演示与 React 的回车行为对齐并在注释里写明差别；Vue 补「减一件」；区块六标题加【少用】；四-3 指向附 1；练习 1 写明先取消哪两处注释；「只在编辑器、画布」改成「多见于」；两处超长行断开。
 
+### 2.21 06 列表与 key（2026-09-19，直接按「使用频率」写法完成）
+
+**起因**：06 在 2026-09-18 做了一半（`git stash` 里的 wip06），当时还没有使用频率规则。用户 2026-09-19 定了先做 06，按 `docs/upgrade/TOPIC06-PROMPT.md` 从 stash 恢复后直接按使用频率写法做完（样板 05，01–04 是照它改完的例子）。
+
+**蓝本与依据**：AUDIT-ROUND2.md §5 的 06 大纲；问题表 = R2-06-1～10 + AUDIT.md §3 的 06 各行。事实核实：上一个会话的研究材料（42 条，40 确认、2 查无；官方 raw markdown 2026-09-19 重抓比对一致）+ 本会话补抓 react.dev legacy.md / sidebarReference.json / useState.md、vuejs watchers.md、v3 迁移指南 key-attribute、MDN <dl> / <tr> + 主会话一次性探针（块体箭头函数忘了 return 的运行时 / tsc / lint、Vue v-if 与 v-for 的编译结果、Vue 重复 key 的检查时机、Fragment ref、set-state-in-effect 与 array-callback-return 的 lint 实测）+ 1 个反驳式复核代理（见下）。
+
+**结构（React 6 个文件，Vue 9 个文件）**
+- `react/Example.tsx`：十段文件头（含使用频率说明行与「附」1–7）+ 三个区块的入口。
+- `react/ListBasicsDemo.tsx`【区块一】：分类 + 「只看库存 ≥ 10 件」两个条件写进同一个 filter、排序前拷贝（没选筛选条件时拿到的就是模块常量 PRODUCTS）、map + key、库存明细表（一项两行 <tr>，用 `<Fragment key>`）；界面标【最常用】【常用】。
+- `react/KeyBugDemo.tsx`【区块二】：同一张订单表切换 id【最常用】/ index ❌ / Math.random() ❌ 三种 key，开头插入 / 末尾追加 / 删除第一行 / 重渲染 / 重置；新行由 `demoData.ts` 的 createLocalOrder 在创建时生成 id【常用】。
+- `react/KeyResetDemo.tsx`【区块三】：不换 key（复用实例、草稿残留）vs 换 key（新实例）【最常用】。
+- `react/demoData.ts`：INITIAL_ORDERS、createLocalOrder（优先 crypto.randomUUID()，没有时退回计数器，id 带 local- 前缀）。
+- Vue 侧：`ListBasicsDemo.vue`（computed 过滤排序、`<ul v-if>` / `<p v-else>`、`<template v-for>` 包两行 <tr>）、`RareVForDemo.vue`【少用，ListBasicsDemo.vue 里注释着】（of、遍历对象、整数范围、解构）、`KeyBugDemo.vue`（不写 / index / id / Math.random() 四种，变更方法 unshift / push / splice，初始值先拷贝）、`KeyResetDemo.vue` + `OrderNoteEditor.vue`（不换 :key / 换 :key）+ `WatchNoteEditor.vue`（watch 手动重置）、`demoData.ts`、`Example.vue`（精简头 + 使用频率 + 附：细节）。原来一整页的 `vue/Example.vue` 和 `vue/OrderNoteEditor.vue` 按新结构重写。
+- 测试：React 19 条、Vue 17 条（stash 里原有 React 10 条）。
+- 壳：注册表 06 summary；README 06 目录行、说明段、面试题行；README 05 说明段的测试条数 7 → 8（05 按使用频率改写时补了 1 条测试，README 没跟着改）。
+- 05 题两处「（06 题改写时补）」改成「见 06 题」（react/Example.tsx 三、vue/Example.vue）。
+
+**问题表处理**：
+- R2-06-1（Math.random() 作 key、key 从哪来）→ 二-3、二-4、区块二 Math.random() 模式与 createLocalOrder（测试覆盖：重渲染全丢、新行 id 创建时生成后重渲染留得住、randomUUID / 计数器两条路径）。
+- R2-06-2（<Fragment key>、块体箭头函数 return、先 filter 再 map）→ 二-1、二-5、区块一（测试覆盖；块体 return 另测了 tsc 报错与运行时什么都不渲染）。
+- R2-06-3（key 类型、Vue key 原始值、重复 key）→ 二-2（expectTypeOf 测试）、三、四-4（Vue 重复 key 的检查时机与界面出错，测试覆盖）。
+- R2-06-4（派生列表渲染期算 / useMemo、sort 先拷贝、Vue 变更方法 vs 替换）→ 二-1、三（测试覆盖：「全部」时排序不改 PRODUCTS，Vue 变更方法与常量拷贝）。
+- R2-06-5（v-for 语法家族、<template v-for> key、组件 v-for 显式传 props、v-if 与 v-for、v-memo）→ 三、附 6（of / 对象 / 范围 / 解构拆到 RareVForDemo.vue 注释保留；v-if 与 v-for 两种写法都用 compileTemplate 断言）。
+- R2-06-6（九段：虚拟化与 useMemo caveat、Compiler、19.3 Fragment ref）→ 九（Fragment ref 在 19.2.8 的实际表现测试覆盖；Compiler 写「17 题改写时补」）、七（虚拟化，工程经验）。
+- R2-06-7（八段：Children.map / toArray、存量 key={index}）→ 八（Children / cloneElement 在 react.dev 的 Legacy React APIs 里，标【旧写法】）。
+- R2-06-8（交叉引用）→ 全部补零；状态提升指向 25；路由实例复用指向 18；10 题引用保留。
+- R2-06-9（「退化为按 index」写成差异、「一模一样 / 完全一致」、「永不增删」过严）→ 四-2 写成两边默认都按位置复用、区别只在提示；绝对化用词清零；index 的前提改成附 4 的两条（满足其一）。
+- R2-06-10（跨来源 key 前缀、分页保持 key 稳定、memo 时 props 引用稳定）→ 七。
+- 第一轮 06：「第 8 题」→ 25 题；「第 N 题」补零；Vue「watch 同步 props 是反模式」→ Vue 里换 :key 与 watch 手动重置两种都常见，并用测试说明 watch 在组件更新前执行、没有旧值那一帧（第一轮待核实项了结）；「一模一样 / 完全一致」删掉；「SFC 一文件一组件」按 02 统一措辞改成「一个 SFC 只有一个模板组件」。
+
+**待核实项结论**：
+- P-06-1（官方有没有「静态列表可用 index」的正面表述）：有，审计漏看了挑战题 —— rendering-lists「(This is a rare case where index as a key is acceptable because a poem's lines will never reorder.)」和另一题答案「use index as a key (with the caveat that you can't safely reorder ingredients)」，写进附 4，也是【少用】的依据。
+- P-06-2（v-if 优先于 v-for 的版本）：05 题已了结（v3 迁移指南），06 附 7 引用 05 附 4，参考里补了 breaking-changes/v-if-v-for。
+- P-06-3（只在末尾追加时 index 不错位）：成立，React / Vue 各有测试，Chrome 实测一致。
+- P-06-4（onClick={removeOrder(id)} 渲染时执行的报错）：04 题已了结（统一措辞「事件」表），06 的新演示没有逐行删除按钮，不再涉及。
+- P-06-5（useState 初始值在 StrictMode 下）：03 题已了结（统一措辞「State」表）；06 的 KeyResetDemo.tsx 注释补了 StrictMode 前提（复核指出）。
+
+**本次新发现（审计没写到）**：
+1. map 的块体箭头函数忘了 return：运行时什么都不渲染、不报错；TypeScript 报 TS2322「Type 'void[]' is not assignable to type 'ReactNode'」（测试用 @ts-expect-error 验证，临时去掉指令实测过报错原文）；本项目的 lint 不拦（typescript-eslint recommended 用 @typescript-eslint/no-unused-expressions 换掉核心规则，默认值沿用核心规则，enforceForJSX 是 false），ESLint 核心规则 array-callback-return 能拦（「Array.prototype.map() expects a return value from arrow function.」，不在 recommended 里）。
+2. Vue 3.5.42 的重复 key 检查只在 patchKeyedChildren 的「乱序中间段」（runtime-core.cjs.js:6542）：挂载、头尾对得上的追加都不警告；乱序更新时警告一次，而且 DOM 真的出错（4 项数据渲染出 5 个 <li>）—— 文档「Duplicate keys will cause render errors」。
+3. watch 回调默认在组件更新之前执行：换订单后子组件只渲染一次，没有「新订单 + 旧草稿」的一帧；React 在 Effect 里 setState 重置会先配着旧草稿渲染一次，换 key 只渲染一次（三种都有测试）。所以 Vue 里 watch 手动重置不是 React 那种要避免的写法。
+4. ref 装数组时内部用 reactive() 转成 Proxy，Proxy 包的是原数组：ref(模块常量) 之后调变更方法会改掉常量（测试覆盖），Vue 侧初始值要先拷贝（浅拷贝）。
+5. 19.2.8 给 <Fragment> 传 ref：TypeScript 报错，运行时开发环境报「Invalid prop `ref` supplied to `React.Fragment`. React.Fragment can only have `key` and `children` props.」，ref 一直是 null（测试覆盖）。
+6. react.dev 把 Children、cloneElement 放在「Legacy React APIs」（sidebarReference.json + legacy.md「not recommended for use in newly written code」）。
+7. eslint-plugin-vue 10.10.0 的 vue3-essential（本项目 flat/recommended 包含）里 require-v-for-key、no-use-v-if-with-v-for、no-v-for-template-key-on-child 都是 error；两边的类型检查都拦对象 key（React 的 Key、vue-tsc 的 PropertyKey，复核代理实测）。
+8. HTML 允许用 <div> 包 <dl> 里的每组 dt / dd（MDN），所以「一项多个节点、不能多包一层」的例子换成了表格里一项两行 <tr>（<tr> 的父元素只能是 table / thead / tbody / tfoot）；stash 里原来用的是 <dl>（复核指出）。
+9. index 作 key 不出错的条件是「满足其一」：下标始终不变（官方给的），或者列表项是纯展示内容（下标变了只是就地改文字）；本项目各题的 LogPanel 靠的是后一条（超过上限从头部删旧行，下标会变）。
+10. 工具细节：react-hooks/set-state-in-effect 不分析定义在测试回调里的组件（模块顶层的组件照报「Calling setState synchronously within an effect can trigger cascading renders」）；vue/one-component-per-file 在这个测试文件里没报（只有一个对象形式的 defineComponent），不需要 disable。
+
+**频率判断与依据**
+
+| 要做的事 | 写法与标签 | 依据 |
+|---|---|---|
+| 渲染列表 | map 返回 JSX【最常用】；for 循环 push JSX【少用】 | 官方正文示例都是 map + 工程经验；挑战题「List with a separator」答案里出现过手写循环；for 的频率：工程经验（01 PurityDemo 有这种写法） |
+| 过滤 | 先 filter 再 map【最常用】；map 里返回 null【少用】 | rendering-lists「Filtering arrays of items」；null：工程经验 |
+| 排序 | [...list].sort()【最常用】；toSorted()【少用】 | updating-arrays 表格「copy the array first」与示例 [...list]；Vue list.md 同样示范 [...numbers]；toSorted：本项目 lib ES2022 无类型，官方两家文档都没用 |
+| 派生列表 | ✅ 渲染时算 / ❌ 存 state + Effect 同步；useMemo 只写「什么时候才需要」，不打频率 | you-might-not-need-an-effect、useMemo 页 |
+| key 从哪来 | 数据自带 id（或兄弟间唯一、不变的字段）【最常用】；创建时生成 id【常用】；index【少用】；渲染时生成 ❌ | Where to get your key + 工程经验；「its name can serve as a key」；「This is a rare case where index as a key is acceptable」；Pitfall |
+| 一项多个节点 | 多包一层元素【最常用】；不能多包一层时 <Fragment key>【常用】 | DeepDive「either group them into a single <div>, or use … <Fragment>」；频率：工程经验 |
+| prop 变了重置 state | 换 key【最常用】（05 二-4 已定）；Effect 里 setState ❌；渲染期有条件 set【少用】（03 附 2） | you-might-not-need-an-effect「🔴 Avoid」；useState「This pattern is rarely needed」 |
+| 操作 children | Children.map / toArray / cloneElement【旧写法】 | legacy.md；Children「Using Children is uncommon」 |
+| Vue 渲染列表 | v-for + :key【最常用】；of、遍历对象、范围、解构【少用】（RareVForDemo.vue，页面上注释） | API 页 key「The most common use case is combined with v-for」；指南示例都用 in，of 是「You can also use of」；其余工程经验 |
+| Vue 一项多个节点 | <template v-for> + key 在 template 上【常用】 | list.md；频率：工程经验 |
+| Vue 过滤列表项 | computed【最常用】；v-for 挪到外层 <template>、v-if 在里面【常用】；同元素 v-if + v-for ❌ | list.md「replace users with a new computed property」「moving v-for to a wrapping <template> tag」；频率：工程经验 |
+| Vue 隐藏整个列表 | ✅ v-if 挪到外层容器（唯一正确写法，不打标签） | list.md「move the v-if to a container element」 |
+| Vue 改数组 | 变更方法【最常用】；整体替换【常用】 | list.md 两节都讲；频率：工程经验 |
+| Vue 重置内部状态 | 换 :key、watch 手动重置两种都常见 | 工程经验；API key 页「force replacement」；watchers「before the owner component's DOM updates」 |
+| Vue v-memo | 【少用】（附，无演示） | 「should be rarely needed」 |
+
+**注释掉了什么**：React 侧没有需要注释的演示（index、Math.random() 作 key 是 ❌ 反例，照常运行；for 循环、map 里返回 null、toSorted、Children 这些少用 / 旧写法原来就没有演示，只写在附和八里）。Vue 侧 `ListBasicsDemo.vue` 里 RareVForDemo 的 import 与用法（2 个【少用】注释块），组件文件保留，测试直接挂载它（「附 6【少用】」）。
+
+**验证**：`npm run check` 通过（lint 0 / typecheck 0 / 测试 447 条（33 个文件）/ build）；06 测试 36 条（React 19、Vue 17），无 act 警告、无 stderr。取消 Vue 侧 2 个【少用】注释块后 lint、vue-tsc、06 测试（36 条）全绿，已从备份还原并 `diff -r` 一致（复核代理在仓库副本上又验证了一次）。引文逐字核对：119 条英文引文命中官方原文 110 条，其余 9 条是运行时 / tsc / lint 报错原文，各有测试、探针或 02 题的已核实记录。旧版引文保留检查（RETROFIT §5.2）：旧版 31 条「」都是中文强调语（旧版没有引官方原文），缺失 29 条是措辞改写，内容逐条对照过都在新版（身份 / 位置、index 错位机制、换 key 卸载与挂载、Effect 重置的两次渲染、滥用 key 的代价），不补。§4.6 收尾检查：「没有一一对应关系」0、绝对化用词 0、交叉引用逐条核对（13 题写「13 题改写时补」、17 题 Compiler 写「17 题改写时补」）、无 CRLF。浏览器（临时 5174，已停并还原 launch.json）：两侧区块二四种 / 三种 key 的开头插入、删除第一行、末尾追加、重渲染结果和测试一致（id 不串；index / 不写 :key 插入与删除串行、末尾追加不串；Math.random() 全丢），新行输入重渲染后留得住且是同一个元素；区块一「全部 + 升序」第一项是无线鼠标、显示器 + 库存 ≥ 10 件为空（React 的 ul 还在、Vue 的 ul 不渲染）、库存明细表 16 行（音频 4 行）；区块三两侧与 Vue 的 watch 面板结果正确；源码查看器 React 6 个、Vue 9 个文件；console.error / warn 为 0，无横向溢出。
+
+**复核**：反驳式复核代理提出 36 条（中 8、低 28），全部处理：index 作 key 的前提改成「满足其一」（附 4、五、二-3），LogPanel 的例子改成靠「纯展示」；<dl> 可以用 <div> 包每组 dt / dd → 演示换成表格里一项两行 <tr>（两侧 + 测试），正文写明 <dl> 不算；派生列表去掉【最常用】改成 ✅ / ❌；Vue v-for + :key 的频率依据换成 API 页「The most common use case is combined with v-for」，recommended 那句改作规则；Vue v-if 与 v-for 按「过滤列表项 / 隐藏整个列表」拆开写，补上官方的 <template v-for> 包一层写法【常用】，隐藏整个列表只用 ✅；补测试「id 作 key 删除第一行」（两侧）和「换 key 只渲染一次」；KeyBugDemo 去掉没演示的「排序」；块体 return 的 lint 说法写明是本项目配置、规则名改成 @typescript-eslint/no-unused-expressions、补 array-callback-return 能拦（实测）；附 1 补官方挑战题里的手写循环；<Fragment key>、template v-for、创建时生成 id 的频率依据改成工程经验，换 key 指向 05 二-4 与附 2；map 返回 null 标【少用】；四-2、速答、Vue 头的「串行」补开头 / 中间插入与删除的前提；Vue 重复 key 补检查时机（两处）；KeyResetDemo 补 StrictMode 前提；13 题引用改成「Children API 与 cloneElement」；useMemo 引文换成 Caveat 自己的结尾句；测试标题「附 6【少用】」；README 两处与实际不符、注册表补 Vue 对照；速答与三的几条补【主流】；补 Vue :key 触发过渡、(item, index)、v-memo 对照 React memo、兄弟间唯一字段当 key、浅拷贝、展开带 key 的对象报错（02 题）；「React 只能整体替换」改准确；ref 措辞照统一措辞表；测试文件头写明类型断言由 typecheck 检查；练习 2 写明 StrictMode 与实例标签；参考补 reactivity-fundamentals、v-if-v-for 迁移页与 MDN 渲染页来源；Vue 2 <template> key 的措辞；Vue 下拉文案与 React 对齐；对象 key 改成「类型检查拦」；demoData 的「演示简化」改成说明前缀用途；ListBasicsDemo 去掉没依据的「常见的写法」。
+
 ## 统一措辞（各题改写时照用）
 
 ### Vue 响应式（2-A 定稿，2026-09-17）
@@ -999,6 +1074,22 @@
 | 0 陷阱怎么拦 | 「左边写成布尔值（> 0）；TypeScript 拦不住（ReactNode 含 number / bigint）；eslint-plugin-react 的 jsx-no-leaked-render 能拦（本项目没装）」 | 「TS 会报错」「lint 会报」（不说是哪个插件） |
 | Vue 插值里的 && | 「插值里 0 显示「0」，false 显示「false」；插值里的条件写三元或改用 v-if」 | 「Vue 没有 0 陷阱」（不区分 v-if 与插值） |
 
+### 列表与 key（06 定稿，2026-09-19）
+
+| 要说的事 | 这样写 | 不要这样写 |
+|---|---|---|
+| 不写 key 时 React 怎么办 | 「不写 key 时 React 用的就是 index（官方 that's what React will use if you don't specify a key at all），开发环境 console.error」 | 「React 退化为按 index 匹配，Vue 则就地更新」（把同一种行为说成差异） |
+| index 作 key 的前提 | 「满足其一：已有项的下标始终不变（只在末尾追加 / 只删末尾，不在开头或中间插入、不删中间项、不排序，官方 rare case）；或者列表项是纯展示内容，没有自己的 state、非受控输入（下标变了只是就地改文字）」 | 「列表永不增删才能用」（过严）、「两个条件都要满足」、「index 作 key 一定出 bug」 |
+| key 从哪来 | 「数据自带的 id【最常用】；前端新建的数据在创建时生成 id 存进数据【常用】（randomUUID / 计数器 / uuid 包）」 | 「渲染时用 uuid / Math.random() 生成 key」 |
+| key 的类型 | 「React 的 Key = string \| number \| bigint；Vue 期望 number \| string \| symbol；两边都不接受对象」 | 「key 只能是字符串」 |
+| 重复 key | 「React：开发环境 console.error（挂载时就报）；Vue 3.5：挂载和头尾对得上的追加不检查，乱序更新时 [Vue warn] 一次，界面可能出错」 | 「Vue 重复 key 会抛错」「Vue 挂载时就警告」 |
+| Vue 不写 :key | 「就地更新（in-place patch），按位置复用，和 React 用 index 一样会串行；运行时不报警，靠 lint 的 vue/require-v-for-key」 | 「Vue 不写 key 会警告」 |
+| v-if 与 v-for | 「Vue 3 同一元素上 v-if 先求值、读不到循环变量（Vue 2 相反）；过滤用 computed，隐藏整个列表把 v-if 挪到外层容器」 | 「v-for 先于 v-if」（不带 Vue 2 前提） |
+| 换 key 重置 | 「key 变了就卸载旧实例、创建新实例（state、DOM、Effect 全部重来）；React 里 prop 变了要重置内部 state 的最常用办法」 | 「key 只用于列表」 |
+| Vue 的手动重置 | 「Vue 项目里换 :key 与 watch 手动重置两种都常见；watch 默认在组件更新前执行，不会先用旧值渲染一次」 | 「Vue 里 watch 同步 props 是反模式」 |
+| React 的 Effect 重置 | 「在 Effect 里监听 prop 再 setState：先用旧值渲染一次、再渲染第二次，官方 🔴 Avoid」 | 「会无限循环」 |
+| Children / cloneElement | 「react.dev 的 Legacy React APIs，not recommended for use in newly written code；Using Children is uncommon」 | 「Children 已废弃」 |
+
 ## 每题状态（阶段 2 起填写）
 
 | 题号 | 主题 | 状态 | 改动摘要 | 遗留问题 |
@@ -1010,6 +1101,7 @@
 | 03 | State 与 useState | **完成** | 七个区块：为什么需要 state（局部变量 vs useState、state 属于实例）、setter 只影响下一次渲染（快照、A / B、设成当前值）、对象 / 数组整体替换（原地改 + 同一个引用被跳过）、惰性初始化（调用次数面板）、state 的结构（存 id vs 存对象、status vs 两个布尔值）、useReducer（reducer 导出单测）、两个常见报错（Too many re-renders、函数存进 state）；Vue 侧普通 let 变量、DOM 在 nextTick 才变、setup 只执行一次、存同一个响应式对象 / 副本 / id、渲染中改数据的 Maximum recursive updates；React 24 条 + Vue 14 条测试；了结 P-03-1～3。详见 2.13 | 21 题改写时补：深嵌套拍平（03 二-10 已写原文，21 只讲了 Immer）与 Vue 侧 reactive 的三条限制 / ref 首选（R2-21-9；03 已写，21 可指回 03）；17 题改写时补 Compiler 小节（03 九已写「17 题改写时补」）；33 / 34 / 35 新增后回填交叉引用；19.3 升级后无需改（本课没用到 19.3 的 API）；2026-09-19 按使用频率改写（见 2.19）；10 题改写时改掉「新状态只依赖旧状态 → 一律用函数式更新，和 03 题是同一条」这句口诀（10-effects-and-lifecycle/react/Example.tsx:144，和 03 现在的口径与统一措辞表冲突）；21 题改写时补 Immer 的用法（03 二-8 已写「21 题改写时补」，本项目没装 immer） |
 | 04 | 事件处理 | **完成** | 六个区块：绑定与传参（传函数不要调用、回调 prop 以 on 开头、❌ 列表渲染时就删光）、事件对象（target / currentTarget / nativeEvent.currentTarget 是 root 容器、setTimeout 里 currentTarget 为 null）、事件传播（React 捕获 / 冒泡与原生监听器同一份日志比先后、stopPropagation 挡住谁、onScroll 不冒泡 / onScrollCapture / onFocus 冒泡）、默认行为（preventDefault 只拦默认动作、只 stopPropagation 的勾选框、form onSubmit、.self）、Vue 修饰符的 React 写法（.once、按键与 .exact、输入法组字、鼠标键与右键菜单）、onWheel 是被动监听；Vue 侧 v-on 直接绑元素（与原生监听器交错）、修饰符实现、@click.right 改写成 contextmenu、@wheel.prevent 生效、组件事件不冒泡与透传反例；React 22 条 + Vue 15 条测试；了结 P-04-1～5。详见 2.14 | 17 题改写时补 Compiler 对内联处理函数的记忆化（04 九已写「17 题改写时补」）；07 题可补「提交按钮 onClick 跑在校验之前」的一句（04 二-6 已有测试）；31 / 34 / 35 新增后回填交叉引用；19.3 升级后核 onFullscreenChange 与 submitter；2026-09-19 按使用频率改写（见 2.20；两侧的少用演示拆成单独组件、页面上注释，定下 .vue 的注释块格式） |
 | 05 | 条件渲染 | **完成** | 四个区块：分支就是 JavaScript（switch 提前 return、return null、JSX 存进变量、三元、&&、查表）、&& 的 0 陷阱（0 / NaN 渲染出来、> 0 与 Number.isFinite、true / 0n 等取值表、TS 拦不住）、UI 树里的位置决定 state 的去留（三行对照：三元同类型保留、key 重置、不同位置重置）、隐藏还是卸载（&& / hidden 属性 / <Activity>，日志记 Effect 建立与清理）；Vue 侧模板 v-if / v-else 注入 key（compileTemplate 测试）与渲染函数三元复用、插值里 0 与 false、v-show 触发 onUpdated、KeepAlive 停用期间 watch 不停与 DOM 移出文档；React 7 条 + Vue 9 条测试；了结 P-05-1 / 3 / 4。详见 2.15 | 06 题改写时补 v-if 与 v-for 同用（05 三已写「06 题改写时补」）；P-05-2（Activity 与 Suspense）留给 32 题；32 新增后回填 Activity 的交叉引用；19.3 升级后核 <ViewTransition> 与 Activity 的配合；2026-09-19 按使用频率改写（样板，用户已确认，见 2.16）|
+| 06 | 列表与 key | **完成** | 三个区块：列表就是 filter / sort / map（两个筛选条件写进一个 filter、排序前拷贝、一项两行 <tr> 用 <Fragment key>）、key 是身份（id / index / Math.random() 三种 key 做开头插入 / 删除第一行 / 末尾追加 / 重渲染，createLocalOrder 在创建时生成 id）、换 key = 换一个实例（不换 key 草稿残留、Effect 重置先渲染一次旧值）；Vue 侧 computed 过滤与 v-if 挪到外层、<template v-for>、不写 / index / id / random 四种 :key、变更方法与常量拷贝、重复 key 的检查时机与界面出错、换 :key 与 watch 手动重置，少用的 v-for 写法在 RareVForDemo.vue、页面上注释着；React 19 条 + Vue 17 条测试；了结 P-06-1～5。2026-09-19 从 wip06 恢复后直接按使用频率写法完成（见 2.21） | 13 题改写时补 Children API 与 cloneElement（06 八已写「13 题改写时补」）；17 题改写时补 Compiler 小节（06 九已写「17 题改写时补」）；19.3 升级后改九的 Fragment ref 测试（19.3 起 <Fragment ref> 可用）；README 05 说明段的测试条数已顺手改成 8 |
 | 20 | 错误边界 | **完成** | 手写 class 边界主线（fallback / onError / onReset / resetKeys）+ react-error-boundary 可运行并排；「接得住 / 接不住」8 个按钮 + useTransition 同步 / async、顶层 startTransition、lazy 缓存；createRoot 小根演示 onCaughtError / onUncaughtError 与整棵界面被移除；Vue 侧 ErrorBoundary.vue、捕获面、出错组件的两种表现、传播规则与 errorHandler；React 15 条 + Vue 12 条测试；了结 P-20-1～5。详见 2.9 | 31 / 32 / 33 / 34 新增后回填交叉引用；18 题可补一句 RouterProvider onError（7.11 起）与 throw data 404 |
 | 16 | 全局状态（Zustand） | **完成** | Zustand 5 主线五个区块（selector 与 useShallow + Profiler 渲染计数 / 组件外读写 + subscribe + 异步 action + persist 与 migrate / Context + useReducer 并排 / createStore + Context 每实例一份 / RTK 只读对照）；Vue 侧 Pinia setup store + 迷你持久化插件 + 模块级 reactive；React 19 条 + Vue 15 条测试；了结 P-16-1、3～6（P-16-2 仍是推论）。详见 2.8 | P-16-2（Compiler 与订阅粒度）留给 17 题；33 / 34 / 35 新增后回填交叉引用；首次打开会触发一次 Vite 依赖重新预构建（新发现 9） |
 | 14 | 自定义 Hook 与 Composable | **完成** | useSyncExternalStore 主线（useWindowWidth + getServerSnapshot + useDebugValue）+ Effect 订阅并排 + subscribe 稳定性实验；useInterval（useEffectEvent）与「回调进依赖」反例；防抖搜索（派生 loading，lint 抑制已清）+ let timer 坑；React 12 条 + Vue 8 条测试；了结 P-14-1～5。详见 2.7 | tearing 没有做可视化演示（P-14-3，只讲原理）；32 / 33 / 34 新增后回填交叉引用（03 题 :64「10、14 题」那句已随 03 重写删除，2.13） |

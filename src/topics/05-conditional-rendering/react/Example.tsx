@@ -75,7 +75,7 @@
  * - 缓存：<KeepAlive>【常用】：缓存组件实例 ——「it goes into a deactivated state instead of being unmounted」，走 onDeactivated / onActivated（首次挂载时 onMounted 之后也会调一次 onActivated，测试覆盖）；
  *   项目里最常见的是包住 <router-view> 做后台多标签页（工程经验）。React 这边对应的是 <Activity>（少用，见附 3）；两者都保留 state 和 DOM，
  *   不同在于 Activity 由 React 清理 Effect，KeepAlive 停用期间 watch 照样触发、组件照样重新渲染，要停订阅得自己在 onDeactivated 里做（测试覆盖）。
- * - v-if 与 v-for 同一元素【主流】：「v-if will be evaluated first」，v-if 里读不到循环变量，官方不推荐同用 —— 列表先过滤（computed）或把 v-if 挪到外层容器（06 题改写时补）。
+ * - v-if 与 v-for 同一元素【主流】：「v-if will be evaluated first」，v-if 里读不到循环变量，官方不推荐同用 —— 列表先过滤（computed）或把 v-if 挪到外层容器（见 06 题三，编译结果有测试）。
  *   React 没有指令优先级的问题：先 filter 再 map。
  *
  * 四、关键区别（每条写明前提）

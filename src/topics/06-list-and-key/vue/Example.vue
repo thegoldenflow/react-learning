@@ -1,211 +1,49 @@
 <script setup lang="ts">
 /**
- * 学习主题：列表渲染与 key（.map() 对照 v-for，index 作 key 的坑）
+ * 主题：06. 列表渲染与 key（Vue 对照：v-for + :key、就地更新、换 :key 重置组件）
+ * 适用版本：Vue 3.5 · eslint-plugin-vue 10.10
+ * 最后核对：2026-09-19
+ * 前置主题：01、02、03、05
+ * 成熟度：本课知识点按【主流】【较新】【尝鲜】【旧写法】逐一标注
+ * 使用频率：同一件事有几种写法时按 Vue 项目里的使用频率标【最常用】【常用】【少用】（规则与依据见 react/Example.tsx 文件头）。
+ *          【少用】的 v-for 写法拆在 RareVForDemo.vue，ListBasicsDemo.vue 里注释着（删掉注释块的第一行和最后一行就能运行；
+ *          模板里的注释块写成 <!-- 【少用】… 开头、单独一行 --> 结尾）；❌ 反例照常运行。
  *
- * React 核心概念：
- * - 列表就是数组的 .map() 返回 JSX；key 写在 map 返回的「最外层元素」上
- * - key 是协调（reconciliation）时匹配新旧节点的身份标识：
- *   key 相同 → 复用并更新节点；key 变了 → 销毁旧节点、新建节点
- * - 用 index 作 key 时，删除/插入/排序会让 index「顶替」到别的数据上，
- *   节点被错误复用，DOM 状态（输入框内容、滚动位置、焦点）随之错位
- * - index 勉强可用的场景：纯展示、列表永不增删/重排、且没有内部状态
- * - key 还有第二种用法（不限于列表）：给同一个组件换一个 key，等于告诉 React「这是另一个东西」，
- *   旧实例连同它的 state / effect 一起卸载、新实例重新挂载 —— 这是官方推荐的
- *   「prop 变了要重置内部 state」解法：<EditForm key={selectedId} />
+ * 完整的十段讲解在 react/Example.tsx；本文件列出 Vue 这一侧的要点。
  *
- * Vue 对应概念：
- * - v-for="(order, index) in orders" + :key，diff 同样靠 key 匹配新旧节点
- * - :key 用 index 有一模一样的问题——这不是 React 特有的坑
- * - :key 变了同样会销毁重建组件实例、内部 state 全部丢弃；
- *   Vue 老手熟悉的 <router-view :key="$route.fullPath"> 就是这个手法
+ * Vue 这一侧的要点：
+ * - 渲染列表：v-for="item in items" + :key="item.id"【最常用】（区块一；API 页「The most common use case is combined with v-for」），要下标写 (item, index) in items。组件上用 v-for 不会自动把 item 传进去，要显式写 :order="order"
+ *   （「components have isolated scopes of their own」），和 React 的 <Row key={id} order={order} /> 一样。
+ * - 过滤 / 排序：computed【最常用】（区块一），排序前先拷贝（computed 里原地 sort 会改掉源数组）；把 v-for 挪到外层 <template>、v-if 写在里面【常用】。
+ *   v-if 与 v-for 写在同一个元素上 ❌：v-if 先求值、读不到循环变量（编译结果测试覆盖），官方不推荐同用，lint 的 vue/no-use-v-if-with-v-for 会报错；
+ *   要隐藏整个列表 ✅ 把 v-if 挪到外层容器（区块一的 <ul v-if> / <p v-else>）。React 没有指令优先级的问题：先 filter 再 map。
+ * - 一项多个节点：<template v-for>，:key 写在 <template> 上【常用】（区块一的库存明细表，一项两行 <tr>）；Vue 2 的 <template> 不能带 key、只能写在子元素上，
+ *   Vue 3 的 lint 规则 vue/no-v-for-template-key-on-child 会拦这种旧写法。
+ * - key 是身份（区块二）：❌ 不写 :key 时 Vue 就地更新（按位置复用 DOM），和 React 不写 key、用 index 作 key 一样，在开头插入、删除开头的项、重排时会把输入框的内容串到别的行；
+ *   运行时不报警（测试覆盖），靠 lint 的 vue/require-v-for-key。❌ index、❌ Math.random() 两边后果相同（测试覆盖）。
+ *   key 要用原始值（API 页：number | string | symbol）；重复 key 挂载时不检查，更新时走到乱序比较那一步才出一条 [Vue warn]，界面也会出错（测试覆盖）。
+ * - 改数组：直接调变更方法 push / unshift / splice【最常用】，filter / slice 得到新数组后整体替换【常用】（区块二）；React 的 state 要造新数组交给 setter。
+ *   ref 装数组时内部用 reactive() 转成 Proxy，Proxy 包的是原数组：初始值是模块常量时先拷贝一份（测试覆盖；浅拷贝，里面的订单对象还是同一批）。
+ * - 换 :key 强制换实例（区块三）：setup 重跑、ref 初始值重新算，和 React 的 key 是同一个机制；<router-view :key="$route.fullPath"> 也是它（18 题）。
+ *   官方列的另一个用途是触发过渡：<transition><span :key="text">，text 变了就换一个元素、播放过渡。
+ *   prop 变了要重置内部状态：换 :key 和 watch 手动重置两种都常见（工程经验）；watch 默认在组件更新之前执行，不会先用旧值渲染一次（测试覆盖），
+ *   这一点和 React「在 Effect 里 setState 重置」不同（React 会先用旧值渲染一次，官方要避免）。
  *
- * 最重要的区别：
- * - 机制几乎一致，差别在写法：React 用 JS 的 .map()（key 是 React 保留属性，不会传给组件）；
- *   Vue 用模板指令 v-for + :key
- * - React 不写 key 会在控制台警告并退化为按 index 匹配；Vue 3 不写 :key 则默认「就地更新」策略
- * - 「换 key 重置组件状态」是少数两边机制、写法、心智模型都一模一样的知识点，可以放心平移
+ * 附：细节（了解即可，完整出处见 react/Example.tsx 的附 6、附 7）
+ * - 【少用】of 代替 in、遍历对象 (value, key, index)、整数范围 n in 10（从 1 开始）、解构（拆在 RareVForDemo.vue，ListBasicsDemo.vue 里注释着，测试直接挂载它）；嵌套 v-for 里 computed 用不了时改用方法；
+ *   v-memo（3.2+）：官方「should be rarely needed」，大列表（length > 1000）才考虑，本课没有演示。
+ * - 官方允许不写 key 的情况：「unless the iterated DOM content is simple (i.e. contains no components or stateful DOM elements)」。
+ * - 整体替换数组时 Vue 并不会丢掉整个列表的 DOM：「Vue implements some smart heuristics to maximize DOM element reuse」。
  */
-import { computed, ref } from 'vue'
-import type { Order } from '@/shared/types'
-import { ORDER_STATUS_TEXT } from '@/shared/types'
-// 子组件必须单独拆成 .vue 文件；React 版的 OrderNoteEditor 就写在同一个 .tsx 里
-import OrderNoteEditor from './OrderNoteEditor.vue'
-
-const initialOrders: Order[] = [
-  { id: 'o1', orderNo: 'SO-1001', customer: '张伟', amount: 528, status: 'pending', createdAt: '2026-08-21', items: [] },
-  { id: 'o2', orderNo: 'SO-1002', customer: '李娜', amount: 129, status: 'paid', createdAt: '2026-08-22', items: [] },
-  { id: 'o3', orderNo: 'SO-1003', customer: '王强', amount: 2680, status: 'paid', createdAt: '2026-08-23', items: [] },
-  { id: 'o4', orderNo: 'SO-1004', customer: '赵敏', amount: 88, status: 'cancelled', createdAt: '2026-08-24', items: [] },
-  { id: 'o5', orderNo: 'SO-1005', customer: '陈静', amount: 456, status: 'pending', createdAt: '2026-08-25', items: [] },
-]
-
-const orders = ref<Order[]>([...initialOrders])
-// 默认用 index 作 key，先亲手踩一次坑——Vue 的 :key 用 index 有一模一样的问题
-const useIndexKey = ref(true)
-
-// ↓ 下面这两行服务于「换 :key 重置状态」区块。
-// 故意读常量 initialOrders 而不是可增删的 orders，让这个演示不受上面删除操作的干扰
-const selectedOrderId = ref(initialOrders[0].id)
-// 「选中的订单对象」能由 selectedOrderId 直接算出来，就不要再存一份状态（第 9 题：派生状态）
-const selectedOrder = computed(
-  () => initialOrders.find((o) => o.id === selectedOrderId.value) ?? initialOrders[0],
-)
-
-function removeOrder(id: string) {
-  orders.value = orders.value.filter((o) => o.id !== id)
-}
-
-function resetOrders() {
-  orders.value = [...initialOrders]
-}
+import KeyBugDemo from './KeyBugDemo.vue'
+import KeyResetDemo from './KeyResetDemo.vue'
+import ListBasicsDemo from './ListBasicsDemo.vue'
 </script>
 
 <template>
   <div class="stack">
-    <div class="card stack">
-      <h3>亲手观察 key 的 bug（Vue 同样会踩）</h3>
-      <ol>
-        <li>保持「用 index 作 key」，在前两行的备注框里输入不同内容（如「加急」「送礼」）</li>
-        <li>删除第一行 → 「加急」跑到了 SO-1002 的行里：备注错位了！</li>
-        <li>点「重置列表」，切换成「用 id 作 key」，重复上面的操作 → 备注跟着行走，一切正常</li>
-      </ol>
-      <div class="row">
-        <label>
-          <input
-            v-model="useIndexKey"
-            type="checkbox"
-          >
-          用 index 作 key（错误示范）
-        </label>
-        <button @click="resetOrders">
-          重置列表
-        </button>
-        <span class="muted">当前 key：{{ useIndexKey ? 'index' : 'order.id' }}</span>
-      </div>
-    </div>
-
-    <div class="card stack">
-      <table>
-        <thead>
-          <tr>
-            <th>订单号</th>
-            <th>客户</th>
-            <th>金额</th>
-            <th>状态</th>
-            <th>备注（暴露 key 问题用）</th>
-            <th>操作</th>
-          </tr>
-        </thead>
-        <tbody>
-          <!-- v-for + :key。React 对应 orders.map((order, index) => <tr key={...}>)，
-               key 写在 map 返回的最外层元素上；Vue 里 :key 就写在 v-for 所在元素上。
-               :key 的道理与 React 完全一致：key 是节点「身份证」，必须稳定且唯一——
-               用 index 时删除第一行，后面的行 index 前移被错误复用，
-               备注输入框的内容（存在 DOM 里）就错位了。 -->
-          <tr
-            v-for="(order, index) in orders"
-            :key="useIndexKey ? index : order.id"
-          >
-            <td>{{ order.orderNo }}</td>
-            <td>{{ order.customer }}</td>
-            <td>¥{{ order.amount }}</td>
-            <td>
-              <span :class="`badge badge-${order.status}`">
-                {{ ORDER_STATUS_TEXT[order.status] }}
-              </span>
-            </td>
-            <td>
-              <!-- 故意不写 v-model：内容只存在 DOM 里，让「节点被错误复用」肉眼可见。
-                   React 那边同样是非受控 input，两边现象一致 -->
-              <input placeholder="输入备注后再删除第一行">
-            </td>
-            <td>
-              <!-- Vue 模板里直接写调用即可；React 要包箭头函数（见第 4 题） -->
-              <button
-                class="btn-danger"
-                @click="removeOrder(order.id)"
-              >
-                删除
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      <p
-        v-if="orders.length === 0"
-        class="muted"
-      >
-        订单已删光，点上面的「重置列表」恢复
-      </p>
-    </div>
-
-    <!-- ===== :key 的第二种用法：不在列表里，而是用来强制重置一个组件的内部状态 ===== -->
-    <div class="card stack">
-      <h3>换 :key = 重置组件内部状态</h3>
-      <ol>
-        <li>先在下面两个「草稿备注」框里各改点内容（比如都加上「加急」）</li>
-        <li>点下面那排按钮，切换到另一个订单</li>
-        <li>【不换 :key】那张：草稿原封不动残留着，还是上一个订单的内容 → 脏数据</li>
-        <li>【换 :key】那张：草稿自动重置成新订单的初始值 → 这才是想要的效果</li>
-      </ol>
-      <div class="row">
-        <span class="muted">当前编辑的订单：</span>
-        <!-- 这排按钮本身也是列表渲染，:key 用稳定唯一的 o.id，不用 index -->
-        <button
-          v-for="o in initialOrders"
-          :key="o.id"
-          :class="{ 'btn-primary': o.id === selectedOrderId }"
-          @click="selectedOrderId = o.id"
-        >
-          {{ o.orderNo }}
-        </button>
-      </div>
-
-      <div
-        class="row"
-        style="align-items: stretch"
-      >
-        <div
-          class="card stack"
-          style="flex: 1 1 280px"
-        >
-          <strong class="error-text">【不换 :key】状态残留</strong>
-          <code>&lt;OrderNoteEditor :order="selectedOrder" /&gt;</code>
-          <!-- 没有 :key 时，Vue 按「同位置 + 同组件」判定这还是原来那个实例，
-               只更新 props、setup 不重跑 → draft 停在上一个订单的草稿上。
-               和 React 那边不写 key 的表现一模一样。 -->
-          <OrderNoteEditor :order="selectedOrder" />
-        </div>
-
-        <div
-          class="card stack"
-          style="flex: 1 1 280px"
-        >
-          <strong class="success-text">【换 :key】状态归零</strong>
-          <code>&lt;OrderNoteEditor :key="selectedOrder.id" :order="selectedOrder" /&gt;</code>
-          <!-- :key 变了 → Vue 卸载旧组件实例（状态丢弃、onUnmounted 触发、DOM 删除），
-               再创建一个全新实例（setup 重新执行、ref 初始值重新求值）。
-               ★ 注意这里的 :key 根本不在任何 v-for 里：key 从来不是「列表专用属性」，
-                 它就是节点身份标识，「列表匹配」和「强制重置」是同一个机制的两种用法。
-               ★ 这条在 Vue 和 React 里是完全一致的机制，可以放心平移——
-                 你熟悉的 <router-view :key="$route.fullPath"> 就是同一个手法。 -->
-          <OrderNoteEditor
-            :key="selectedOrder.id"
-            :order="selectedOrder"
-          />
-        </div>
-      </div>
-
-      <!-- 「props 变了、由 props 派生的状态要跟着重置」这类需求：
-           反模式是 watch(() => props.order, () => { draft.value = ... }, { immediate: true })
-           （React 对应的反模式是 useEffect 里 setState，第 10 题有完整清单）；
-           推荐解法就是本例的换 :key，一次渲染直接出正确结果。
-           更进一步：能由 props 直接算出来的就用 computed 别存 ref（第 9 题），
-           父组件也要读到就把状态提升上去（第 8 题）。
-           ⚠ 别滥用：:key 一变整棵子树重置，滚动位置丢失、子组件重新发请求、动画重放、输入框失焦。 -->
-      <p class="muted">
-        一张残留、一张归零——这就是「key 变化 = 销毁旧实例 + 创建新实例」最直接的证据
-      </p>
-    </div>
+    <ListBasicsDemo />
+    <KeyBugDemo />
+    <KeyResetDemo />
   </div>
 </template>
