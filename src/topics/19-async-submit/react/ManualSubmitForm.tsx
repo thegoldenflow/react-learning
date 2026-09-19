@@ -4,7 +4,7 @@
  *
  * 本文件演示：
  * - submitting 布尔 + result 判别联合：结果只可能是「成功 / 字段错误 / 网络错误」之一，不会同时显示两条提示；
- * - 防重复三道关：按钮 disabled（界面）→ state 守卫 → useRef 锁（同一轮事件里的重入，state 守卫拦不住）；
+ * - 防重复三道关：按钮 disabled（界面）【最常用】→ state 守卫【常用】→ useRef 锁【常用】（同一轮事件里的重入，state 守卫拦不住）；
  * - 错误分层：服务端字段错误显示在字段旁（aria-describedby，改了输入再提交）；网络错误显示在表单上方
  *   （role="alert"，给「重试」按钮）；
  * - 成功清空、失败保留输入；submitting 在 finally 里恢复；
@@ -21,7 +21,7 @@ type Field = 'customer' | 'amount'
 /**
  * 提交结果：null 表示还没有结果。用判别联合（29 题），每种结果只带自己需要的字段。
  * 也可以把 submitting 并进来，写成 status: 'idle' | 'submitting' | 'success' | 'error' 一个联合；
- * 这里把 submitting 单独拿出来，是因为它要同时驱动 disabled 和守卫，面试里最常见的也是这种写法。
+ * 这里把 submitting 单独拿出来，是因为它要同时驱动 disabled 和守卫；合成一个 status 联合也很常见（练习 1）—— 两种都常见，按团队约定。
  */
 type SubmitResult =
   | { type: 'success'; orderNo: string }
@@ -133,6 +133,9 @@ export function ManualSubmitForm({ delayMs = 800 }: { delayMs?: number }) {
   return (
     <div className="card stack">
       <h3>区块一：手写 submitting【主线】</h3>
+      <p className="muted">
+        提交中 + 防连点：submitting + disabled【最常用】；处理函数里的 state 守卫、useRef 锁【常用】（按钮以外的提交入口、同一轮里被调用两次才用得上）。
+      </p>
 
       <form ref={formRef} className="stack" noValidate onSubmit={handleSubmit}>
         {result?.type === 'networkError' && (

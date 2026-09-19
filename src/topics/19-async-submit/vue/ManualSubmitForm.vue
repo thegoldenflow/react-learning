@@ -96,6 +96,9 @@ function submitTwiceInOneTurn() {
 <template>
   <div class="card stack">
     <h3>区块一：手写 submitting（Vue）</h3>
+    <p class="muted">
+      提交中 + 防连点：submitting ref + :disabled【最常用】；ref 同步读写，处理函数里的守卫就能拦住同一轮里的第二次，不需要锁。
+    </p>
 
     <form
       ref="form"

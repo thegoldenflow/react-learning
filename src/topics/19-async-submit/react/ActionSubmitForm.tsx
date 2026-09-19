@@ -1,5 +1,5 @@
 /**
- * 【并排·React 19.0 起】同一个表单用 Actions 写：<form action> + useActionState + useFormStatus。
+ * 【并排】【较新·19.0 起】【常用】同一个表单用 Actions 写（频率：工程经验，19.0 起才有，React 19 项目的表单里常见）：<form action> + useActionState + useFormStatus。
  * 只演示和主线不同的地方；useOptimistic、action 抛错交给错误边界、Server Functions 等完整内容在 31 题（待新增）。
  *
  * 和手写版的差别：
@@ -91,6 +91,7 @@ export function ActionSubmitForm({ delayMs = 800 }: { delayMs?: number }) {
   return (
     <div className="card stack">
       <h3>区块二：React 19 Actions【并排·19.0 起】</h3>
+      <p className="muted">【较新·19.0 起】【常用】React 19 项目的表单里常见；手写 submitting（区块一）仍是最常用的写法。</p>
       <p className="muted">
         isPending（来自 useActionState）：{String(isPending)}。按钮的禁用状态来自子组件里的 useFormStatus。
       </p>

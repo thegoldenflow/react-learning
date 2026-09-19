@@ -967,6 +967,33 @@
 
 **复核**：反驳式复核代理提出 22 条（高 1、中 5、低 16），全部处理：「输入过程中就要有反应只能用受控」是新引入的事实错误（非受控也能挂 onChange，表单库就是这样）→ 速答与二-1 改写；每字段 useState / 对象 + name 分发改成「两种都常见」并补 updating-objects-in-state 出处；二-11 不再用 npm 撑「用表单库」的跨类别排序；Vue 非受控不再说「不打标签」，写成「Vue 项目里【少用】，本课保留为主线」并进待用户定 07-1、界面补说明；defineModel 的依据改成工程经验、成熟度四处统一【较新·3.4 起】；label / useId 的关系改准（aria-describedby 不管哪种关联都要 id）；五处【主流·x 起】与频率叠用；二-5 / 7 / 8 / 11 标题补回【主流】；二-8 删掉「两种写法是并列关系」；速答的大表单与二-11 对齐；补回「接第三方 DOM 组件」；Vue label 按 Vue 官方示例（<label for> + id）写；<form action> 回到【主流】成熟度（写成【常用】（19.0 起））；九的 submitter 了结；附 2 的「测试覆盖」写准；练习 3 换成有信息量的；key={record.id} 改成 ✅ / ❌；补 form.reset()；composition 事件写成两种都常见、自定义输入组件去掉频率标签；Vue 附 idPrefix 标【少用】；Vue 三个区块补界面说明；README:301 记进遗留。
 
+### 2.24 19 异步提交按「使用频率」改写（2026-09-19）
+
+**起因**：同 2.22，RETROFIT-REST 第三题。主线（手写 submitting + 防重复三道关）不改。
+
+**改动**
+- 文件头：加「使用频率」说明行；速答只留最常用（useRef 锁改成「坑 + 修法见二-3」，Actions 降到正文，补「已经用 TanStack Query 就用 useMutation」）；二-1 手写【最常用】（React 19 博客「In the past, you would need to handle pending states … manually」与 Before Actions 示例）；二-2 submitting 布尔 + 结果联合 / 一个 status 联合「两种都常见」（react.dev learn 两页用 status，博客与 useTransition 页用 isPending）；二-3 disabled【最常用】（官方 pending 示例都是 disabled={pending}）、state 守卫与 useRef 锁【常用】（ahooks useLockFn 是常见形态）；二-7 Actions【较新·19.0 起】【常用】；二-8 不在表单里的按钮：手写 loading / useMutation【最常用】、useTransition【较新·19.0 起】【常用】（博客 Actions 第一个例子）；二-9；三的 Vue 侧手写【最常用】、router.push()【最常用】/ await router.push()【常用】、错误捕获限定「模板里绑定的事件处理函数」；四-4 区分 useTransition 的 startTransition 与顶层 startTransition；五「判别联合」追问改准；六的 await 之后 setState 改成 Actions 的说法（useActionState Caveat）；七禁用输入框「两种都常见」；附 1（useTransition 的细节）、附 2（源码行号）。
+- 演示：没有需要注释的【少用】演示；两侧区块一、React 区块二补频率说明。不在表单里的按钮的手写 loading 与区块一同一套（onClick 代替 onSubmit），不单独演示，useMutation 的按钮在 30 题区块一。
+- 测试：Vue 新增 1 条「父组件没有拦下时，事件处理函数的同步错误和 Promise 拒绝都进 app.config.errorHandler」（文件头原来说有断言，其实没有）。React 10、Vue 7 → 8 条。测试文件头的延迟说明改准。
+- README 19 行：Actions 改成【较新·19.0 起】【常用】。
+
+**频率判断与依据**
+
+| 要做的事 | 写法与标签 | 依据 |
+|---|---|---|
+| 表单提交 | 手写 submitting【最常用】；Actions【较新·19.0 起】【常用】 | 工程经验；React 19 博客「In the past, you would need to handle pending states … manually」、Before Actions 示例 |
+| 状态建模 | 布尔 + 结果联合 / 一个 status 联合两种都常见 | reacting-to-input-with-state、choosing-the-state-structure（status）；React 19 博客、useTransition 页（isPending） |
+| 挡住连点 | disabled【最常用】；state 守卫、useRef 锁【常用】 | react.dev pending 示例都是 disabled={pending}；守卫与锁：工程经验（ahooks useLockFn） |
+| 不在表单里的按钮 | 手写 loading、useMutation【最常用】；useTransition【较新·19.0 起】【常用】 | 工程经验；React 19 博客 Actions 第一个例子是 useTransition |
+| 提交中禁用输入框 | 禁用 / 不禁用两种都常见 | useFormStatus 页有一个示例禁用输入框，博客示例只禁用按钮 |
+| Vue | 手写【最常用】；router.push()【最常用】/ await router.push()【常用】 | 工程经验 |
+
+**注释掉了什么**：没有。
+
+**验证**：`npm run check` 通过（在只含 19 改动的暂存区导出目录里跑）；19 测试 18 条（React 10、Vue 8），无 stderr；引文 26 / 26 命中；旧版引文 33 / 0；【少用】注释块 0 个；浏览器（临时 5174）：区块一「同一轮事件里提交两次」只发一个请求（日志「重复提交被 useRef 锁拦下」），两块频率说明显示正常，console.error / warn 为 0。
+
+**复核**：反驳式复核代理提出 21 条（中 6、低 15），全部处理：disabled【最常用】的依据原来引的 useTransition 页句子场景不对（数量输入框、非 Action 版本，下一句还说它「makes the app feel slow」）→ 换成官方 pending 示例与博客 Before Actions；状态建模改成两种都常见；五「判别联合」追问对主线结构不成立 → 改准；useTransition 与 Actions 的标签不一致（同是 19 起、同是工程经验）→ useTransition 升为【常用】并写博客依据，附 1 只留细节；四-4 区分两个 startTransition（统一措辞「错误边界」）；app.config.errorHandler 的「测试有断言」补上测试；六的 await 限制改成 Actions 说法；二-8 标题补【主流】；二-1 补【最常用】与依据；Vue router.push 分档；Vue 头的源码行号挪到附；ActionSubmitForm 成熟度写法统一；Vue 区块一补界面说明；30 题的交叉引用改成区块一按钮；不在表单里按钮的演示写明取舍；「都靠它」加限定；29 题引用改成 03 / 11（29 讲联合类型写法）；ahooks 的描述改成「整段加锁」；禁用输入框两种都常见；测试文件头；Vue 错误捕获面限定模板绑定的处理函数。
+
 ## 待用户定（九题改写，2026-09-19 起，九题做完一起问）
 
 按 RETROFIT-REST §1 / §7：行业最常用和本课主线不一致时不改主线，分开写，记在这里。
@@ -1178,7 +1205,7 @@
 | 14 | 自定义 Hook 与 Composable | **完成** | useSyncExternalStore 主线（useWindowWidth + getServerSnapshot + useDebugValue）+ Effect 订阅并排 + subscribe 稳定性实验；useInterval（useEffectEvent）与「回调进依赖」反例；防抖搜索（派生 loading，lint 抑制已清）+ let timer 坑；React 12 条 + Vue 8 条测试；了结 P-14-1～5。详见 2.7 | tearing 没有做可视化演示（P-14-3，只讲原理）；32 / 33 / 34 新增后回填交叉引用（03 题 :64「10、14 题」那句已随 03 重写删除，2.13） |
 | 30 | TanStack Query 与服务端状态 | **完成** | v5 主线六个区块（queryKey 与缓存 + status × fetchStatus + 保留上一页 + 断网 / mutation 三种更新方式 / enabled / useSuspenseQuery / 缓存观察窗 / loader 分工）；key 工厂 + queryOptions；React 22 条 + Vue 14 条测试；了结 P-30-1～8、M-8。详见 2.6 | mutation 回调改名的起始版本待核实；31 / 32 / 33 / 34 新增后回填交叉引用；27 题「queryFn({ signal }) 把这一整套自动化了」缺「读了 signal 才取消」的前提，27 题改写时处理 |
 | 11 | API 请求状态 | **完成** | Effect 手写主线（判别联合 + 派生 pending + 取消 + 重试 + 保留旧数据）+ 四种方案速查；lint 抑制已清（M-6 / P-11-2 了结）；React 7 条 + Vue 7 条测试。详见 2.5 | 32 题新增后回填交叉引用；P-11-1 / P-11-3 / P-11-5 留给 30 / 18 / 32 与阶段 4 |
-| 19 | 异步提交与防重复 | **完成** | 手写 submitting 主线（防重复三道关 + 错误分层 + a11y）+ React 19 Actions 可运行并排；共享 mockApi 加 `ApiFieldError`；React 10 条 + Vue 7 条测试；了结 P-19-1/3/4、M-3 与「12.」的待核实。详见 2.4 | 31 / 35 题新增后回填交叉引用；P-19-2（回车与 disabled）无法核实，已从课件去掉 |
+| 19 | 异步提交与防重复 | **完成** | 手写 submitting 主线（防重复三道关 + 错误分层 + a11y）+ React 19 Actions 可运行并排；共享 mockApi 加 `ApiFieldError`；React 10 条 + Vue 7 条测试；了结 P-19-1/3/4、M-3 与「12.」的待核实。详见 2.4 | 31 / 35 题新增后回填交叉引用；P-19-2（回车与 disabled）无法核实，已从课件去掉；2026-09-19 按使用频率改写（见 2.24；Vue 补 app.config.errorHandler 测试） |
 | 07 | 表单与受控组件 | **完成** | 受控、非受控两条主线（各一个可运行表单）+ TextField（useId、ref 作为 prop、aria）+ onChange / v-model 触发时机实验；十段文件头；React 19 条 + Vue 13 条结论测试；FormEvent → SubmitEvent；更正审计「Vue 无 useId」。详见 2.3 | 31 / 32 / 34 / 35 题新增后回填交叉引用；SubmitEvent.submitter 已了结（19.3 起，2.23）；2026-09-19 按使用频率改写（见 2.23；Vue 非受控是待用户定 07-1）；阶段 4 改 README :301「表单的每一次 onChange 都是『不可变地更新一个对象』」（07 现在的口径是每字段 useState / 对象两种都常见） |
 | 其余 01–30 | — | 未开始 | — | 10 / 12 / 21 / 23 / 24 / 27 有 lint 抑制待清（共 11 条，1.4；11、14 题的已在 2.5、2.7 清掉） |
 

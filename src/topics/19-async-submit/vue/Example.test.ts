@@ -161,6 +161,51 @@ describe('Vue 的错误捕获面（和 React 的错误边界对照）', () => {
   })
 })
 
+describe('Vue 的错误捕获面：app.config.errorHandler', () => {
+  it('父组件没有拦下时，事件处理函数的同步错误和 Promise 拒绝都进 app.config.errorHandler', async () => {
+    const handled: string[] = []
+    const App = defineComponent(() => () =>
+      h('div', [
+        h(
+          'button',
+          {
+            onClick: async () => {
+              await Promise.resolve()
+              throw new Error('异步失败')
+            },
+          },
+          'async',
+        ),
+        h(
+          'button',
+          {
+            onClick: () => {
+              throw new Error('同步失败')
+            },
+          },
+          'sync',
+        ),
+      ]),
+    )
+    const el = document.createElement('div')
+    document.body.appendChild(el)
+    const app = createApp(App)
+    app.config.errorHandler = (err, _instance, info) => {
+      handled.push(`${(err as Error).message} | ${info}`)
+    }
+    app.mount(el)
+
+    el.querySelectorAll('button')[0].click()
+    await flushPromises()
+    el.querySelectorAll('button')[1].click()
+    await flushPromises()
+
+    expect(handled).toEqual(['异步失败 | native event handler', '同步失败 | native event handler'])
+    app.unmount()
+    el.remove()
+  })
+})
+
 describe('Example 入口', () => {
   it('手写区块和「Actions 在 Vue 里怎么写」说明卡片都渲染出来', () => {
     const wrapper = mount(Example, { attachTo: document.body })
