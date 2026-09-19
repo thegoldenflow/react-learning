@@ -2,7 +2,7 @@
 
 > **用法**：在新会话里发送「读 `docs/upgrade/CONTINUE-PROMPT.md`，按它继续执行」。
 > **一次只开一个会话**执行本文件：`PROGRESS.md`、`eslint-suppressions.json`、README、注册表、`src/shared/` 是共享文件，并行会互相覆盖。
-> **2026-09-19 第九次更新：用户定了「使用频率」写法（§4.3），05 已按它改写成样板（dd8586c，用户确认）；01–04 已按同样方式改写（fdbff97 / 9ee15d0 / ade42f8 / 1a8ffe7，`RETROFIT-01-04-PROMPT.md`）；06 已从 wip06 恢复并直接按使用频率写法完成（efe5615，`TOPIC06-PROMPT.md`，PROGRESS 2.21）。下一步等用户定：其余九题（18、07、19、11、30、14、16、20、26）的使用频率改写，还是 08 起的新题 —— 用户没定之前不要自己开工。**
+> **2026-09-19 第九次更新：用户定了「使用频率」写法（§4.3），05 已按它改写成样板（dd8586c，用户确认）；01–04 已按同样方式改写（fdbff97 / 9ee15d0 / ade42f8 / 1a8ffe7，`RETROFIT-01-04-PROMPT.md`）；06 已从 wip06 恢复并直接按使用频率写法完成（efe5615，`TOPIC06-PROMPT.md`，PROGRESS 2.21）。用户随后选了先把其余九题（18、07、19、11、30、14、16、20、26）按使用频率改写：执行 prompt 是 `docs/upgrade/RETROFIT-REST-PROMPT.md` —— 先做那个，九题做完停下来问用户，再定 08 起的新题。**
 > 本文件写于 2026-09-17，2026-09-18 第七次更新（完成 2-C 的 05 之后；06 做了一半，半成品在 `git stash` 里），可以反复使用：每个会话都从 `docs/upgrade/PROGRESS.md` 的「下一步」接着做。两者冲突时以 PROGRESS.md 为准。
 
 ---
@@ -110,9 +110,9 @@
 
 ### 3.3 阶段 2-C：其余题（每题 1 个 commit，按编号）
 
-**2026-09-19 起的顺序**：已完成的题要按 §4.3「使用频率标注」回头改写 —— 05（dd8586c）、01–04（fdbff97 / 9ee15d0 / ade42f8 / 1a8ffe7）已完成；**06 已按 `docs/upgrade/TOPIC06-PROMPT.md` 完成（efe5615，PROGRESS 2.21）**；之后 18、07、19、11、30、14、16、20、26 的改写与 08 起的新题谁先，**等用户定**。02 题原生属性类型用户定为保持 ComponentPropsWithRef。06 和之后的新题直接按 §4.3 写（写完再补也行，但要在提交前完成）。
+**2026-09-19 起的顺序**：已完成的题要按 §4.3「使用频率标注」回头改写 —— 05（dd8586c）、01–04（fdbff97 / 9ee15d0 / ade42f8 / 1a8ffe7）已完成；**06 已按 `docs/upgrade/TOPIC06-PROMPT.md` 完成（efe5615，PROGRESS 2.21）**；之后用户选了**先改写 18、07、19、11、30、14、16、20、26：按 `docs/upgrade/RETROFIT-REST-PROMPT.md` 执行**，九题做完再定 08 起的新题。02 题原生属性类型用户定为保持 ComponentPropsWithRef。06 和之后的新题直接按 §4.3 写（写完再补也行，但要在提交前完成）。
 
-`01 → 02 → 03 → 04 → 05 → 06 → 08 → 09 → 10 → 12 → 13 → 15 → 17 → 21 → 22 → 23 → 24 → 25 → 27 → 28 → 29`。**01（1e3394e，2.11）、02（8348eea，2.12）、03（ef34104，2.13）、04（9de5117，2.14）、05（8e3121b，2.15）、06（efe5615，2.21）已完成。08 起的新题与九题改写谁先，等用户定。** 做每一题前先看 PROGRESS「每题状态」表里其他题留给它的遗留（例如 01 题留给 17 的 Compiler 小节、留给 28 的组件返回类型；02 题留给 12 的 ref 回调与清理 / useImperativeHandle / RefObject / defineExpose、留给 28 的 ReactElement / React.JSX / 泛型组件；26 题留给 10 的「场景二修法三 latest ref」、留给 14 的 19.2.x memo / forwardRef bug 一句；03 题：14 题留下「03 题 :64『10、14 题会再遇到快照』改写时核对」；03 题留给 21 的深嵌套拍平与 reactive 限制、留给 17 的 Compiler 小节；04 题留给 17 的内联处理函数记忆化、留给 07 的「提交按钮 onClick 跑在校验之前」；05 题留给 06 的 v-if 与 v-for 同用、留给 32 的 Activity 与 Suspense）。
+`01 → 02 → 03 → 04 → 05 → 06 → 08 → 09 → 10 → 12 → 13 → 15 → 17 → 21 → 22 → 23 → 24 → 25 → 27 → 28 → 29`。**01（1e3394e，2.11）、02（8348eea，2.12）、03（ef34104，2.13）、04（9de5117，2.14）、05（8e3121b，2.15）、06（efe5615，2.21）已完成。先按 RETROFIT-REST-PROMPT.md 改写九题，再做 08 起的新题。** 做每一题前先看 PROGRESS「每题状态」表里其他题留给它的遗留（例如 01 题留给 17 的 Compiler 小节、留给 28 的组件返回类型；02 题留给 12 的 ref 回调与清理 / useImperativeHandle / RefObject / defineExpose、留给 28 的 ReactElement / React.JSX / 泛型组件；26 题留给 10 的「场景二修法三 latest ref」、留给 14 的 19.2.x memo / forwardRef bug 一句；03 题：14 题留下「03 题 :64『10、14 题会再遇到快照』改写时核对」；03 题留给 21 的深嵌套拍平与 reactive 限制、留给 17 的 Compiler 小节；04 题留给 17 的内联处理函数记忆化、留给 07 的「提交按钮 onClick 跑在校验之前」；05 题留给 06 的 v-if 与 v-for 同用、留给 32 的 Activity 与 Suspense）。
 
 **06 怎么接着做**（**已完成：efe5615，见 PROGRESS 2.21；wip06 的 stash 已恢复并清空。** 以下保留原始记录）：
 1. `git stash list` 找到说明以「wip06」开头的那条（写这份 prompt 时是 `stash@{0}`），`git stash pop` 恢复。stash 里只有 `src/topics/06-list-and-key/` 下的文件：React 的 `ListBasicsDemo.tsx`（区块一：filter / sort / map、排序前拷贝、`<Fragment key>` 包 dt / dd）、`demoData.ts`（`INITIAL_ORDERS`、`createLocalOrder`：优先 `crypto.randomUUID()`，没有时退回自增计数器）、`KeyBugDemo.tsx`（区块二：key 用 id / index / Math.random() 三种模式，Math.random 那一行有 `eslint-disable-next-line react-hooks/purity`，实测报错「Cannot call impure function during render」）、`KeyResetDemo.tsx`（区块三：OrderNoteEditor 换 key 重置草稿）、占位的 `Example.tsx`（文件头待写）、`Example.test.tsx`（10 条，已通过）；Vue 的 `ListBasicsDemo.vue`、`KeyBugDemo.vue`（不写 key / index / id / random 四种，不写 key 那一行禁用了 `vue/require-v-for-key`）。仓库里原有的 `vue/Example.vue`、`vue/OrderNoteEditor.vue` 还是旧版。
