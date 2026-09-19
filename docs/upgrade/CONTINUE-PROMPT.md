@@ -2,6 +2,7 @@
 
 > **用法**：在新会话里发送「读 `docs/upgrade/CONTINUE-PROMPT.md`，按它继续执行」。
 > **一次只开一个会话**执行本文件：`PROGRESS.md`、`eslint-suppressions.json`、README、注册表、`src/shared/` 是共享文件，并行会互相覆盖。
+> **2026-09-19 第八次更新：用户定了「使用频率」写法（§4.3），05 已按它改写成样板（dd8586c，用户确认）。下一步是把 01–04 按同样方式改写，执行 prompt 是 `docs/upgrade/RETROFIT-01-04-PROMPT.md` —— 先做那个，做完停下来问用户下一批，不要直接接着做 06。**
 > 本文件写于 2026-09-17，2026-09-18 第七次更新（完成 2-C 的 05 之后；06 做了一半，半成品在 `git stash` 里），可以反复使用：每个会话都从 `docs/upgrade/PROGRESS.md` 的「下一步」接着做。两者冲突时以 PROGRESS.md 为准。
 
 ---
@@ -26,7 +27,7 @@
 
 ## 2. 当前状态（2026-09-18 第七次更新）
 
-- 分支：`phase-1-toolchain`（34cd734 工具链、b7bcb90 ESLint 10）→ `phase-2-topics`：0e2874b 壳修复、4252967 **18 样板**、c03ae3b / 622bec1 文档、ccfd3db **2-A 统一 Vue 响应式措辞**、111ddfa **07 表单**、b9cc7b1 **19 异步提交**、659c24d **11 请求状态**、6358cbc 接续 prompt、5c04d9e **30 TanStack Query**、61281d7 **14 自定义 Hook**、d869301 接续 prompt、1eb2d3f **16 全局状态**、036fdba **20 错误边界**、301022e 接续 prompt（第四次）、ae5047c **26 过期闭包**、1e3394e **01 组件与 JSX**、85bba93 接续 prompt（第五次）、8348eea **02 Props**、b0ce8d3 接续 prompt（第六次）、ef34104 **03 State**、9de5117 **04 事件处理**、8e3121b **05 条件渲染**，之后是本 prompt 的第七次更新。2026-09-18 已按用户要求把 `phase-2-topics` push 到 origin（github.com/thegoldenflow/react-learning），push 到 d0ecc80（本 prompt 第七次更新）为止；**没有开 PR**。除非用户明确要求，不要自己推送、开 PR 或合并。
+- 分支：`phase-1-toolchain`（34cd734 工具链、b7bcb90 ESLint 10）→ `phase-2-topics`：0e2874b 壳修复、4252967 **18 样板**、c03ae3b / 622bec1 文档、ccfd3db **2-A 统一 Vue 响应式措辞**、111ddfa **07 表单**、b9cc7b1 **19 异步提交**、659c24d **11 请求状态**、6358cbc 接续 prompt、5c04d9e **30 TanStack Query**、61281d7 **14 自定义 Hook**、d869301 接续 prompt、1eb2d3f **16 全局状态**、036fdba **20 错误边界**、301022e 接续 prompt（第四次）、ae5047c **26 过期闭包**、1e3394e **01 组件与 JSX**、85bba93 接续 prompt（第五次）、8348eea **02 Props**、b0ce8d3 接续 prompt（第六次）、ef34104 **03 State**、9de5117 **04 事件处理**、8e3121b **05 条件渲染**，之后是本 prompt 的第七次更新；2026-09-19：dd8586c **05 按使用频率改写（样板）**，之后是本 prompt 的第八次更新与 `RETROFIT-01-04-PROMPT.md`（未 push）。2026-09-18 已按用户要求把 `phase-2-topics` push 到 origin（github.com/thegoldenflow/react-learning），push 到 d0ecc80（本 prompt 第七次更新）为止；**没有开 PR**。除非用户明确要求，不要自己推送、开 PR 或合并。
 - 依赖基线：React 19.2.8、react-router 7.18.3（从 `react-router` 导入，`RouterProvider` 从 `react-router/dom`）、vue 3.5.42、vue-router 5.2.0、pinia 3.0.4、zustand 5.0.15、@tanstack/*-query 5.102.8、react-error-boundary 6.1.3、ESLint 10.8.1、Vitest 4.1.11 + jsdom 29.1.1 + Testing Library（React / Vue）+ @vue/test-utils 2.4.11、TypeScript ~5.9.3、Vite 7.3.6。
 - 已确认的样板风格（5.16）：
   1. 完整十段文件头只写在 `react/Example.tsx`；`vue/Example.vue` 写题目信息 + Vue 侧要点，并指向 React 文件；
@@ -102,6 +103,8 @@
 - **26 过期闭包 —— 已完成（ae5047c，见 PROGRESS 2.10）**：修法优先级为 ① 函数式更新 → ② 写对依赖 → ③ `useEffectEvent`【较新·19.2 起】作主线示例（写全官方四条限制）→ ④ latest ref 作并排（React 18 项目仍需要）。以 AUDIT-ROUND2 §3.7 为准；AUDIT.md §4.3 表里「latest ref 回到主线」那句已被附录 C 覆盖。
 
 ### 3.3 阶段 2-C：其余题（每题 1 个 commit，按编号）
+
+**2026-09-19 起的顺序**：已完成的题要按 §4.3「使用频率标注」回头改写 —— 05 已完成（dd8586c）；**01–04 按 `docs/upgrade/RETROFIT-01-04-PROMPT.md` 做**；18、07、19、11、30、14、16、20、26 以及 06 谁先谁后，等 01–04 做完后由用户定。06 和之后的新题直接按 §4.3 写（写完再补也行，但要在提交前完成）。
 
 `01 → 02 → 03 → 04 → 05 → 06 → 08 → 09 → 10 → 12 → 13 → 15 → 17 → 21 → 22 → 23 → 24 → 25 → 27 → 28 → 29`。**01（1e3394e，2.11）、02（8348eea，2.12）、03（ef34104，2.13）、04（9de5117，2.14）、05（8e3121b，2.15）已完成。06 做了一半，在 `git stash` 里，先接着做完 06（见下面「06 怎么接着做」），然后 08 → 09 → …。** 做每一题前先看 PROGRESS「每题状态」表里其他题留给它的遗留（例如 01 题留给 17 的 Compiler 小节、留给 28 的组件返回类型；02 题留给 12 的 ref 回调与清理 / useImperativeHandle / RefObject / defineExpose、留给 28 的 ReactElement / React.JSX / 泛型组件；26 题留给 10 的「场景二修法三 latest ref」、留给 14 的 19.2.x memo / forwardRef bug 一句；03 题：14 题留下「03 题 :64『10、14 题会再遇到快照』改写时核对」；03 题留给 21 的深嵌套拍平与 reactive 限制、留给 17 的 Compiler 小节；04 题留给 17 的内联处理函数记忆化、留给 07 的「提交按钮 onClick 跑在校验之前」；05 题留给 06 的 v-if 与 v-for 同用、留给 32 的 Activity 与 Suspense）。
 
