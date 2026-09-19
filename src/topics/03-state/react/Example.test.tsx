@@ -2,7 +2,7 @@
  * 03 题的结论测试：文件头里标了「测试覆盖」的结论都在这里有可运行的证明（react / react-dom 19.2.8，开发构建）。
  * 故意触发的开发期报错（console.error）都 spy 住并断言文案，不让它进 stderr。测试工具本身在 34 题（待新增）细讲。
  */
-import { Component, StrictMode, useState } from 'react'
+import { Component, StrictMode, useState, type Dispatch, type SetStateAction } from 'react'
 import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { CartItem } from '@/shared/types'
@@ -78,6 +78,14 @@ describe('区块二：setter 只影响下一次渲染', () => {
     render(<SnapshotDemo />)
     await u.click(screen.getByRole('button', { name: 'set 之后立刻读' }))
     expect(logLines('区块二日志')).toEqual(['setCount(1) 之后立刻读 count = 0（还是这次渲染的值）'])
+    expect(screen.getByTestId('snapshot-count')).toHaveTextContent('1')
+  })
+
+  it('要用新值做别的事：先算好存进变量（最常用）—— 同一时刻 count 仍是旧值，next 是新值；界面也变成新值', async () => {
+    const u = user()
+    render(<SnapshotDemo />)
+    await u.click(screen.getByRole('button', { name: '【最常用】先算好 next 再用' }))
+    expect(logLines('区块二日志')).toEqual(['setCount(next) 之后 count 仍是 0，先算好的 next = 1（后面的代码用 next）'])
     expect(screen.getByTestId('snapshot-count')).toHaveTextContent('1')
   })
 
@@ -311,7 +319,7 @@ describe('区块六：useReducer', () => {
   })
 })
 
-describe('区块七：两个常见报错', () => {
+describe('区块七：常见报错', () => {
   it('onClick={handleClick()}：渲染时就调用了 setter，React 抛 Too many re-renders（被错误边界接住）', async () => {
     const u = user()
     render(<TroubleshootingDemo />)
@@ -347,6 +355,7 @@ describe('区块七：两个常见报错', () => {
     expect(errorTexts()).toEqual([])
   })
 
+  /* 【少用】演示里取消 FormatterBlock 的注释后，这里也取消注释（删掉这一行和下面的结束行）
   it('setFormatter(addBang) 把 addBang 当更新函数调用，state 变成字符串；setFormatter(() => addBang) 才是存函数', async () => {
     const u = user()
     render(<TroubleshootingDemo />)
@@ -356,6 +365,8 @@ describe('区块七：两个常见报错', () => {
     await u.click(screen.getByRole('button', { name: '✅ setFormatter(() => addBang)' }))
     expect(screen.getByTestId('formatter-preview')).toHaveTextContent('hello state!')
   })
+  */
+
 
   it('useState(fn) 会把 fn 当初始化函数调用（不传参数）', () => {
     const received: unknown[][] = []
@@ -372,6 +383,35 @@ describe('区块七：两个常见报错', () => {
     render(<Probe />)
     expect(received).toEqual([[]])
     expect(state).toBe('return value')
+  })
+})
+
+describe('附 1：把函数存进 state（区块七的演示已注释，这里用独立组件验证）', () => {
+  it('setFn(fn) 把 fn 当更新函数调用（传入上一个 state），state 变成它的返回值；setFn(() => fn) 才是存函数', async () => {
+    type Formatter = (text: string) => string
+    const toUpper: Formatter = (text) => text.toUpperCase()
+    const received: unknown[] = []
+    const addBang: Formatter = (text) => {
+      received.push(text)
+      return `${String(text)}!`
+    }
+    let setFormatter!: Dispatch<SetStateAction<Formatter>>
+    let current: unknown
+    function Probe() {
+      const [formatter, set] = useState<Formatter>(() => toUpper)
+      setFormatter = set
+      current = formatter
+      return null
+    }
+    render(<Probe />)
+    expect(current).toBe(toUpper)
+    // ❌ TypeScript 不拦：addBang 的类型也满足「新值」那一支；运行时 React 把它当更新函数，传进去的是上一个 state（toUpper 这个函数）
+    await act(async () => setFormatter(addBang))
+    expect(received).toEqual([toUpper])
+    expect(current).toBe(`${String(toUpper)}!`)
+    // ✅ 包一层返回函数的箭头函数
+    await act(async () => setFormatter(() => addBang))
+    expect(current).toBe(addBang)
   })
 })
 

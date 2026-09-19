@@ -1,9 +1,12 @@
 /**
  * 主题：03. State 与 useState —— 组件的记忆：为什么需要 state、setter 只影响下一次渲染、整体替换、惰性初始化、state 的结构与 useReducer
  * 适用版本：React 19.2 · @types/react 19.2 · TypeScript 5.9 · eslint-plugin-react-hooks 7.1 · react-error-boundary 6.1 · Vue 3.5
- * 最后核对：2026-09-18
+ * 最后核对：2026-09-19
  * 前置主题：01、02（渲染模型的完整讲解在 23 题，推荐顺序里排在本题之前）
  * 成熟度：本课知识点按【主流】【较新】【尝鲜】【旧写法】逐一标注
+ * 使用频率：同一件事有几种写法时，按项目里的使用频率标【最常用】【常用】【少用】，并写出依据（官方原文、官方示例的写法；没有出处的写「工程经验」）。
+ *          正文和运行中的演示只有【最常用】【常用】的写法；【少用】的写法没有删，演示代码里注释着（删掉注释块的第一行和最后一行就能运行），讲解集中在文末「附」。
+ *          30 秒速答只用【最常用】。带频率标签的写法，成熟度是【主流】时不再重复标。
  * 本课文件：Example.tsx（讲解 + 入口）· WhyStateDemo.tsx（区块一）· SnapshotDemo.tsx（区块二）· CartDemo.tsx（区块三）· LazyInitDemo.tsx（区块四）·
  *          StateStructureDemo.tsx（区块五）· QuantityEditor.tsx + quantityReducer.ts（区块六）· TroubleshootingDemo.tsx（区块七）·
  *          demoKit.ts + LogPanel.tsx（演示用的日志 store 与面板）· Example.test.tsx（本课结论的自动化测试）
@@ -11,10 +14,10 @@
  * 一、30 秒面试速答
  * - 普通局部变量不跨渲染保留、改了也不触发渲染；useState 给两样东西：一个跨渲染保留的 state 变量，一个请求 React 用新值重新渲染的 setter。
  *   state 属于组件实例，同一个组件渲染两次就是两份互不影响的 state【主流】。
- * - setter 不会改这次渲染里的变量，只影响下一次渲染：set 之后立刻读还是旧值。新值和当前值 Object.is 相同时，React 跳过这次重渲染【主流】。
+ * - setter 不会改这次渲染里的变量，只影响下一次渲染：set 之后立刻读还是旧值；要用新值做别的事就先算好存进变量。新值和当前值 Object.is 相同时，React 跳过这次重渲染【主流】。
  * - 对象 / 数组 state 要整体替换：用展开、map、filter 造新对象交给 setter；原地改再把同一个引用传回去，React 认为没变【主流】。
- * - 同一个事件里多次更新同一个 state、或者在异步回调里基于旧值更新，用更新函数 setX(prev => …)；初始值计算昂贵时用惰性初始化 useState(() => init())【主流】。
- * - state 的结构：能算出来的不存、不存重复的数据（存 id 不存对象）、多个互相矛盾的布尔值合成一个 status；多个字段互相牵制、更新逻辑分散时收进 useReducer【主流】。
+ * - 同一个事件里多次更新同一个 state、或者在异步回调里基于旧值更新，用更新函数 setX(prev => …)【主流】。
+ * - state 的结构：能算出来的不存、不存重复的数据（存 id 不存对象）、多个互相矛盾的布尔值合成一个 status【主流】。
  *
  * 二、核心概念（React）
  * 1. 为什么需要 state【主流】（区块一）：state-a-components-memory 列了局部变量的两个问题 ——「Local variables don't persist between renders.」
@@ -35,59 +38,71 @@
  * 5. setter 只影响下一次渲染【主流】（区块二）：useState 页 Caveats「The set function only updates the state variable for the next render. If you read the state variable after calling
  *    the set function, you will still get the old value that was on the screen before your call.」state-as-a-snapshot：「A state variable's value never changes within a render, even if
  *    its event handler's code is asynchronous.」所以 setCount(count + 1) 连写两次，两次读到的都是这次渲染的 count，只加 1；更新函数 setCount(c => c + 1) 拿到的是
- *    「队列里前一条更新算出的结果」，加 2（区块二，测试覆盖）。需要用新值做别的事，就先算好存进变量：const next = count + 1; setCount(next); use(next)（useState 页 Troubleshooting 的写法）。
+ *    「队列里前一条更新算出的结果」，加 2（区块二，测试覆盖）。
+ *    要用新值做别的事（写日志、发请求）：【最常用】先算好存进变量 const next = count + 1; setCount(next); use(next)（区块二「先算好 next 再用」，测试覆盖）——
+ *    useState 页 Troubleshooting：「If you need to use the next state, you can save it in a variable before passing it to the set function」。
  *    React 批处理：「It updates the screen after all the event handlers have run and have called their set functions.」更新队列、批处理与 flushSync 见 24 题，异步回调里读到旧值的各种修法见 26 题。
- * 6. 更新函数什么时候用【主流】：参数「must be pure」，命名约定取 state 名首字母（a 对应 age）或 prevAge。官方 deep dive「Is using an updater always preferred?」：
- *    「In most cases, there is no difference between these two approaches.」—— 因为「React always makes sure that for intentional user actions, like clicks, the age state variable
- *    would be updated before the next click」；「However, if you do multiple updates within the same event, updaters can be helpful.」所以：同一事件里多次更新同一个 state、
- *    在定时器 / Promise 这类可能读到旧值的回调里基于旧值更新（26 题），用更新函数；只更新一次时两种写法结果相同（区块一的 StateCounter 就是直接 setCount(count + 1)）。
- *    想统一风格、凡是基于旧值都写更新函数，官方也说「it's reasonable」。
+ * 6. 基于旧值更新【主流】：按要做的事选写法（更新函数的参数「must be pure」）。
+ *    - 一次事件只更新一次：【最常用】直接传新值 setCount(count + 1)（区块一的 StateCounter）。queueing 页：「It is an uncommon use case, but if you would like to update the same
+ *      state variable multiple times before the next render, … you can pass a function that calculates the next state based on the previous one in the queue」—— 需要更新函数的场景本身不常见；
+ *      两种写法结果相同：「In most cases, there is no difference between these two approaches.」—— 因为「React always makes sure that for intentional user actions, like clicks, the age state
+ *      variable would be updated before the next click」（react.dev 示例的粗略统计见附 4）。
+ *    - 同一事件里多次更新同一个 state：【最常用】更新函数 setCount(c => c + 1)。官方 deep dive「Is using an updater always preferred?」：「However, if you do multiple updates within the same event,
+ *      updaters can be helpful.」在 Effect、定时器这类回调里基于旧值更新同样用它（useEffect 页「Updating state based on previous state from an Effect」的示例写
+ *      setCount(c => c + 1); // ✅ Pass a state updater，这样 count 不用写进依赖；26 题）。官方还提到第三种用途：「They're also helpful if accessing the state variable itself is inconvenient
+ *      (you might run into this when optimizing re-renders).」（17 题）
+ *    - 【常用】为了统一风格，凡是基于旧值都写更新函数：官方承认这种建议很常见 ——「You might hear a recommendation to always write code like setAge(a => a + 1) if the state you're setting is
+ *      calculated from the previous state. There is no harm in it, but it is also not always necessary.」，也说这样写「it's reasonable」（工程经验；区块三的 changeQuantity 就是这样写的）。
+ *    - 更新函数参数的命名：【最常用】取 state 名首字母（c 对应 count、a 对应 age）——「It's common to name the updater function argument by the first letters of the corresponding state variable」；
+ *      【常用】全名或 prev 前缀 ——「another common convention is to repeat the full state variable name, like setEnabled(enabled => !enabled), or to use a prefix like setEnabled(prevEnabled => !prevEnabled)」。
  * 7. Object.is 相同就跳过【主流】（区块二、三）：「If the new value you provide is identical to the current state, as determined by an Object.is comparison, React will skip re-rendering
  *    the component and its children. … Although in some cases React may still need to call your component before skipping the children, it shouldn't affect your code.」
- *    react-dom 19.2.8 实测（测试覆盖）：setter 被调用时，如果这个组件的 fiber 和它的另一份副本（alternate）上都没有待处理的更新，就当场算出新值比较
- *    （react-dom-client.development.js:9143-9161 的急切比较），相同就连组件函数都不调用；刚因为自己的 state 更新重渲染过的组件，alternate 上还留着那次的更新标记，当场比较的前提不成立，
- *    React 先调用一次组件函数，算出 state 没变再跳过子组件（:8070-8072、:10174-10179）；只是因为父组件重渲染而跟着重渲染的子组件，没有这个标记（复核实测）。
- *    所以组件函数被调用几次不能当逻辑依据。
+ *    react-dom 19.2.8 实测（测试覆盖）：没有待处理的更新时当场比较，相同就连组件函数都不调用；组件刚因为自己的 state 更新重渲染过时，React 可能先调用一次组件函数、
+ *    算出 state 没变再跳过子组件（源码位置见附 4）。所以组件函数被调用几次不能当逻辑依据。
  * 8. 对象 / 数组要整体替换【主流】（区块三）：「In React, state is considered read-only, so you should replace it rather than mutate your existing objects.」
- *    updating-objects-in-state：「without using the state setting function, React has no idea that object has changed.」原地改 + setItems(items) 是同一个引用 → 被跳过、界面不动，
- *    之后任何一次别的重渲染又把改过的值带出来（区块三「❌ 原地 +1」，测试覆盖）。另一个坑是 Hooks 的 setter 整体替换、不合并：state 是 { quantity, note } 时 setState({ quantity: 2 }) 之后 note 就没了（测试覆盖，
- *    choosing-the-state-structure「you can't do setPosition({ x: 100 }) … because it would not have the y property at all!」）。五种不可变更新模式、Immer 见 21 题。
- * 9. 惰性初始化【主流】（区块四）：「React saves the initial state once and ignores it on the next renders.」useState(createInitialRows(…)) 这个表达式每次渲染都会执行、结果扔掉；
- *    初始化函数不需要参数时传函数本身 useState(createX)，需要参数时包一层 useState(() => createInitialRows(counter, 'lazy'))（区块四就是这种），
- *    「React will only call it during initialization」。初始化函数「should be pure,
- *    should take no arguments」，StrictMode 开发环境调用两次、其中一次的结果被忽略（区块四页面上是 2 次，测试覆盖；19.2.8 的 mountStateImpl 采用第一次调用的结果，:8264-8276）。useReducer 的第三个参数 init 同理。
+ *    updating-objects-in-state：「without using the state setting function, React has no idea that object has changed.」
+ *    - 【最常用】展开、map、filter 造新对象 / 新数组交给 setter（区块三的 +、-、移除）。
+ *    - 【常用】嵌套很深、展开写起来太长时用 Immer：updating-objects-in-state「Immer is a popular library that lets you write using the convenient but mutating syntax and takes care of
+ *      producing the copies for you.」（Immer 的用法 21 题改写时补，本项目没装 immer）
+ *    原地改 + setItems(items) 是同一个引用 → 被跳过、界面不动，之后任何一次别的重渲染又把改过的值带出来（区块三「❌ 原地 +1」，测试覆盖）。另一个坑是 Hooks 的 setter 整体替换、不合并：
+ *    state 是 { quantity, note } 时 setState({ quantity: 2 }) 之后 note 就没了（测试覆盖，choosing-the-state-structure「you can't do setPosition({ x: 100 }) … because it would not have
+ *    the y property at all!」）。五种不可变更新模式、Immer 见 21 题。
+ * 9. 初始值【主流】（区块四）：「React saves the initial state once and ignores it on the next renders.」
+ *    - 【最常用】直接给值：useState(0)、useState<CartItem[]>([])（工程经验：绝大多数初始值是字面量）。
+ *    - 【常用】初始值算起来昂贵（读 localStorage、生成大数组）时惰性初始化（工程经验；官方给的条件是「This can be wasteful if it's creating large arrays or performing expensive calculations.」）：useState(createInitialRows(…)) 这个表达式每次渲染都会执行、结果扔掉；初始化函数不需要参数时
+ *      传函数本身 useState(createX)，需要参数时包一层 useState(() => createInitialRows(counter, 'lazy'))（区块四就是这种），「React will only call it during initialization」。
+ *    初始化函数「should be pure, should take no arguments」，StrictMode 开发环境调用两次、其中一次的结果被忽略（区块四页面上是 2 次，测试覆盖；源码细节见附 4）。
+ *    useReducer 的第三个参数 init 同理。
  * 10. state 的结构【主流】（区块五）：choosing-the-state-structure 五条原则 —— Group related state、Avoid contradictions in state、Avoid redundant state、Avoid duplication in state、
  *    Avoid deeply nested state；「The goal behind these principles is to make state easy to update without introducing mistakes.」本课演示最常踩的两条：
  *    - 不存重复的数据：选中项存对象，items 更新后它还指着旧对象，详情停在选中那一刻；「For UI patterns like selection, keep ID or index in state instead of the object itself.」（测试覆盖）
  *    - 不让 state 互相矛盾：isSending + isSent「leaves the door open for "impossible" states」，「replace them with one status state variable that may take one of three valid states」；
  *      需要布尔值时从 status 派生（测试覆盖：两个布尔值出现「发送中」和「已发送」同时成立）。
  *    另外三条：
- *    - Group related state：「If you always update two or more state variables at the same time, consider merging them into a single state variable.」例如坐标的 x / y 放进一个对象；
+ *    - 【常用】Group related state（工程经验）：「If you always update two or more state variables at the same time, consider merging them into a single state variable.」例如坐标的 x / y 放进一个对象；
  *      合并之后要记得整体替换时带上其他字段（二-8 引的 setPosition({ x: 100 }) 就出自这一节）。
- *    - Avoid redundant state：「If you can calculate some information from the component's props or its existing state variables during rendering, you should not put that information into that
+ *    - 【最常用】Avoid redundant state，能算出来的不存（区块三的合计就是渲染时算的）：「If you can calculate some information from the component's props or its existing state variables during rendering, you should not put that information into that
  *      component's state.」—— 区块三的合计、09 题；这一节下面的「Don't mirror props in state」见 02 题区块三。
- *    - Avoid deeply nested state：「When possible, prefer to structure state in a flat way.」原文的做法是把树拍平：「you can have each place hold an array of its child place IDs. Then store
- *      a mapping from each place ID to the corresponding place.」—— 形状是 { byId: Record<string, Item>, 每项只存 childIds }，改一项只需换掉 byId 里那一项。
- *      深嵌套时的不可变更新写法与 Immer 见 21 题（21 题目前没有讲拍平，21 题改写时补一句指回这里）。
- * 11. 收进 useReducer【主流】（区块六）：extracting-state-logic-into-a-reducer「We recommend using a reducer if you often encounter bugs due to incorrect state updates in some component, and want to
- *    introduce more structure to its code.」对比五条（Code size / Readability / Debugging / Testing / Personal preference），其中 Testing：「A reducer is a pure function that doesn't depend on
+ *    - Avoid deeply nested state：「When possible, prefer to structure state in a flat way.」Recap：「If updating deeply nested state is complicated, try flattening it.」两种做法都【常用】：
+ *      【常用】拍平（官方首选；store 里也一样，Redux 风格指南「Prefer storing that data in a "normalized" form in the store」），具体形状见附 3；
+ *      【常用】不想改结构时用 Immer（updating-objects-in-state 原文是「if you don't want to change your state structure, you might prefer a shortcut to nested spreads」，二-8）。
+ * 11. useState 还是 useReducer【主流】（区块六）：单个独立的值【最常用】useState（工程经验；官方「You don't have to use reducers for everything: feel free to mix and match!」）；
+ *    几个字段互相牵制、同一条规则散在多个事件处理函数里时【常用】收进 useReducer（频率是工程经验）—— 什么时候用：extracting-state-logic-into-a-reducer「We recommend using a reducer if
+ *    you often encounter bugs due to incorrect state updates in some component, and want to introduce more structure to its code.」对比五条（Code size / Readability / Debugging / Testing / Personal preference），其中 Testing：「A reducer is a pure function that doesn't depend on
  *    your component. This means that you can export and test it separately in isolation.」（quantityReducer.ts 导出、测试里直接调用）；Personal preference：「You can always convert between
  *    useState and useReducer back and forth: they are equivalent!」reducer「must be pure」，「Each action describes a single user interaction」。判别联合与 never 穷尽检查、日志与撤销重放见 29 题。
  * 12. setter / dispatch 的引用稳定【主流】：「The set function has a stable identity, so you will often see it omitted from Effect dependencies, but including it will not cause the Effect to fire.」
- *    （react-dom 在首次渲染时把 dispatchSetState.bind(...) 存进 queue.dispatch，之后每次渲染都返回同一个，:8288-8293、:8083）；传给 memo 子组件不会破坏浅比较（17 题）。
- * 13. 两个常见报错【主流】（区块七）：
- *    - 「Too many re-renders. React limits the number of renders to prevent an infinite loop.」—— 渲染时无条件调用 setter，最常见的是 onClick={handleClick()}（「Very often, this is caused by
- *      a mistake in specifying an event handler」）。19.2.8 里同一个组件渲染期的重跑上限是 25 次（RE_RENDER_LIMIT，:26131、:7746-7749）。运行时报错测试覆盖；
- *      TypeScript（void 不能当 onClick，@ts-expect-error 由 typecheck 验证）和 lint（set-state-in-render，7.1.1 实测）都会拦。
- *    - 「I'm trying to set state to a function, but it gets called instead」：useState(fn) 把 fn 当初始化函数、setFn(fn) 把 fn 当更新函数（basicStateReducer：action 是函数就调用它，:7934-7936）；
- *      要存函数得写 useState(() => fn)、setFn(() => fn)（测试覆盖；setFn(fn) 这种写法 TypeScript 拦不住）。
- *    - 例外：有条件地在渲染中 set 自己的 state 是允许的（记住上一次的 prop）——「Calling the set function during rendering is only allowed from within the currently rendering component. React will
- *      discard its output and immediately attempt to render it again with the new state.」条件和 setPrevX 缺一不可；lint 不报这种写法（set-state-in-render 规则页把它列为 Valid），运行时 React 丢掉这次输出、马上重新渲染（测试覆盖）。
- *      官方说它「usually best avoided」（但比在 Effect 里同步好），
- *      更好的是像区块五那样存 id、在渲染时算 —— you-might-not-need-an-effect 的「✅ Best: Calculate everything during rendering」。
+ *    传给 memo 子组件不会破坏浅比较（17 题；源码位置见附 4）。
+ * 13. 常见报错【主流】（区块七）：「Too many re-renders. React limits the number of renders to prevent an infinite loop.」—— 渲染时无条件调用 setter，最常见的是 onClick={handleClick()}
+ *    （「Very often, this is caused by a mistake in specifying an event handler」）。运行时报错测试覆盖（重跑上限见附 4）；TypeScript（void 不能当 onClick，@ts-expect-error 由 typecheck
+ *    验证）和 lint（set-state-in-render，7.1.1 实测）都会拦。
+ *    【少用】要把函数存进 state：这件事本身少用，它的坑（被当成初始化函数 / 更新函数调用，useState 页 Troubleshooting 的另一条）连同演示一起注释，见附 1。
+ * 14. prop 变了要调整 state【主流】：【最常用】能算的在渲染时直接算、要整体重来就换 key（02 题区块三、09 题）；【少用】渲染期间有条件地 set 自己的 state（记住上一次的 prop）是允许的，
+ *    但官方说「This pattern is rarely needed」，独立测试覆盖，见附 2。
  *
- * 三、Vue 对照
- * - const [x, setX] = useState(v) ↔ const x = ref(v)，改 x.value = …【主流】。reactivity-fundamentals：「In Composition API, the recommended way to declare reactive state is using the ref() function」。
+ * 三、Vue 对照（Vue 这一侧的演示都是 Vue 项目里常用的写法，没有注释掉的部分）
+ * - const [x, setX] = useState(v) ↔ const x = ref(v)，改 x.value = …：【最常用】ref —— reactivity-fundamentals「In Composition API, the recommended way to declare reactive state is using the ref() function」；
+ *   【常用】reactive（工程经验：一组相关的表单字段放进一个对象、原地改，vue/QuantityEditor.vue；官方 reactivity-fundamentals 仍有 reactive() 一节）。
  *   Vue 不需要 setter：「Under the hood, Vue performs the tracking in its getter, and performs triggering in its setter.」reactivity-in-depth：「In Vue 3, Proxies are used for reactive objects and
  *   getter / setters are used for refs.」ref 装对象时内部用 reactive() 转成 Proxy，所以 item.quantity += 1 也能被拦截。
  * - 更新单位【主流】：依赖追踪记到具体属性，被触发重新执行的是读过它的组件的 render effect（每个组件实例一个），setup 不重跑（runtime-core.cjs.js:8231 setup 只在挂载时调用，更新走 :6272
@@ -107,7 +122,7 @@
  * - useReducer 没有内置对应物【主流】（vue/QuantityEditor.vue）：reactive 对象 + 直接改它的函数；复杂时把修改集中到 composable（14 题）或 Pinia action（16 题）。
  *   「别让修改散落在各个事件处理函数里」是和框架无关的组织方式，React 用 reducer（纯函数、只暴露 dispatch）来做，Vue 可以原地改，所以不需要「返回新对象」的 reducer 形式
  *   （想用也能用，29 题 Vue 侧）。Pinia action 可以直接改 store、可以是异步的，reducer 是同步纯函数。
- * - 两个常见报错在 Vue 里【主流】（vue/Example.vue 区块七）：渲染时改自己读过的数据，开发构建在同一个更新任务重复排队超过 100 次时报「Maximum recursive updates exceeded in component <X>. This means you
+ * - 常见报错在 Vue 里【主流】（vue/Example.vue 区块七）：渲染时改自己读过的数据，开发构建在同一个更新任务重复排队超过 100 次时报「Maximum recursive updates exceeded in component <X>. This means you
  *   have a reactive effect that is mutating its own dependencies and thus recursively triggering itself. …」（runtime-core.cjs.js:283、:435-449；生产构建没有这项检查），开发环境先警告、再抛出这段字符串，
  *   变成未处理的 Promise 拒绝，app.config.errorHandler 接不到（开发构建的行为测试覆盖）；ref(fn) 存的就是函数，不会被调用（测试覆盖）。
  * - 不要把 prop 拷进本地 ref【主流】：props 页「define a local data property that uses the prop as its initial value」只用于「当初始值用」，要转换就用 computed（02 题）。
@@ -136,6 +151,7 @@
  *   都是「React saves the initial state once and ignores it on the next renders」（02 题区块三）。
  * - 两个布尔值 isTyping、isSubmitting 有什么问题？四种组合里只有三种合法，某处忘了同步改就出现「不可能的状态」；合成一个 status 字面量联合。
  * - class 的 setState 和 Hooks 的 setter 有什么区别？class 是浅合并（this.setState({ a }) 保留其他字段），Hooks 是整体替换；class 默认从 this 现读，定时器里读到最新值，函数组件读到的是那次渲染的快照；17 及以前在定时器 / Promise 里 this.setState 不批处理、同步生效（八）。
+ * - useState(fn) 会怎样？fn 被当成初始化函数调用，state 是它的返回值；要存函数本身写 useState(() => fn)（附 1）。
  *
  * 六、易错点
  * - 用普通局部变量存「会变的数据」：改了不渲染，下次渲染又重来（区块一）。
@@ -144,7 +160,7 @@
  * - 只传一个字段 setState({ quantity: 2 })，以为会像 class 那样合并，结果其他字段没了（二-8）。
  * - useState(expensive())：每次渲染白算一遍（区块四）。
  * - onClick={handleClick()}：渲染时就调用了，setter 在渲染里触发 → Too many re-renders（区块七）。
- * - 把函数传给 useState / setter 想存起来，结果被调用了（区块七）。
+ * - 把函数传给 useState / setter 想存起来，结果被调用了（附 1）。
  * - 选中项存成对象、多个布尔值描述同一件事（区块五）；把 props 复制进 state（02 题）。
  * - 在 if / 循环 / 事件处理函数里调用 useState（rules-of-hooks）。
  * - 更新函数、初始化函数、reducer 里有副作用（发请求、改外部变量）：StrictMode 开发环境调两次就露馅（区块四的计数是故意的演示简化）。
@@ -183,16 +199,43 @@
  * - Vue Vapor Mode【尝鲜】（Vue 3.6 RC）：逐个绑定直接更新 DOM、不经过组件级虚拟 DOM；Vue 3.5 仍是组件级 render effect。
  *
  * 十、动手练习
- * 1. 把 SnapshotDemo.tsx 的 setThenRead 改成先算好新值：const next = count + 1; setCount(next); 日志里写 next。可断言：点一次「set 之后立刻读」，日志里是 1（改测试第一条的期望值）。
+ * 1. 把 SnapshotDemo.tsx 的 addTwiceByValue 改成先算好新值：const next = count + 1; 然后 setCount(next) 两次。可断言：区块二的测试不用改、照样通过（点一次「A」仍只加 1）——
+ *    先算好变量解决的是「这次事件里要用新值」，解决不了「同一事件里多次基于旧值更新」，后者要用更新函数。
  * 2. 把 quantityReducer.ts 的 isEditing + draft 两个字段合成一个 mode: { kind: 'view' } | { kind: 'editing'; draft: string }（判别联合的 state）。可断言：「不在编辑却有草稿」在类型上写不出来 ——
  *    在 kind 为 'view' 的分支里读 state.mode.draft 编译报错；reducer 的单元测试改完断言后照样通过。
+ * 3. 取消 TroubleshootingDemo.tsx 里 FormatterBlock 的两处【少用】注释，再取消 Example.test.tsx 里对应那条测试的注释。可断言：测试通过 —— 点「❌ setFormatter(addBang)」后预览显示
+ *    「state 已经不是函数了（typeof = string）」，点「✅ setFormatter(() => addBang)」后显示「hello state!」。
  *
- * 参考（2026-09-18 核对，react.dev / vuejs.org 文档取自官方仓库原文）：
+ * 附：少用的写法与细节（演示代码里对应的部分已注释，删掉注释块的第一行和最后一行就能运行；读别人的代码时认得出来就行）
+ * 1. 【少用】把函数存进 state（TroubleshootingDemo.tsx 的 FormatterBlock，已注释；结论由 Example.test.tsx 里的独立组件验证）：useState 页 Troubleshooting
+ *    「I'm trying to set state to a function, but it gets called instead」：useState(fn) 把 fn 当初始化函数、setFn(fn) 把 fn 当更新函数（basicStateReducer：action 是函数就调用它，
+ *    react-dom-client.development.js:7934-7936）；要存函数得写 useState(() => fn)、setFn(() => fn)（测试覆盖；setFn(fn) 这种写法 TypeScript 拦不住 —— fn 的类型也满足
+ *    SetStateAction 里「新值」那一支）。项目里很少把函数放进 state（工程经验），遇到时多半是想存回调，放 ref 或直接在渲染时选函数更常见。
+ * 2. 【少用】渲染期间有条件地 set 自己的 state（记住上一次的 prop）：「Calling the set function during rendering is only allowed from within the currently rendering component. React will
+ *    discard its output and immediately attempt to render it again with the new state. This pattern is rarely needed, but you can use it to store information from the previous renders.」
+ *    条件和 setPrevX 缺一不可；lint 不报这种写法（set-state-in-render 规则页把它列为 Valid），
+ *    运行时 React 丢掉这次输出、马上重新渲染（测试覆盖）。官方说它「usually best avoided」（但比在 Effect 里同步好），
+ *    更好的是像区块五那样存 id、在渲染时算 —— you-might-not-need-an-effect 的「✅ Best: Calculate everything during rendering」。
+ * 3. 拍平的具体形状（细节，二-10 的【常用】做法）：原文的做法是把树拍平：「you can have each place hold an array of its child place IDs. Then store
+ *    a mapping from each place ID to the corresponding place.」—— 形状是 { byId: Record<string, Item>, 每项只存 childIds }，改一项只需换掉 byId 里那一项。
+ *    也可以把嵌套的 state 下放到子组件（同页：适合「是否悬停」这类不需要存下来的临时 UI 状态）。深嵌套时的不可变更新写法与 Immer 见 21 题（21 题目前没有讲拍平，21 题改写时补一句指回这里）。
+ * 4. 细节（了解即可）：
+ *    - Object.is 跳过的源码：setter 被调用时，如果这个组件的 fiber 和它的另一份副本（alternate）上都没有待处理的更新，就当场算出新值比较（react-dom-client.development.js:9143-9161
+ *      的急切比较），相同就连组件函数都不调用；刚因为自己的 state 更新重渲染过的组件，alternate 上还留着那次的更新标记，当场比较的前提不成立，React 先调用一次组件函数，
+ *      算出 state 没变再跳过子组件（:8070-8072、:10174-10179）；只是因为父组件重渲染而跟着重渲染的子组件，没有这个标记（复核实测）。
+ *    - 重跑上限：19.2.8 里同一个组件渲染期的重跑上限是 25 次（RE_RENDER_LIMIT，:26131、:7746-7749），超过就抛 Too many re-renders。
+ *    - 初始化函数在 StrictMode 下调两次，19.2.8 的 mountStateImpl 采用第一次调用的结果（:8264-8276）。
+ *    - setter 引用稳定：react-dom 在首次渲染时把 dispatchSetState.bind(...) 存进 queue.dispatch，之后每次渲染都返回同一个（:8288-8293、:8083）。
+ *    - 「只更新一次时直接传新值」的粗略统计（2026-09-19，范围是本次从 react.dev 仓库抓取的 39 个 learn / reference / blog 页面，只算 ±1 的简单写法）：按用途分类后，
+ *      「一次事件只更新一次」的正确示例里直接传新值约 40 处、更新函数约 5 处；未分类的原始计数（73 : 32）混着说明文字、故意演示的错误和「同一事件多次更新」的教学代码，不能直接用。
+ *
+ * 参考（2026-09-19 核对，react.dev / vuejs.org 文档取自官方仓库原文）：
  * - react.dev：learn/state-a-components-memory、learn/state-as-a-snapshot、learn/queueing-a-series-of-state-updates、learn/updating-objects-in-state、learn/choosing-the-state-structure、
  *   learn/reacting-to-input-with-state、learn/extracting-state-logic-into-a-reducer、learn/you-might-not-need-an-effect、learn/conditional-rendering、learn/typescript、
- *   learn/react-compiler/introduction、learn/react-compiler/installation、reference/react/useState、reference/react/useReducer、reference/react/Component、reference/rules/rules-of-hooks、
+ *   learn/react-compiler/introduction、learn/react-compiler/installation、reference/react/useState、reference/react/useReducer、reference/react/useEffect、reference/react/Component、reference/rules/rules-of-hooks、
  *   reference/eslint-plugin-react-hooks（index、lints/immutability、lints/set-state-in-render）、blog/2022/03/08/react-18-upgrade-guide
  * - vuejs.org：guide/essentials/reactivity-fundamentals、guide/extras/reactivity-in-depth、guide/components/props、api/sfc-script-setup
+ * - 使用频率的依据：Redux 风格指南（redux.js.org/style-guide，Normalize Complex Nested/Relational State）
  * - 源码 / 工具：react-dom 19.2.8（cjs/react-dom-client.development.js）、react 19.2.8、@types/react 19.2.18 index.d.ts、eslint-plugin-react-hooks 7.1.1、@vue/reactivity 与 @vue/runtime-core 3.5.42；
  *   npm view react time（16.8.0 2019-02-06、18.0.0 2022-03-29）
  */

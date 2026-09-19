@@ -36,6 +36,7 @@ function LocalVariableCounter({ log }: { log: DemoLog }) {
 /**
  * ✅ useState 给两样东西：一个跨渲染保留的 state 变量，一个会「请求 React 用新值再渲染一次」的 setter。
  * 命名约定：const [something, setSomething]。
+ * 只更新一次时【最常用】直接传新值 setCount(count + 1)（官方：需要更新函数的场景「is an uncommon use case」，Example.tsx 二-6）。
  */
 function StateCounter({ label }: { label: string }) {
   const [count, setCount] = useState(0)
@@ -57,6 +58,7 @@ export function WhyStateDemo() {
   return (
     <div className="card stack">
       <h3>区块一：为什么需要 state —— 局部变量不行，state 属于组件实例</h3>
+      <p className="muted">【最常用】一次事件只更新一次时直接传新值：下面的计数器写的是 setCount(count + 1)。</p>
       <LocalVariableCounter log={log} />
       <div className="row">
         <button onClick={() => setRenderRound((n) => n + 1)}>让本区块重渲染（已重渲染 {renderRound} 次）</button>

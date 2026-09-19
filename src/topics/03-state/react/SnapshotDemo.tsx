@@ -1,5 +1,6 @@
 /**
  * 区块二：setter 只影响下一次渲染 —— set 之后立刻读还是旧值、连写两次只加 1、设成同一个值会被跳过。
+ * 使用频率：要用新值做别的事 →【最常用】先算好存进变量；同一事件里多次更新 →【最常用】更新函数 setCount(c => c + 1)。
  * 本区块只做最小复现：机制见 23 题（渲染与快照）、24 题（更新队列与批处理），异步回调里读到旧值的各种修法见 26 题。
  * Vue 对照：vue/SnapshotDemo.vue（两个按钮都加 2；数据立刻变，DOM 到下一个 tick 才变）。
  */
@@ -21,6 +22,16 @@ export function SnapshotDemo() {
   }
 
   /**
+   * ✅【最常用】要用新值做别的事（写日志、发请求、传给别的函数）：先算好存进变量，set 和后面的代码都用这个变量。
+   * 这是 useState 页 Troubleshooting「I've updated the state, but logging gives me the old value」给的写法：const nextCount = count + 1。
+   */
+  function computeThenUse() {
+    const next = count + 1
+    setCount(next)
+    log.add(`setCount(next) 之后 count 仍是 ${count}，先算好的 next = ${next}（后面的代码用 next）`)
+  }
+
+  /**
    * ❌ 两行读到的是同一个 count：等价于 setCount(0 + 1) 两次，结果只加 1。
    * 这里并不是「setCount 异步」：两次调用都在排队，排的都是「替换成 count + 1」这个值。
    */
@@ -31,7 +42,7 @@ export function SnapshotDemo() {
   }
 
   /**
-   * ✅ 更新函数（updater）：React 处理队列时把「前一条更新算出的结果」传进来，0 → 1 → 2。
+   * ✅【最常用】更新函数（updater）：同一事件里多次更新同一个 state 时用。React 处理队列时把「前一条更新算出的结果」传进来，0 → 1 → 2。
    * 命名约定：参数用 state 名的首字母（c）或 prevCount。
    */
   function addTwiceByUpdater() {
@@ -53,11 +64,13 @@ export function SnapshotDemo() {
   return (
     <div className="card stack">
       <h3>区块二：setter 只影响下一次渲染</h3>
+      <p className="muted">【最常用】同一事件里多次更新用更新函数（B）；要用新值做别的事先算好存进变量（「先算好 next 再用」）。A 是反例。</p>
       <p>
         count：<strong data-testid="snapshot-count">{count}</strong>
       </p>
       <div className="row">
         <button onClick={setThenRead}>set 之后立刻读</button>
+        <button onClick={computeThenUse}>【最常用】先算好 next 再用</button>
         <button onClick={addTwiceByValue}>{'A：setCount(count + 1) ×2（只 +1）'}</button>
         <button className="btn-primary" onClick={addTwiceByUpdater}>
           {'B：setCount(c => c + 1) ×2（+2）'}

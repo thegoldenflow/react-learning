@@ -763,6 +763,39 @@
 
 **复核**：反驳式复核代理提出 20 条（高 2、中 4、低 14），全部处理：速答与主线不一致、擅自改统一措辞表的说法（改回表里的主线措辞，行业写法另起一句，决定留给用户）；「两种都常见」改成「行业最常用 / 官方类型建议」分开写并补 shadcn 迁移文档；二-7 丢掉的「react.dev 没有讲这组类型」、index.d.ts 行号、ComponentProps 的构成补进附 7；附 2 的时间线改成「同一时期的两种口径」；ref「解构」不是唯一主流写法（改成解构或随 rest 展开，五、七同步）；`??`、回调上浮、运行时声明、3.5 解构默认值补依据；children 的 ReactNode 依据换成 PropsWithChildren、ReactElement 按盘点改回【少用】放进附 8；inheritAttrs 行去掉重复的【主流】；ReadonlyPropsDemo 的【少用】标签改成「反例的载体」；三处「见二-3」补「与附 3」；练习 3 补 import 并加 WithoutRef 这一步（有会失败的断言）；测试标题去掉频率判断；区块四界面补标签；二-8 的超长行断开；布尔 prop 的出处补全、注明 jsx-boolean-value 不在 recommended；clsx / cn 补 shadcn 的依据。
 
+### 2.19 03 按「使用频率」改写（2026-09-19）
+
+**起因**：同 2.17，按 `RETROFIT-01-04-PROMPT.md` 改写。
+
+**改动**
+- 文件头：加「使用频率」说明行；30 秒速答只留最常用（惰性初始化、useReducer 两句降为正文的【常用】，内容还在二-9、二-11、五）；二-5 补「要用新值做别的事：先算好存进变量」【最常用】；二-6 按「一次事件只更新一次」（直接传新值【最常用】）/「同一事件多次更新、Effect 与定时器里基于旧值」（更新函数【最常用】）/「统一风格一律写更新函数」【常用】/ 参数命名（首字母【最常用】、全名或 prev 前缀【常用】）分开标；二-8 展开 / map / filter【最常用】、Immer【常用】；二-9 直接给值【最常用】、惰性初始化【常用】；二-10 Avoid redundant state【最常用】、Group related state【常用】、深嵌套时拍平与 Immer 都【常用】（官方首选拍平）；二-11 useState【最常用】/ useReducer【常用】；二-13 只留 Too many re-renders，「把函数存进 state」【少用】；新增二-14「prop 变了要调整 state」（渲染时算 / 换 key【最常用】，渲染期有条件地 set【少用】）；三的 Vue 侧 ref【最常用】/ reactive【常用】；新增练习 3（取消 FormatterBlock 注释）；「附」1–4（把函数存进 state、渲染期有条件地 set、拍平的具体形状、源码细节与统计）。
+- 演示：**区块二补上【最常用】的「先算好 next 再用」按钮**（日志同时显示 count 仍是旧值、next 是新值）；**区块七的「把函数存进 state」（FormatterBlock 连同类型、常量）按【少用】注释**（2 个注释块：定义 + 用法），区块七只留 Too many re-renders；各区块补频率说明行（区块一、二、三、四、六）。
+- 测试：新增「先算好 next 再用」；区块七原来渲染演示的 setFormatter 测试用【少用】注释块包起来，另写「附 1：把函数存进 state」独立组件测试（setter 用 React 的 Dispatch<SetStateAction<Formatter>> 类型，断言 state 变成 toUpper 转成字符串再加「!」）。React 25 条运行 + 1 条随演示注释，Vue 14 条。
+- Vue 侧：`Example.vue` 加使用频率说明、ref / reactive 分档，存 id 写「推荐」（不照搬 React 侧的频率标签）。README 03 行与说明段、注册表 summary 的「两个常见报错」改成「常见报错」，测试条数更新。
+
+**频率判断与依据**
+
+| 要做的事 | 写法与标签 | 依据 |
+|---|---|---|
+| 一次事件只更新一次 | 直接传新值【最常用】；一律写更新函数【常用】 | queueing「It is an uncommon use case, but if you would like to update the same state variable multiple times…」；useState「You might hear a recommendation to always write code like setAge(a => a + 1)…」「it's reasonable」；react.dev 示例粗略统计（按用途分类约 40 : 5） |
+| 同一事件多次更新 / Effect 与定时器里基于旧值 | 更新函数【最常用】 | useState deep dive「However, if you do multiple updates within the same event, updaters can be helpful.」；useEffect「✅ Pass a state updater」 |
+| 更新函数参数命名 | 首字母【最常用】；全名或 prev 前缀【常用】 | queueing「It's common to name the updater function argument by the first letters…」「another common convention is…」 |
+| 要用新值做别的事 | 先算好存进变量【最常用】 | useState Troubleshooting「If you need to use the next state, you can save it in a variable before passing it to the set function」 |
+| 对象 / 数组更新 | 展开 / map / filter【最常用】；Immer【常用】 | updating-objects-in-state「Immer is a popular library…」 |
+| 初始值 | 直接给值【最常用】；惰性初始化【常用】 | 工程经验；useState「This can be wasteful if it's creating large arrays or performing expensive calculations.」 |
+| state 结构 | 能算出来的不存【最常用】；Group related state【常用】；深嵌套：拍平【常用】（官方首选）/ Immer【常用】 | choosing-the-state-structure「When possible, prefer to structure state in a flat way.」「try flattening it」；Redux 风格指南 Normalize；updating-objects「if you don't want to change your state structure…」 |
+| 存 id / 一个 status | 不打频率标签（唯一正确写法 vs ❌，只用 ✅ / ❌） | — |
+| 管理 state | useState【最常用】；useReducer【常用】 | extracting-state-logic「You don't have to use reducers for everything: feel free to mix and match!」；频率为工程经验 |
+| 把函数存进 state | 【少用】（坑随场景一起注释） | 工程经验 |
+| prop 变了要调整 state | 渲染时算 / 换 key【最常用】；渲染期有条件地 set【少用】 | useState「This pattern is rarely needed」 |
+| Vue 声明状态 | ref【最常用】；reactive【常用】 | reactivity-fundamentals「the recommended way to declare reactive state is using the ref() function」；reactive 工程经验 |
+
+**注释掉了什么**：TroubleshootingDemo.tsx 的 FormatterBlock（类型 Formatter、toUpper / addBang / SAMPLE 与组件本身，原 JSDoc 改成 `//` 行）与它在 TroubleshootingDemo 里的用法；Example.test.tsx 里渲染它的那条测试。取消全部 3 个注释块后 lint、typecheck、03 React 测试（26 条）全绿，已从备份还原并 `diff -r` 一致（复核代理在副本上用最终版本又验证了一次）。
+
+**验证**：`npm run check` 通过（在只含 03 改动的暂存区导出目录里跑）；03 测试 39 条（React 25、Vue 14）；引文保留检查 131 / 0；浏览器（临时 5174）：区块二「先算好 next 再用」日志正确、区块七只剩 Too many re-renders、各区块频率说明行显示正常，console.error / warn 为 0。
+
+**复核**：反驳式复核代理提出 23 条（严重 1、中 8、低 14），全部处理：拍平从【少用】改成【常用】（官方首选，Redux 风格指南也要求规范化），原则原句放回正文，附 3 改成拍平的形状细节并补「下放到子组件」；「只更新一次直接传新值」的依据换成 queueing 页「It is an uncommon use case」，统计改写成分类后的口径并写明范围；「一律写更新函数」的依据换成「You might hear a recommendation…」；Effect / 定时器里用更新函数补 useEffect 页依据、补第三种用途（读 state 变量不方便时）；删掉只有 03 有的「错误写法不参与频率排序」那句，把【少用】标在「要把函数存进 state」这件事上；存 id / status 不再打频率标签；Vue 侧存 id 改回「推荐」；useState / useReducer、惰性初始化、Group related state、reactive 补依据或「工程经验」，二-11 标题补回【主流】；Avoid redundant state 标【最常用】（速答里有它）；参数命名按官方原文分档；新增二-14（prop 变了要调整 state）；README / 注册表的「两个常见报错」与测试条数；区块七的编号与 describe 名；独立测试改成单独的 describe、用 React 的 Dispatch 类型、断言具体值；「先算好 next」的日志同时显示旧 count；区块一、二补界面标签；Immer 注明「21 题改写时补」；统一措辞 State 表「函数式更新什么时候用」一行补频率口径；10 题的「一律用函数式更新」口诀记进遗留。
+
 ## 统一措辞（各题改写时照用）
 
 ### Vue 响应式（2-A 定稿，2026-09-17）
@@ -890,7 +923,7 @@
 | 要说的事 | 这样写 | 不要这样写 |
 |---|---|---|
 | set 之后读 | 「setter 只影响下一次渲染，这次渲染里读还是旧值」（useState 页 Caveats 原文） | 「setState 是异步的」 |
-| 函数式更新什么时候用 | 「同一事件里多次更新同一个 state、异步回调里基于旧值更新时用；只更新一次两种写法结果相同（官方 In most cases, there is no difference）；想统一风格一律写也可以」 | 「新值依赖旧值时必须用函数式更新」「统一解法都是函数式更新」 |
+| 函数式更新什么时候用 | 「同一事件里多次更新同一个 state、异步回调里基于旧值更新时用；只更新一次两种写法结果相同（官方 In most cases, there is no difference），这时直接传新值最常用（queueing 页「It is an uncommon use case」）；想统一风格一律写也可以（常用）」（2026-09-19 补频率口径，见 2.19） | 「新值依赖旧值时必须用函数式更新」「统一解法都是函数式更新」 |
 | Object.is 跳过 | 「相同就跳过重渲染与子组件；组件刚因自己的 state 更新重渲染过时，React 可能先调用一次组件函数再跳过子组件」 | 「设同样的值组件函数一定不执行」「刚更新过的组件」（不说是自己的 state） |
 | 初始化函数 | 「应当是纯函数（should）、不接收参数；需要参数就包一层箭头函数；StrictMode 开发环境调两次、其中一次的结果被忽略」 | 「必须是纯函数」（must 是更新函数和 reducer 的措辞）、「只采用第一次的结果」 |
 | 空串 && | 「空字符串不渲染任何节点；会渲染出来的是数字 0（和 NaN）」 | 「空串会被渲染成看不见的文本」 |
@@ -940,7 +973,7 @@
 | 26 | 过期闭包 | **完成** | 修法优先级（函数式更新 → 写对依赖 → useEffectEvent 主线 → latest ref 并排）四个区块：事件处理函数里的 setTimeout、手动 addEventListener（含被 useCallback 缓存的 JSX 处理函数）、轮询四种写法、让依赖合法消失（搬进事件 / 对象依赖 / ref.current）；Vue 侧现读 .value、手动快照与解构 reactive、3.5 解构 props、watch vs watchEffect；React 22 条 + Vue 15 条测试（含 latest ref 窗口期、Effect Event 身份与换入时机、19.2.x memo / forwardRef bug）；了结 P-26-1～6。详见 2.10 | 19.3 升级后改 memo / forwardRef 那条测试与课件；14 题 useInterval 注释可补一句 19.2.x 的 memo / forwardRef bug；10 题改写时保留「场景二修法三 latest ref」或同步改 26 的引用；31–35 新增后回填交叉引用 |
 | 01 | 组件与 JSX | **完成** | 四个区块：资料卡（UserCard 两个独立实例、JSX 当值传、className / style / Fragment）、JSX 编译成什么（automatic vs classic 编译结果、style 补 px 实测、Fragment key）、组件必须纯（茶杯例子 + StrictMode）、不要在组件里定义组件；Vue 侧 SFC + 具名插槽、:class / :style、compiler-sfc 编译输出；React 17 条 + Vue 5 条测试；了结 P-01-1～5。详见 2.11 | 17 题改写时补 Compiler 小节并回头核对 01 的引用；多根组件的 attrs 透传已在 02 补上（2.12）；28 题改写时补「组件返回类型 / FunctionComponent 签名」；19.3 升级后核 Fragment ref 的类型；33 / 35 新增后回填交叉引用；2026-09-19 按使用频率改写（见 2.17） |
 | 02 | Props | **完成** | 四个区块：props 的类型、解构与默认值（默认值实验表：没传 / undefined / null / 空串 / 无值写法）、props 只读与回调上浮（开发构建 TypeError、onAmountChange、快照）、不要把 props 复制进 state（useState 镜像 vs 直接读、initialPrice + 换 key）、接收原生属性（ComponentPropsWithRef + {...rest}、className / style 合并、ref 作为 prop）；Vue 侧 3.5 响应式 props 解构、布尔转型、改 props 只警告、props 是响应式对象、inheritAttrs + useAttrs、多根组件、组件 ref + defineExpose；React 20 条 + Vue 13 条测试；了结 P-02-1～5。详见 2.12 | 12 题改写时补：ref 回调与清理函数、useImperativeHandle、RefObject / MutableRefObject、useRef 必传参数、组件 ref + defineExpose（02 已写「12 题改写时补」，12 改完回头改成「见 12 题」）；28 题改写时补：ReactNode 与 ReactElement 的取舍、全局 JSX → React.JSX、useRef 必传参数、Vue 泛型组件 generic（同上）；17 题改写时核对 02 的「默认值新引用让 memo 失效」；19.3 升级后核 forwardRef 是否标弃用；35 新增后回填交叉引用；2026-09-19 按使用频率改写（见 2.18；原生属性类型的主线要不要换成 ComponentProps 待用户定） |
-| 03 | State 与 useState | **完成** | 七个区块：为什么需要 state（局部变量 vs useState、state 属于实例）、setter 只影响下一次渲染（快照、A / B、设成当前值）、对象 / 数组整体替换（原地改 + 同一个引用被跳过）、惰性初始化（调用次数面板）、state 的结构（存 id vs 存对象、status vs 两个布尔值）、useReducer（reducer 导出单测）、两个常见报错（Too many re-renders、函数存进 state）；Vue 侧普通 let 变量、DOM 在 nextTick 才变、setup 只执行一次、存同一个响应式对象 / 副本 / id、渲染中改数据的 Maximum recursive updates；React 24 条 + Vue 14 条测试；了结 P-03-1～3。详见 2.13 | 21 题改写时补：深嵌套拍平（03 二-10 已写原文，21 只讲了 Immer）与 Vue 侧 reactive 的三条限制 / ref 首选（R2-21-9；03 已写，21 可指回 03）；17 题改写时补 Compiler 小节（03 九已写「17 题改写时补」）；33 / 34 / 35 新增后回填交叉引用；19.3 升级后无需改（本课没用到 19.3 的 API） |
+| 03 | State 与 useState | **完成** | 七个区块：为什么需要 state（局部变量 vs useState、state 属于实例）、setter 只影响下一次渲染（快照、A / B、设成当前值）、对象 / 数组整体替换（原地改 + 同一个引用被跳过）、惰性初始化（调用次数面板）、state 的结构（存 id vs 存对象、status vs 两个布尔值）、useReducer（reducer 导出单测）、两个常见报错（Too many re-renders、函数存进 state）；Vue 侧普通 let 变量、DOM 在 nextTick 才变、setup 只执行一次、存同一个响应式对象 / 副本 / id、渲染中改数据的 Maximum recursive updates；React 24 条 + Vue 14 条测试；了结 P-03-1～3。详见 2.13 | 21 题改写时补：深嵌套拍平（03 二-10 已写原文，21 只讲了 Immer）与 Vue 侧 reactive 的三条限制 / ref 首选（R2-21-9；03 已写，21 可指回 03）；17 题改写时补 Compiler 小节（03 九已写「17 题改写时补」）；33 / 34 / 35 新增后回填交叉引用；19.3 升级后无需改（本课没用到 19.3 的 API）；2026-09-19 按使用频率改写（见 2.19）；10 题改写时改掉「新状态只依赖旧状态 → 一律用函数式更新，和 03 题是同一条」这句口诀（10-effects-and-lifecycle/react/Example.tsx:144，和 03 现在的口径与统一措辞表冲突）；21 题改写时补 Immer 的用法（03 二-8 已写「21 题改写时补」，本项目没装 immer） |
 | 04 | 事件处理 | **完成** | 六个区块：绑定与传参（传函数不要调用、回调 prop 以 on 开头、❌ 列表渲染时就删光）、事件对象（target / currentTarget / nativeEvent.currentTarget 是 root 容器、setTimeout 里 currentTarget 为 null）、事件传播（React 捕获 / 冒泡与原生监听器同一份日志比先后、stopPropagation 挡住谁、onScroll 不冒泡 / onScrollCapture / onFocus 冒泡）、默认行为（preventDefault 只拦默认动作、只 stopPropagation 的勾选框、form onSubmit、.self）、Vue 修饰符的 React 写法（.once、按键与 .exact、输入法组字、鼠标键与右键菜单）、onWheel 是被动监听；Vue 侧 v-on 直接绑元素（与原生监听器交错）、修饰符实现、@click.right 改写成 contextmenu、@wheel.prevent 生效、组件事件不冒泡与透传反例；React 22 条 + Vue 15 条测试；了结 P-04-1～5。详见 2.14 | 17 题改写时补 Compiler 对内联处理函数的记忆化（04 九已写「17 题改写时补」）；07 题可补「提交按钮 onClick 跑在校验之前」的一句（04 二-6 已有测试）；31 / 34 / 35 新增后回填交叉引用；19.3 升级后核 onFullscreenChange 与 submitter |
 | 05 | 条件渲染 | **完成** | 四个区块：分支就是 JavaScript（switch 提前 return、return null、JSX 存进变量、三元、&&、查表）、&& 的 0 陷阱（0 / NaN 渲染出来、> 0 与 Number.isFinite、true / 0n 等取值表、TS 拦不住）、UI 树里的位置决定 state 的去留（三行对照：三元同类型保留、key 重置、不同位置重置）、隐藏还是卸载（&& / hidden 属性 / <Activity>，日志记 Effect 建立与清理）；Vue 侧模板 v-if / v-else 注入 key（compileTemplate 测试）与渲染函数三元复用、插值里 0 与 false、v-show 触发 onUpdated、KeepAlive 停用期间 watch 不停与 DOM 移出文档；React 7 条 + Vue 9 条测试；了结 P-05-1 / 3 / 4。详见 2.15 | 06 题改写时补 v-if 与 v-for 同用（05 三已写「06 题改写时补」）；P-05-2（Activity 与 Suspense）留给 32 题；32 新增后回填 Activity 的交叉引用；19.3 升级后核 <ViewTransition> 与 Activity 的配合；2026-09-19 按使用频率改写（样板，用户已确认，见 2.16）|
 | 20 | 错误边界 | **完成** | 手写 class 边界主线（fallback / onError / onReset / resetKeys）+ react-error-boundary 可运行并排；「接得住 / 接不住」8 个按钮 + useTransition 同步 / async、顶层 startTransition、lazy 缓存；createRoot 小根演示 onCaughtError / onUncaughtError 与整棵界面被移除；Vue 侧 ErrorBoundary.vue、捕获面、出错组件的两种表现、传播规则与 errorHandler；React 15 条 + Vue 12 条测试；了结 P-20-1～5。详见 2.9 | 31 / 32 / 33 / 34 新增后回填交叉引用；18 题可补一句 RouterProvider onError（7.11 起）与 throw data 404 |

@@ -22,7 +22,7 @@ export function CartDemo() {
   const [items, setItems] = useState<CartItem[]>(() => INITIAL_ITEMS.map((item) => ({ ...item })))
 
   /**
-   * ✅ map 造新数组；被改的那一项用展开造新对象，其余项原样复用引用。
+   * ✅【最常用】map 造新数组；被改的那一项用展开造新对象，其余项原样复用引用（深嵌套时【常用】拍平或 Immer，Example.tsx 二-8、二-10）。
    * 这里用更新函数 setItems(prev => …)：只更新一次时写 setItems(items.map(…)) 结果一样；
    * 同一个事件里要连续更新、或者在异步回调里更新时，更新函数才会有区别（区块二、24 题）。
    */
@@ -30,7 +30,7 @@ export function CartDemo() {
     setItems((prev) => prev.map((item) => (item.id === id ? { ...item, quantity: Math.max(1, item.quantity + delta) } : item)))
   }
 
-  /** ✅ filter 天然返回新数组 */
+  /** ✅【最常用】filter 天然返回新数组 */
   function removeItem(id: string) {
     setItems((prev) => prev.filter((item) => item.id !== id))
   }
@@ -58,6 +58,7 @@ export function CartDemo() {
   return (
     <div className="card stack">
       <h3>区块三：对象 / 数组 state 要整体替换</h3>
+      <p className="muted">【最常用】+ / - / 移除都是 map、filter、展开造出新数组 / 新对象再交给 setter；「❌ 原地 +1」是反例。</p>
       <p className="muted">先点某一行的「❌ 原地 +1」：界面不动；再点另一行的 +，刚才那一行的数量才「突然」变了。</p>
       {items.map((item) => (
         <div key={item.id} className="row" data-testid={`cart-row-${item.id}`}>

@@ -25,7 +25,8 @@ function EagerRows({ counter, keyword }: RowsProps) {
 }
 
 /**
- * ✅ 传「函数本身」：React 只在首次渲染（组件实例创建时）调用它。
+ * ✅【常用】传「函数本身」：React 只在首次渲染（组件实例创建时）调用它。初始值算起来昂贵（读 localStorage、生成大数组）时才需要；
+ * 普通的初始值【最常用】直接给值 useState(0)、useState<CartItem[]>([])。
  * 不需要参数时写 useState(createInitialRows)；需要参数时包一层箭头函数 useState(() => createInitialRows(counter, 'lazy'))。
  * 初始化函数要求：纯函数、不接收参数（箭头函数里用闭包拿参数）、返回初始值；StrictMode 开发环境会调用它两次。
  */
@@ -58,6 +59,7 @@ export function LazyInitDemo() {
   return (
     <div className="card stack">
       <h3>区块四：初始值只用一次 —— 惰性初始化</h3>
+      <p className="muted">【最常用】初始值直接给：useState(0)；【常用】算起来昂贵时传函数本身（惰性初始化），只在首次渲染调用。</p>
       <label className="row">
         输入几个字让下面两个组件重渲染：
         <input value={keyword} onChange={(e) => setKeyword(e.target.value)} aria-label="过滤关键字" />

@@ -1,5 +1,6 @@
 /**
  * 区块六：多个 state 互相牵制 → 从 useState 升级到 useReducer（入门；列表上的完整模式、action 日志与撤销重放见 29 题）。
+ * 使用频率：单个独立的值【最常用】useState；几个字段互相牵制、更新规则散在多个事件处理函数里时【常用】useReducer。
  * reducer 与类型在 quantityReducer.ts。
  * Vue 对照：vue/QuantityEditor.vue（没有 useReducer 的内置对应物，reactive 对象 + 直接改它的函数）。
  */
@@ -18,6 +19,7 @@ export function QuantityEditor() {
   return (
     <div className="card stack">
       <h3>区块六：多个 state 互相牵制 → useReducer</h3>
+      <p className="muted">【常用】useReducer：单个独立的值用 useState 就够了（最常用）；这里四个字段互相牵制，规则收进一个 reducer 更不容易出错。</p>
       <p className="muted">
         数量 / 是否编辑中 / 输入草稿 / 错误提示 —— 四个互相牵制的字段收进一个 reducer。试试点到上限、输入 0 或字母、编辑到一半取消。
       </p>
