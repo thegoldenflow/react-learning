@@ -3,6 +3,8 @@
 > **用法**：在新会话里发送「读 `docs/upgrade/RETROFIT-01-04-PROMPT.md`，按它执行」。
 > 写于 2026-09-19（05 样板提交 dd8586c 之后）。**一次只开一个会话**：`PROGRESS.md`、README、注册表、`src/shared/` 是共享文件，并行会互相覆盖。
 > 本文件和 `CONTINUE-PROMPT.md` 冲突时，01–04 的改写以本文件为准；其余事项（工程约定、验证方法、已核实的事实）以 `CONTINUE-PROMPT.md` 和 `PROGRESS.md` 为准。
+>
+> **执行状态（2026-09-19）：已全部完成，不用再执行。** fdbff97（01）、9ee15d0（02）、ade42f8（03）、1a8ffe7（04），记录见 PROGRESS 2.17–2.20；下一批做什么由用户定（PROGRESS「阶段状态」）。本文件保留作为 01–04 改写方法的记录，后面各题按同样方法改写时可以照着用（第 3、5、6 节）。
 
 ---
 
@@ -154,27 +156,34 @@
 
 ```js
 // 用法：node uncomment-rare.cjs <目录> [--dry]
-// 把目录（不递归）下 .ts / .tsx 文件里所有【少用】注释块取消注释：删掉以 `{/* 【少用】` 或 `/* 【少用】` 开头、且本行没有 `*/` 的那一行，
-// 以及它后面第一行单独的 `*/}` 或 `*/`。--dry 只报告数量、不写文件。先备份再跑，验证完从备份还原。
+// 把目录（不递归）下 .ts / .tsx / .vue 文件里所有【少用】注释块取消注释：
+// - 删掉以 `{/* 【少用】`、`/* 【少用】` 或 `<!-- 【少用】`（.vue 模板）开头、且本行没有结束符（`*/` / `-->`）的那一行；
+// - 以及它后面第一行单独的 `*/}`、`*/` 或 `-->`。
+// --dry 只报告数量、不写文件。先备份再跑，验证完从备份还原。
 const fs = require('fs')
 const path = require('path')
 const dir = process.argv[2]
 const dry = process.argv.includes('--dry')
 let total = 0
-for (const f of fs.readdirSync(dir).filter((name) => /\.tsx?$/.test(name))) {
+for (const f of fs.readdirSync(dir).filter((name) => /\.(tsx?|vue)$/.test(name))) {
   const p = path.join(dir, f)
   const lines = fs.readFileSync(p, 'utf8').split('\n')
   const out = []
-  let pending = false
+  let pending = null
   let n = 0
   for (const line of lines) {
     if (!pending && /^\s*\{?\/\* 【少用】/.test(line) && !line.includes('*/')) {
-      pending = true
+      pending = /^\s*\*\/\}?\s*$/
       n++
       continue
     }
-    if (pending && /^\s*\*\/\}?\s*$/.test(line)) {
-      pending = false
+    if (!pending && /^\s*<!-- 【少用】/.test(line) && !line.includes('-->')) {
+      pending = /^\s*-->\s*$/
+      n++
+      continue
+    }
+    if (pending && pending.test(line)) {
+      pending = null
       continue
     }
     out.push(line)
@@ -189,7 +198,7 @@ for (const f of fs.readdirSync(dir).filter((name) => /\.tsx?$/.test(name))) {
 console.log(`合计 ${total} 个`)
 ```
 
-在 05 上 `--dry` 的结果应是 11 个（BranchStylesDemo 2、Example.test 6、HideVsUnmountDemo 2、PositionDemo 1）。
+在 05 上 `--dry` 的结果应是 11 个（BranchStylesDemo 2、Example.test 6、HideVsUnmountDemo 2、PositionDemo 1）。2026-09-19 起脚本也认 .vue 模板里的 `<!-- 【少用】` … `-->` 注释块（04 的 vue 目录 --dry 是 7 个）。
 
 ### 5.2 旧版引文是否都还在
 

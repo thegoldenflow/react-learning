@@ -75,6 +75,10 @@
   34. **Testing Library 的角色**：`<dl>` 没有 list 角色（getByRole('list') 找不到），用 getByLabelText 或 container.querySelector；本项目**没装 eslint-plugin-react**（没有 `react/jsx-key`、`react/jsx-no-leaked-render` 这类规则），写 eslint-disable 指向这些规则会报「Definition for rule … was not found」。
   35. **复核报告怎么读**：复核代理把问题写成 scratchpad 里的 `review.json`（id / file / line / category / severity / problem / evidence / suggestion），主会话用 node 拍平后逐条改；改文件用 scratchpad 里的 .cjs 脚本做「查找唯一片段 → 替换」（找不到或不唯一就抛错），比手工 Edit 几十处稳。
   36. **写 heredoc 前先估长度**：超过约 8 KB 的 heredoc 在 Bash 工具里整条失败（unexpected EOF），2026-09-18 又踩了几次 —— 长脚本一律先用 Write 写到 scratchpad 的 .cjs 再执行。
+  37. **【少用】片段拆成单独的组件文件**（04 题）：CaptureOrderDemo.tsx、RareModifiersDemo.tsx、PassiveWheelDemo.tsx 这类整块少用的演示，组件文件保留、只把页面上的 import 与用法放进【少用】注释块，测试直接渲染组件 —— 注释期间结论照样被测试验证，取消注释也只要改两处。取消注释后页面上会多出同名控件时，测试按名字区分（04 的两个 stopPropagation 勾选框）。Vue 侧按 Vue 项目里的频率判断，少用的同样拆成单独的 .vue 组件（04 的 CaptureOrderDemo.vue、RareModifiersDemo.vue）；模板里的注释块第一行以 `<!-- 【少用】` 开头并写明怎么取消、最后一行单独是 `-->`，中间不能再有 HTML 注释，script 里照旧 `/* 【少用】` … `*/`（RETROFIT-01-04-PROMPT.md §5.1 的脚本已能识别 .vue）。场景本身少用时，它的 ❌ 反例随场景一起注释，并在文件头写明这个例外（03 的「把函数存进 state」、04 区块六）。
+  38. **不用 stash 也能「只检查要提交的改动」**（01–04 题）：按显式路径 `git add`；README 这类混着别题改动的文件，先生成只含本题改动的版本，用 `git update-index --cacheinfo 100644,$(git hash-object -w <文件>),README.md` 暂存；再 `git checkout-index -a -f --prefix=<scratchpad>/checkNN/` 导出暂存区，`cmd //c "mklink /J <scratchpad>\checkNN\node_modules D:\code\AI\learning\react\node_modules"` 链上依赖，在导出目录里跑 `npm run check`，全绿再 commit。好处是复核代理正在读别的题目录时也能提交（stash 会让它读到旧文件）。
+  39. **频率标签的格式**（01–04 复核定下来的）：频率和版本分开写（【最常用】automatic runtime（React 17 起，19 起必须）；成熟度是【较新】【尝鲜】【旧写法】时才叠加，例如 <Activity>【较新·19.2 起】【少用】），编号标题上的【主流】保留；只有一种正确写法、对照组是 ❌ 反例时不打频率标签，只用 ✅ / ❌（03 的存 id、status，04 的 stopPropagation）；两种写法各有主流出处、分不出高低时写「两种都常见，按团队约定」（02 的布尔 prop、interface / type）；行业写法和官方建议不一致时分开写，不为此改主线（02 的 ComponentProps / ComponentPropsWithRef，交给用户定）；讲「该不该用」的官方原文不当频率依据（04 的 useCallback）；测试标题不写频率字样，只用「附 N【少用】」对应注释块；Vue 侧不照搬 React 的标签。
+  40. **频率依据的常见错误**（复核代理每题都抓到）：拿「两种写法结果相同」「什么时候用」「it's reasonable」「only valuable in a few cases」这类句子当频率依据（要找 common / uncommon / often / rarely / most cases 这类直接讲频率的原文，找不到写「工程经验」）；npm 下载量含传递依赖，只能比较同类库之间；统计要写清范围并按用途分类；风格指南的「要有作用域」不等于「用 scoped 属性」；把正文推荐的写法（练习、七里的建议）又标成【少用】。
 
 ## 3. 还要做的事（按这个顺序）
 
@@ -158,7 +162,7 @@ grep -n "^### 07\. " docs/upgrade/AUDIT.md                        # 第一轮逐
 
 - `react/Example.tsx` 文件头按规格 §9 写全：主题、适用版本、最后核对、前置主题、成熟度，一至十段，参考。30 秒速答只用【主流】和【较新】内容。
 - 每个知识点带成熟度标签，【较新】注明起始版本。对比句写明适用的版本 / 模式 / 前提，不写没有限定的「永远 / 一定 / 完全相同 / 根本没有」。
-- **使用频率标注（2026-09-18 用户要求，05 题是样板，待用户确认）**：用户原话「我的目的不是让你把一个主题的所有方法都写下来，而是让你把工业界最常见的方法写出来，或者把多种方法中最常用的标注出来」，随后又定了「不常用的，不用删除，注释起来就好，放开的是真正常用的方法」。做法：
+- **使用频率标注（2026-09-18 用户要求，05 题是样板，用户已确认「05 可以」；2026-09-19 01–04 已按它改写，见 PROGRESS 2.17–2.20 与 §2 的可复用做法 37–40）**：用户原话「我的目的不是让你把一个主题的所有方法都写下来，而是让你把工业界最常见的方法写出来，或者把多种方法中最常用的标注出来」，随后又定了「不常用的，不用删除，注释起来就好，放开的是真正常用的方法」。做法：
   1. **按「要做的事」算频率**，不是一题只留一种：同一件事有几种写法时标【最常用】【常用】【少用】；成熟度是【主流】时不再重复标，【较新】【尝鲜】【旧写法】照标（例：`<Activity>【较新·19.2 起】【少用】`）。文件头在「成熟度」下面加一行「使用频率」说明。
   2. 频率判断要有依据：官方原文（如「This is the most common solution.」「isn't common」）、官方示例和主流库官方文档里的写法（如 TanStack Query Overview 的提前 return、Redux Essentials 的 `let content`）、主流库 / 模板的默认做法、npm 下载量；没有出处的写「工程经验」。
   3. **演示代码**：【最常用】【常用】正常运行，界面小标题带频率标签；【最常用】的写法如果没有演示，要补上（05 题区块四补了「状态提升」面板）。**【少用】的演示不删，注释掉**，并保证取消注释就能运行：注释块第一行以 `{/* 【少用】` 或 `/* 【少用】` 开头、写明取消注释的方法，最后一行单独是 `*/}` 或 `*/`，中间不能再有块注释（原来的 JSDoc 改成 `//` 行）；依赖的 import 同样放进一个【少用】注释块。说明性的注释另起一行、写成完整的 `{/* … */}`。
