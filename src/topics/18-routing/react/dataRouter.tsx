@@ -5,13 +5,16 @@
  * Data 模式【主流·v6.4 起】的核心：路由表是在 React 渲染之外创建的配置数组，
  * 每条路由除了 path 和组件，还能挂：
  * - loader：进入前取数，组件里用 useLoaderData 读；
- * - action：处理 <Form method="post"> 的提交；
+ * - action：处理 <Form method="post"> 与 fetcher.Form / fetcher.submit 的提交；
  * - errorElement：本路由（及子路由）的 loader / action / 渲染出错时显示；
  * - handle：任意元数据，useMatches 读（本例做面包屑）；
  * - lazy：按需加载路由模块；
  * - middleware【较新·7.9 起】：导航时包在 loader 外面执行的拦截链。
  * 导航时 React Router 先跑 middleware 和 loader，全部完成后才提交导航、渲染新页面 ——
  * 这就是「渲染前拦截」，Vue Router 的 beforeEach 也在这个时机（见 vue/router.ts）。
+ *
+ * 使用频率（依据见 Example.tsx 文件头）：守卫用 loader 里 redirect【最常用】、middleware【较新·7.9 起】【常用】；
+ * 提交后跳转用 action 里 redirect【最常用】；不跳转页面的提交用 useFetcher【最常用】（星标 action）；函数式 lazy【常用】。
  */
 import {
   createContext,
@@ -79,6 +82,8 @@ export interface OrdersLoaderData {
 
 export interface OrderLoaderData {
   order: Order
+  /** 是否已星标：由详情页的 useFetcher 提交给 :id 路由的 action 修改 */
+  starred: boolean
 }
 
 export interface ProfileLoaderData {
@@ -134,7 +139,7 @@ function createNavigationLogMiddleware(log: DemoLog): MiddlewareFunction {
 }
 
 /**
- * 守卫写法二【较新·7.9 起】：挂在无 path 分组路由上的 middleware。
+ * 守卫写法二【较新·7.9 起】【常用】：挂在无 path 分组路由上的 middleware（频率：工程经验 —— 7.9 才稳定，存量代码里少）。
  * - 未登录时在调用 next() 之前 throw redirect：下游的 loader 根本不会执行，不会白发请求；
  * - 登录了就把用户写进路由上下文，下游 loader 用 context.get(userContext) 读，不必再查一遍；
  * - 不调用 next() 也可以：函数返回后 React Router 会自动继续（next 最多只能调用一次）。
@@ -154,7 +159,8 @@ function createRequireAuthMiddleware({ auth, log }: DataRouterDeps): MiddlewareF
 /* ───────────────────────────────── loader ───────────────────────────────── */
 
 /**
- * 守卫写法一【主流·v6.4 起】：无 path 分组路由的 loader 里 throw redirect。
+ * 守卫写法一【最常用】（v6.4 起）：无 path 分组路由的 loader 里 throw redirect。
+ * 官方 navigating 页讲 redirect 的第一个示例就是它：loader 里查用户，没有就 redirect('/login')。
  * 面试要能说出它的两个坑（看日志面板）：
  * 1) 同一次导航里父子路由的 loader 是并行执行的（官方 createBrowserRouter 文档：「running loaders in parallel」），
  *    父级这里 redirect 时，子路由的 loader 往往已经发出请求了；
@@ -201,14 +207,14 @@ function createOrdersLoader({ log, delayMs }: DataRouterDeps) {
  * 订单详情：找不到就 throw data(…, { status: 404 })。
  * 抛出的是「响应」而不是 Error，errorElement 里用 isRouteErrorResponse 区分出来，显示 404 文案。
  */
-function createOrderLoader({ log, delayMs }: DataRouterDeps) {
+function createOrderLoader({ log, delayMs }: DataRouterDeps, starredIds: ReadonlySet<string>) {
   return async ({ request, params }: LoaderFunctionArgs): Promise<OrderLoaderData> => {
     log.add(`${target(request)} · 订单详情 loader：请求 ${params.id}`)
     const order = await fetchOrder(params.id ?? '', { signal: request.signal, delayMs })
     if (!order) {
       throw data(`订单 ${params.id} 不存在`, { status: 404 })
     }
-    return { order }
+    return { order, starred: starredIds.has(order.id) }
   }
 }
 
@@ -233,6 +239,26 @@ function createLoginLoader({ auth }: DataRouterDeps) {
 }
 
 /* ───────────────────────────────── action ───────────────────────────────── */
+
+/**
+ * 星标 action：详情页用 useFetcher 提交到这里（不跳转页面的提交，useFetcher【最常用】）。
+ * - fetcher.Form 不写 action 时提交给「它所在的路由」，也就是 :id 这条路由；
+ * - action 成功后（没有抛错，状态码也不是 4xx / 5xx），React Router 自动重新执行页面上的 loader（「triggering a revalidation of route data」），
+ *   所以详情页的 loader 会再跑一次、拿到新的 starred，不用手动刷新；
+ * - 地址不变、历史栈不变，useNavigation 也不会变成 submitting（fetcher 有自己的 state）。
+ * 演示简化：星标存在这个 router 实例的内存里（starredIds），真实项目是调接口。
+ */
+function createStarAction({ log, delayMs }: DataRouterDeps, starredIds: Set<string>) {
+  return async ({ request, params }: ActionFunctionArgs) => {
+    const formData = await request.formData()
+    const starred = formData.get('starred') === 'true'
+    await new Promise((resolve) => setTimeout(resolve, delayMs))
+    if (starred) starredIds.add(params.id ?? '')
+    else starredIds.delete(params.id ?? '')
+    log.add(`${target(request)} · 星标 action：starred=${starred}（结束后页面上的 loader 重新执行）`)
+    return { ok: true }
+  }
+}
 
 /**
  * 登录 action：处理 <Form method="post"> 的提交。
@@ -270,11 +296,13 @@ function createLogoutAction({ auth, log }: DataRouterDeps) {
  * 路由表：一个普通数组。和 vue/router.ts 的 routes 是同一种「配置」形态 ——
  * 「React 的路由表是组件树、Vue 的是配置」只是声明式模式的表象，不是框架差异。
  *
- * Component 与 element 二选一：不需要传 props 时写 Component（6.9 起），
- * 要传 props 时写 element（根路由要把 auth / log 交给布局组件）。
+ * Component 与 element 二选一，两种都常见：v7 官方文档的示例大多写 Component（6.9 起），
+ * 存量的 6.4+ 代码多是 element（工程经验）。要传 props 时写 element（根路由要把 auth / log 交给布局组件）。
  */
 export function createDataRoutes(deps: DataRouterDeps): RouteObject[] {
   const settingsCrumb: CrumbHandle = { crumb: () => '设置' }
+  // 模拟后端存的星标（每个 router 实例一份，测试之间互不影响）
+  const starredIds = new Set<string>()
 
   return [
     {
@@ -296,7 +324,9 @@ export function createDataRoutes(deps: DataRouterDeps): RouteObject[] {
             {
               // 动态段 :id —— loader 的 params.id 和组件里的 useParams().id 读到同一个值
               path: ':id',
-              loader: createOrderLoader(deps),
+              loader: createOrderLoader(deps, starredIds),
+              // 详情页的 useFetcher（星标）提交到这里
+              action: createStarAction(deps, starredIds),
               Component: OrderDetailPage,
               // 详情页自己的错误边界：404 只替换这一块，上面的导航和面包屑还在
               errorElement: <OrderErrorPage />,
@@ -310,7 +340,7 @@ export function createDataRoutes(deps: DataRouterDeps): RouteObject[] {
         // 只有 action 没有组件的路由：<Form method="post" action="/logout"> 提交到这里
         { path: 'logout', action: createLogoutAction(deps) },
         {
-          // 守卫写法一【主流】：无 path 的分组路由 + loader。
+          // 守卫写法一【最常用】：无 path 的分组路由 + loader。
           // 没有组件的路由默认渲染 <Outlet />，所以它只负责拦截，不影响页面结构。
           id: 'guard-by-loader',
           loader: createRequireAuthLoader(deps),
@@ -338,16 +368,16 @@ export function createDataRoutes(deps: DataRouterDeps): RouteObject[] {
           ],
         },
         {
-          // 守卫写法二【较新·7.9 起】：无 path 的分组路由 + middleware
+          // 守卫写法二【较新·7.9 起】【常用】：无 path 的分组路由 + middleware
           id: 'guard-by-middleware',
           middleware: [createRequireAuthMiddleware(deps)],
           children: [
             {
               path: 'reports',
               handle: { crumb: () => '报表' } satisfies CrumbHandle,
-              // 路由级懒加载【主流·6.9 起】：函数返回路由的非匹配字段（Component、loader、action、errorElement……），
+              // 路由级懒加载【常用】（6.9 起）：函数返回路由的非匹配字段（Component、loader、action、errorElement……），
               // 第一次导航到这里时才下载 ReportsPage 的代码。path / index / children 不能懒加载
-              // （匹配路由时就要用到），函数式写法也不能懒加载 middleware；7.5 起另有按字段拆开的对象式 lazy【较新】。
+              // （匹配路由时就要用到），函数式写法也不能懒加载 middleware；7.5 起另有按字段拆开的对象式 lazy【较新】【少用】（Example.tsx 附 3）。
               // Vue 对照：component: () => import('./ReportsPage.vue')
               lazy: async () => {
                 const { ReportsPage, createReportsLoader } = await import('./ReportsPage')

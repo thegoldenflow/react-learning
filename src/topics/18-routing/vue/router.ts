@@ -39,7 +39,7 @@ export function createTopic18Router(options: { authDelayMs?: number } = {}): Rou
       { path: '/login', component: LoginPage },
       {
         path: '/settings',
-        // 路由级懒加载【主流】：component 写成 () => import()，进入时才加载。
+        // 路由级懒加载【常用】（频率：工程经验）：component 写成 () => import()，进入时才加载。
         // 官方懒加载文档提醒：路由组件本身不要用 defineAsyncComponent 包装，直接写动态 import。
         // React 对照：路由对象上的 lazy（react/dataRouter.tsx 的「报表」）。
         component: () => import('./SettingsPage.vue'),
@@ -59,7 +59,7 @@ export function createTopic18Router(options: { authDelayMs?: number } = {}): Rou
   resetAuth({ delayMs: options.authDelayMs })
 
   /**
-   * 全局前置守卫【主流】：返回值写法。
+   * 全局前置守卫【最常用】：返回值写法 + meta.requiresAuth（官方 meta 页的示例就是这样查登录）。
    * - 返回 undefined 或 true：放行；返回 false：取消导航；返回一个路由地址：重定向；
    * - 可以是 async 函数，await 完成之前导航不会提交，页面不会先渲染出来，被拦的地址也不会进历史记录；
    * - 第三个参数 next 的写法是【旧写法】：官方称它「a common source of mistakes」，

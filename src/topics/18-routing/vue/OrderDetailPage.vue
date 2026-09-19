@@ -3,8 +3,8 @@
  * 订单详情（/orders/:id）。
  *
  * 组件实例复用：/orders/o1 → /orders/o2 命中同一条路由，同一个 <RouterView> 复用这个组件实例，setup 不会重跑。
- * 所以取数要 watch 路由参数；组件里的 ref（包括子组件 NoteDraft 的草稿）也会保留。
- * 需要重置就给子组件（或 RouterView）加 :key。React 侧是同一类问题：同位置复用，用 key={id} 重置。
+ * 所以取数要 watch 路由参数【最常用】；组件里的 ref（包括子组件 NoteDraft 的草稿）也会保留。
+ * 需要重置就给子组件（或 RouterView）加 :key，或在 watch 里手动重置，两种都常见（06 题统一措辞）。React 侧是同一类问题：同位置复用，用 key={id} 重置。
  */
 import { onWatcherCleanup, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'

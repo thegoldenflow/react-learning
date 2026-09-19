@@ -905,6 +905,47 @@
 
 **复核**：反驳式复核代理提出 36 条（中 8、低 28），全部处理：index 作 key 的前提改成「满足其一」（附 4、五、二-3），LogPanel 的例子改成靠「纯展示」；<dl> 可以用 <div> 包每组 dt / dd → 演示换成表格里一项两行 <tr>（两侧 + 测试），正文写明 <dl> 不算；派生列表去掉【最常用】改成 ✅ / ❌；Vue v-for + :key 的频率依据换成 API 页「The most common use case is combined with v-for」，recommended 那句改作规则；Vue v-if 与 v-for 按「过滤列表项 / 隐藏整个列表」拆开写，补上官方的 <template v-for> 包一层写法【常用】，隐藏整个列表只用 ✅；补测试「id 作 key 删除第一行」（两侧）和「换 key 只渲染一次」；KeyBugDemo 去掉没演示的「排序」；块体 return 的 lint 说法写明是本项目配置、规则名改成 @typescript-eslint/no-unused-expressions、补 array-callback-return 能拦（实测）；附 1 补官方挑战题里的手写循环；<Fragment key>、template v-for、创建时生成 id 的频率依据改成工程经验，换 key 指向 05 二-4 与附 2；map 返回 null 标【少用】；四-2、速答、Vue 头的「串行」补开头 / 中间插入与删除的前提；Vue 重复 key 补检查时机（两处）；KeyResetDemo 补 StrictMode 前提；13 题引用改成「Children API 与 cloneElement」；useMemo 引文换成 Caveat 自己的结尾句；测试标题「附 6【少用】」；README 两处与实际不符、注册表补 Vue 对照；速答与三的几条补【主流】；补 Vue :key 触发过渡、(item, index)、v-memo 对照 React memo、兄弟间唯一字段当 key、浅拷贝、展开带 key 的对象报错（02 题）；「React 只能整体替换」改准确；ref 措辞照统一措辞表；测试文件头写明类型断言由 typecheck 检查；练习 2 写明 StrictMode 与实例标签；参考补 reactivity-fundamentals、v-if-v-for 迁移页与 MDN 渲染页来源；Vue 2 <template> key 的措辞；Vue 下拉文案与 React 对齐；对象 key 改成「类型检查拦」；demoData 的「演示简化」改成说明前缀用途；ListBasicsDemo 去掉没依据的「常见的写法」。
 
+### 2.22 18 路由按「使用频率」改写（2026-09-19，RETROFIT-REST 第一题）
+
+**起因**：按 `docs/upgrade/RETROFIT-REST-PROMPT.md` 把 2-B 时写成的九题逐题按使用频率改写，18 是第一题（样板题，主线不改）。
+
+**改动**
+- 文件头：加「使用频率」说明行；速答改成「存量最常见声明式 / 官方给新项目推荐 Framework / 本课主线 Data」三个答案分开说，守卫只讲 loader redirect 与 RequireAuth，新增「跳转用 Link、提交后在 action 里 redirect」；二-1 分开写三种答案（决定点 18-1）；二-3 Component / element、errorElement / ErrorBoundary「两种都常见」；二-4 loader【最常用】；二-5 守卫 loader【最常用】（throw / return 两种都常见）、middleware【较新·7.9 起】【常用】、声明式 RequireAuth 包 element / 布局路由两种都常见；二-6 改成「跳转与提交」：Link / NavLink、action 里 redirect、**useFetcher【最常用】（新演示）**、Form【常用】、useNavigate【常用】（官方「Usage of this hook should be uncommon.」写明是 Data / Framework 模式的态度）、useNavigation【最常用】；二-8 useOutletContext、useBlocker、面包屑、函数式 lazy【常用】，补声明式的 React.lazy + Suspense 与 route.lazy 的区别；二-9 NavLink 两种样式写法、push / replace；三的 Vue 侧 beforeEach + meta【最常用】、beforeEnter、onBeforeRouteLeave、懒加载【常用】、watch 取数【最常用】、:key 与 watch 重置两种都常见、KeepAlive 放进 RouterView 插槽；四-8、五、六、七补 useFetcher 相关；练习 3（星标换成 <Form>）；附 1–7（拦截实现细节、NavLink isPending、对象式 lazy、RequireAuth 返回 ReactNode 的类型版本、Vue 导航前取数、createRoutesFromElements、vue-router memory history）。
+- 演示：**补上【最常用】的 useFetcher**：详情页「星标」—— `starFetcher.Form` 提交到 :id 路由的新 action（`createStarAction`，星标存在 router 实例内存里），`fetcher.formData` 乐观显示、`fetcher.state` 显示「保存中」；loader 多返回 `starred`。Example.tsx 模式切换下加一行「选哪种模式」说明；根布局加「登录守卫两种写法」频率说明；各文件注释补标签。没有需要注释的【少用】演示。
+- 测试：新增 2 条 —— 星标（乐观显示、提交中全局 navigation 仍是 idle 且不显示「提交中」、action 后详情 loader 重新执行、地址与 historyAction 不变）、middleware 守卫被拦地址不进历史栈（补上「两种写法都有断言」）。React 18 → 20 条，Vue 7 条不变。
+- Vue 侧：Example.vue 加使用频率说明与「附：细节」；router.ts、OrdersPage.vue、OrderDetailPage.vue、SettingsNotificationsPage.vue 注释补标签；「KeepAlive 包住 RouterView」改成放进插槽（Vue Router 4 起直接包会警告）。
+- README 18 行：守卫标签改成【最常用】/【较新·7.9 起】【常用】，补 useFetcher 星标。
+
+**频率判断与依据**
+
+| 要做的事 | 写法与标签 | 依据 |
+|---|---|---|
+| 选路由模式 | 存量最常用：声明式；官方给新项目：Framework；本课主线：Data（决定点 18-1） | modes「Use Framework Mode if you:」…「are too new to have an opinion」「are coming from v6 and are happy with the <BrowserRouter>」；存量：工程经验 |
+| 路由对象写组件 / 错误页 | Component / element、ErrorBoundary / errorElement 两种都常见 | v7 文档示例多写 Component / ErrorBoundary（Data 安装页第一个示例是 element）；存量：工程经验 |
+| Data 模式守卫 | loader redirect【最常用】；middleware【较新·7.9 起】【常用】 | framework/navigating 讲 redirect 的第一个示例；middleware：工程经验（官方「common patterns like authentication」讲用途） |
+| 声明式守卫 | RequireAuth 包 element / 布局路由 + Outlet 两种都常见 | 工程经验 |
+| 链接 / 提交后跳转 | Link / NavLink【最常用】；action 里 redirect【最常用】 | 「It is common to redirect to a new record after it has been created」 |
+| 不跳转页面的提交 | useFetcher【最常用】；<Form method="post">【常用】 | 「However, it is more common to useFetcher() to POST form data.」「The most common case for a fetcher is to submit data to an action…」 |
+| 命令式跳转 | useNavigate【常用】（跨模式；Data / Framework 里官方要少用） | 工程经验；「Usage of this hook should be uncommon.」 |
+| 导航中提示 | useNavigation【最常用】；NavLink isPending【少用】（附 2） | framework/pending-ui「Global Pending Navigation」 |
+| 父传子 | useOutletContext【常用】 | 「this is such a common situation that it's built-into <Outlet>」 |
+| 离开确认 / 面包屑 / 拆包 | useBlocker、handle + useMatches、函数式 lazy【常用】；对象式 lazy【少用】（附 3） | 工程经验（官方原句都是讲用途） |
+| Vue | beforeEach + meta【最常用】；beforeEnter、onBeforeRouteLeave、懒加载、KeepAlive 插槽【常用】；watch 取数【最常用】；导航前取数 / onBeforeRouteUpdate【少用】（附 5） | meta 页示例；data-fetching「Technically, both are valid choices」→ 工程经验 |
+
+**注释掉了什么**：没有。运行中的都是【最常用】【常用】或讲机制的对照（NoteDraft key 开关、根日志 middleware、声明式并排本身是行业最常用模式）。
+
+**验证**：`npm run check` 通过（在只含 18 改动的暂存区导出目录里跑）；18 测试 27 条（React 20、Vue 7），无 act 警告、无 stderr；引文逐字核对 41 条命中 38，其余 3 条是代码片段 `return children`、运行时报错「must be used within a data router」（chunk-BV7QT456.mjs:6450）和 how-to/middleware 的一句（原文里 common patterns 是引用式链接，脚本不处理，手动核对一致）；旧版引文保留 43 / 缺 1（中文转述「已有自己的数据层（如 TanStack Query，30 题）」换成了官方原句，转述内容仍在二-1）；【少用】注释块 0 个；浏览器（临时 5174，已停并还原 launch.json）：详情页点「☆ 星标」100ms 内变成「★ 已星标」并显示「保存中」，完成后日志是「星标 action → 根 middleware → 订单详情 loader」（fetcher 调用也跑一遍客户端 middleware），模式说明与守卫说明显示正常，console.error / warn 为 0。另核实：`<Form>` 提交到当前地址时 historyAction 是 REPLACE（chunk-BV7QT456.mjs:1944-1950）。
+
+**复核**：反驳式复核代理提出 25 条（高 1、中 9、低 15），全部处理：「action 失败时 loader 重新执行把界面改回」讲反了（抛错进 errorElement，4xx / 5xx 默认不重新验证，界面回到旧值是因为 formData 被清掉）→ 七改写，二-6 / 四-8 / 五 / 注释补「action 成功后」前提；星标测试「不影响 useNavigation」的断言挪到提交进行中并加「不显示提交中」；middleware 守卫补「被拦地址不进历史栈」测试；六处【主流】与频率标签叠用；lazy、onBeforeRouteLeave、middleware 的依据改成「讲的是用途 / 工程经验」；KeepAlive 包 RouterView 改成插槽写法；v5 是 <Switch> 不是 <Routes>；补声明式的 React.lazy + Suspense；RequireAuth、声明式 useNavigate 不再打【最常用】（只能这样做），补布局路由写法；useNavigate【常用】写明跨模式判断；errorElement / ErrorBoundary、throw / return redirect、NavLink 两种样式写法、createRoutesFromElements（附 6）；二-4 / 二-6 标题补回【主流】；二-8 标题去掉「频率都是工程经验」；Vue 的 :key / watch 按 06 统一措辞；Vue 侧几处补「工程经验」；测试文件头的「零延迟」；练习 3 补提醒；引文补全 them 的指代；dataPages / dataRouter 文件头补 useFetcher；README 18 行。
+
+## 待用户定（九题改写，2026-09-19 起，九题做完一起问）
+
+按 RETROFIT-REST §1 / §7：行业最常用和本课主线不一致时不改主线，分开写，记在这里。
+
+| 编号 | 题 | 行业最常用（依据） | 本课主线（理由） | 推荐 |
+|---|---|---|---|---|
+| 18-1 | 路由模式 | 存量项目：声明式 <BrowserRouter> + <Routes>（工程经验，v6.4 之前只有这一种）；官方给新项目推荐 Framework（modes 页「Use Framework Mode if you: … are too new to have an opinion」） | Data 模式（AUDIT-ROUND2 §3.1：Framework 的底座，Vite SPA 里不上框架也能用 loader / action / useFetcher / useBlocker） | 保持 Data 主线；声明式并排照常运行（已是行业最常用写法，页面上两者都能看） |
+
 ## 统一措辞（各题改写时照用）
 
 ### Vue 响应式（2-A 定稿，2026-09-17）
@@ -1094,7 +1135,7 @@
 
 | 题号 | 主题 | 状态 | 改动摘要 | 遗留问题 |
 |---|---|---|---|---|
-| 18 | 路由（React Router） | **完成（样板已确认）** | Data 模式主线（loader / action / middleware 守卫 / errorElement / lazy / useBlocker / 面包屑）+ 声明式 RequireAuth 三态并排；十段文件头；React 18 条 + Vue 7 条结论测试；Vue 守卫改为返回值写法；safeRedirect 共享实现；源码查看器支持多文件（5.10）。详见 2.1 | 32 / 34 / 35 题新增后回填交叉引用 |
+| 18 | 路由（React Router） | **完成（样板已确认）** | Data 模式主线（loader / action / middleware 守卫 / errorElement / lazy / useBlocker / 面包屑）+ 声明式 RequireAuth 三态并排；十段文件头；React 18 条 + Vue 7 条结论测试；Vue 守卫改为返回值写法；safeRedirect 共享实现；源码查看器支持多文件（5.10）。详见 2.1 | 32 / 34 / 35 题新增后回填交叉引用；2026-09-19 按使用频率改写（见 2.22；补 useFetcher 星标演示；路由模式是待用户定 18-1） |
 | 26 | 过期闭包 | **完成** | 修法优先级（函数式更新 → 写对依赖 → useEffectEvent 主线 → latest ref 并排）四个区块：事件处理函数里的 setTimeout、手动 addEventListener（含被 useCallback 缓存的 JSX 处理函数）、轮询四种写法、让依赖合法消失（搬进事件 / 对象依赖 / ref.current）；Vue 侧现读 .value、手动快照与解构 reactive、3.5 解构 props、watch vs watchEffect；React 22 条 + Vue 15 条测试（含 latest ref 窗口期、Effect Event 身份与换入时机、19.2.x memo / forwardRef bug）；了结 P-26-1～6。详见 2.10 | 19.3 升级后改 memo / forwardRef 那条测试与课件；14 题 useInterval 注释可补一句 19.2.x 的 memo / forwardRef bug；10 题改写时保留「场景二修法三 latest ref」或同步改 26 的引用；31–35 新增后回填交叉引用 |
 | 01 | 组件与 JSX | **完成** | 四个区块：资料卡（UserCard 两个独立实例、JSX 当值传、className / style / Fragment）、JSX 编译成什么（automatic vs classic 编译结果、style 补 px 实测、Fragment key）、组件必须纯（茶杯例子 + StrictMode）、不要在组件里定义组件；Vue 侧 SFC + 具名插槽、:class / :style、compiler-sfc 编译输出；React 17 条 + Vue 5 条测试；了结 P-01-1～5。详见 2.11 | 17 题改写时补 Compiler 小节并回头核对 01 的引用；多根组件的 attrs 透传已在 02 补上（2.12）；28 题改写时补「组件返回类型 / FunctionComponent 签名」；19.3 升级后核 Fragment ref 的类型；33 / 35 新增后回填交叉引用；2026-09-19 按使用频率改写（见 2.17） |
 | 02 | Props | **完成** | 四个区块：props 的类型、解构与默认值（默认值实验表：没传 / undefined / null / 空串 / 无值写法）、props 只读与回调上浮（开发构建 TypeError、onAmountChange、快照）、不要把 props 复制进 state（useState 镜像 vs 直接读、initialPrice + 换 key）、接收原生属性（ComponentPropsWithRef + {...rest}、className / style 合并、ref 作为 prop）；Vue 侧 3.5 响应式 props 解构、布尔转型、改 props 只警告、props 是响应式对象、inheritAttrs + useAttrs、多根组件、组件 ref + defineExpose；React 20 条 + Vue 13 条测试；了结 P-02-1～5。详见 2.12 | 12 题改写时补：ref 回调与清理函数、useImperativeHandle、RefObject / MutableRefObject、useRef 必传参数、组件 ref + defineExpose（02 已写「12 题改写时补」，12 改完回头改成「见 12 题」）；28 题改写时补：ReactNode 与 ReactElement 的取舍、全局 JSX → React.JSX、useRef 必传参数、Vue 泛型组件 generic（同上）；17 题改写时核对 02 的「默认值新引用让 memo 失效」；19.3 升级后核 forwardRef 是否标弃用；35 新增后回填交叉引用；2026-09-19 按使用频率改写（见 2.18；原生属性类型的主线用户定为保持 ComponentPropsWithRef） |

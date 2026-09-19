@@ -1,7 +1,8 @@
 <script setup lang="ts">
 /**
  * 通知设置（/settings/notifications）：有未保存的修改时拦住离开。
- * - onBeforeRouteLeave：拦应用内导航，返回 false 取消（官方文档示例同样用 window.confirm）；
+ * - onBeforeRouteLeave【常用】（频率：工程经验）：拦应用内导航，返回 false 取消（官方文档示例同样用 window.confirm；
+ *   「The leave guard is usually used to prevent the user from accidentally leaving the route with unsaved edits.」讲的是用途）；
  * - beforeunload 事件：拦刷新 / 关闭标签页。
  * React 对照：useBlocker（Data 模式专有）+ useBeforeUnload。
  */
@@ -51,7 +52,7 @@ function save() {
     </div>
     <p class="muted">
       改一下勾选再点别的链接试试。切到「个人资料」再切回来，未保存的勾选会丢失：子路由切换就是卸载再挂载，两个框架一致。
-      Vue 可以用 KeepAlive 包住 RouterView 缓存页面；React 19.2 的 &lt;Activity&gt;【较新】能隐藏子树并保留 state，
+      Vue 可以在 RouterView 的插槽里用 KeepAlive 包住路由组件、缓存页面；React 19.2 的 &lt;Activity&gt;【较新】能隐藏子树并保留 state，
       但路由层没有现成封装（32 题，待新增）。
     </p>
   </div>

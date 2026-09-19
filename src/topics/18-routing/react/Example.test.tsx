@@ -1,6 +1,6 @@
 /**
  * 18 题的结论测试：文件头里讲的关键结论，每条都在这里有一个可以运行的证明。
- * 每个用例新建 router（零延迟的模拟服务），互不影响。
+ * 每个用例新建 router（模拟服务默认零延迟；星标用例留 300ms 观察提交中），互不影响。
  * 测试工具与写法本身在 34 题（待新增）详细讲。
  *
  * 两个约定：
@@ -19,11 +19,11 @@ import { createDemoLog } from './demoLog'
 import { DeclarativeDemo } from './DeclarativeDemo'
 import Example from './Example'
 
-async function setup(initialEntries: string[], { loggedIn = false } = {}) {
+async function setup(initialEntries: string[], { loggedIn = false, delayMs = 0 } = {}) {
   const deps: DataRouterDeps = {
     auth: createDemoAuth({ delayMs: 0 }),
     log: createDemoLog(100),
-    delayMs: 0,
+    delayMs,
   }
   if (loggedIn) await deps.auth.login()
   const router = createDataRouter(deps, { initialEntries })
@@ -73,6 +73,21 @@ describe('主线 Data 模式：守卫', () => {
     expect(rootIndex).toBeGreaterThanOrEqual(0)
     expect(guardIndex).toBeGreaterThan(rootIndex)
     expect(logHas('报表 loader')).toBe(false)
+  })
+
+  it('middleware 守卫同样在导航提交前拦下：被拦的 /reports 不进历史栈，登录后按后退回到拦截前的页面', async () => {
+    const { router, user } = await setup(['/orders'])
+    await screen.findByRole('table')
+    await act(() => router.navigate('/reports'))
+    await waitFor(() => expect(router.state.location.pathname).toBe('/login'))
+    // 报表页从没渲染出来
+    expect(screen.queryByRole('heading', { name: '报表' })).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: '模拟登录' }))
+    expect(await screen.findByRole('heading', { name: '报表' })).toBeInTheDocument()
+
+    await act(() => router.navigate(-1))
+    await waitFor(() => expect(router.state.location.pathname).toBe('/orders'))
   })
 
   it('middleware 把用户写进路由上下文，下游 loader 用 context.get 读到（路由级 lazy 加载的页面）', async () => {
@@ -180,6 +195,33 @@ describe('两种模式通用的写法（在主线里验证）', () => {
     expect(ordersLink).toHaveClass('active')
     expect(ordersLink).toHaveAttribute('aria-current', 'page')
     expect(screen.getByRole('link', { name: '设置（loader 守卫）' })).not.toHaveClass('active')
+  })
+})
+
+describe('主线 Data 模式：useFetcher 不跳转页面地提交', () => {
+  it('星标：提交中按 fetcher.formData 乐观显示；地址不变；action 结束后详情 loader 重新执行', async () => {
+    // 模拟接口留 300ms，才看得到「提交中」这一段
+    const { router, deps, user } = await setup(['/orders/o1'], { delayMs: 300 })
+    await screen.findByRole('button', { name: '☆ 星标' })
+    const loaderRuns = () => deps.log.getSnapshot().filter((line) => line.includes('订单详情 loader：请求 o1')).length
+    expect(loaderRuns()).toBe(1)
+
+    await user.click(screen.getByRole('button', { name: '☆ 星标' }))
+
+    // action 还没结束：按钮已经按要提交的值显示，fetcher 的 state 不是 idle
+    expect(await screen.findByRole('button', { name: '★ 已星标（点击取消）' })).toBeInTheDocument()
+    expect(screen.getByText(/保存中/)).toBeInTheDocument()
+    expect(deps.log.getSnapshot().some((line) => line.includes('星标 action'))).toBe(false)
+    // fetcher 的提交不是导航：提交进行中全局的 navigation 仍是 idle，根布局不显示「提交中」
+    expect(router.state.navigation.state).toBe('idle')
+    expect(screen.queryByText(/提交中/)).not.toBeInTheDocument()
+
+    await waitFor(() => expect(screen.queryByText(/保存中/)).not.toBeInTheDocument(), { timeout: 3000 })
+    expect(screen.getByRole('button', { name: '★ 已星标（点击取消）' })).toBeInTheDocument()
+    expect(deps.log.getSnapshot().some((line) => line.includes('星标 action：starred=true'))).toBe(true)
+    expect(loaderRuns()).toBe(2)
+    expect(router.state.location.pathname).toBe('/orders/o1')
+    expect(router.state.historyAction).toBe('POP')
   })
 })
 

@@ -3,7 +3,7 @@
  *
  * 和声明式模式相比，这里的组件多了几件「只有 Data 模式才有」的工具（在 <MemoryRouter> /
  * <BrowserRouter> 下调用会直接报错，因为它们依赖路由器实例）：
- * useLoaderData / useActionData / useRouteError / useNavigation / useBlocker / useMatches，以及 <Form>。
+ * useLoaderData / useActionData / useRouteError / useNavigation / useBlocker / useMatches / useFetcher，以及 <Form>。
  * useParams / useSearchParams / useNavigate / useLocation / Link / NavLink / Outlet 两种模式通用。
  */
 import { useState, useSyncExternalStore } from 'react'
@@ -16,6 +16,7 @@ import {
   useActionData,
   useBeforeUnload,
   useBlocker,
+  useFetcher,
   useLoaderData,
   useLocation,
   useMatches,
@@ -86,12 +87,12 @@ export function DataRootLayout({ auth, log }: { auth: DemoAuth; log: DemoLog }) 
   const user = useSyncExternalStore(auth.subscribe, auth.peekUser)
   const logLines = useSyncExternalStore(log.subscribe, log.getSnapshot)
 
-  // useNavigation【主流·Data 模式专有】：idle / loading / submitting。
+  // useNavigation【最常用】（Data 模式专有）：idle / loading / submitting（官方 Pending UI 页「Global Pending Navigation」的写法）。
   // 导航期间旧页面保持显示，直到新页面的 loader 全部完成 —— 用它显示「加载中」提示。
   const navigation = useNavigation()
   const location = useLocation()
 
-  // useMatches + handle：每个命中的路由都能贡献一段面包屑。
+  // useMatches + handle【常用】：每个命中的路由都能贡献一段面包屑（频率：工程经验，后台系统的布局常见）。
   // 读 loaderData，不要读 data：UIMatch.data 在 7.x 已标 @deprecated（v8 删除）。
   const crumbs = useMatches().flatMap((match) =>
     isCrumbHandle(match.handle) ? [match.handle.crumb(match.loaderData)] : [],
@@ -119,6 +120,9 @@ export function DataRootLayout({ auth, log }: { auth: DemoAuth; log: DemoLog }) 
           </Form>
         )}
       </nav>
+      <p className="muted">
+        登录守卫两种写法：「设置」用 loader 里 redirect【最常用】，「报表」用 middleware【较新·7.9 起】【常用】。
+      </p>
 
       <p className="muted">
         地址：<code>{location.pathname + location.search}</code>（内存路由没有地址栏，这里显示给你看）
@@ -128,7 +132,9 @@ export function DataRootLayout({ auth, log }: { auth: DemoAuth; log: DemoLog }) 
         )}
       </p>
 
-      {/* 子路由渲染出口。context 传给子页面：详情页用它判断按钮权限 */}
+      {/* 子路由渲染出口。context 传给子页面：详情页用它判断按钮权限。
+          useOutletContext【常用】：官方原文「this is such a common situation that it's built-into <Outlet>」；
+          值要在很多层以外用到时，放 Context 或全局 store（15、16 题）。 */}
       <Outlet context={{ user } satisfies RootOutletContext} />
 
       <div className="stack">
@@ -161,8 +167,8 @@ export function OrderListPage() {
    * 注意它和 useState 不同：官方文档说明函数形式「does not support the queueing logic that
    * React's setState implements」，同一次事件里连续调用两次不会叠加，要改就在一个回调里一起改。
    *
-   * 默认 push（后退能回到上一个筛选条件）；像搜索框逐字输入这种高频变化，
-   * 传第二个参数 { replace: true } 替换当前记录，免得用户要按很多次后退。
+   * 默认 push【最常用】（后退能回到上一个筛选条件）；像搜索框逐字输入这种高频变化，
+   * 传第二个参数 { replace: true }【常用】替换当前记录，免得用户要按很多次后退（频率：工程经验）。
    * Vue 对照：router.push({ query: { ...route.query, status } }) —— 同样要自己合并旧 query。
    */
   const changeStatus = (next: OrderStatus | 'all') => {
@@ -258,7 +264,7 @@ function NoteDraft({ orderNo }: { orderNo: string }) {
 
 /** 订单详情（/orders/:id） */
 export function OrderDetailPage() {
-  const { order } = useLoaderData<OrderLoaderData>()
+  const { order, starred: savedStarred } = useLoaderData<OrderLoaderData>()
   const { user } = useOutletContext<RootOutletContext>()
   const navigate = useNavigate()
   const location = useLocation()
@@ -289,6 +295,18 @@ export function OrderDetailPage() {
     else navigate(-1)
   }
 
+  /**
+   * 不跳转页面的提交：useFetcher【最常用】。
+   * 官方原文：「However, it is more common to useFetcher() to POST form data.」
+   * 「The most common case for a fetcher is to submit data to an action, triggering a revalidation of route data.」
+   * - fetcher.Form 不写 action，提交给当前路由（:id）的 action；地址和历史栈不变；action 成功后 loader 重新执行；
+   * - fetcher.state（idle / submitting / loading）是这个 fetcher 自己的，不影响根布局的 useNavigation；
+   * - 乐观显示：提交进行中 fetcher.formData 里就是要提交的值，先按它显示，action 结束、loader 重新执行后换成服务器的结果。
+   * 声明式模式没有 fetcher：在事件处理函数里调接口、自己管 submitting（19 题），或用 TanStack Query 的 useMutation（30 题）。
+   */
+  const starFetcher = useFetcher()
+  const starred = starFetcher.formData ? starFetcher.formData.get('starred') === 'true' : savedStarred
+
   const nextId = `o${Number(order.id.slice(1)) + 1}`
 
   return (
@@ -318,6 +336,13 @@ export function OrderDetailPage() {
         <p>
           客户：{order.customer} ｜ 金额：¥{order.amount} ｜ 下单日期：{order.createdAt}
         </p>
+        <starFetcher.Form method="post" className="row">
+          <input type="hidden" name="starred" value={String(!starred)} />
+          <button type="submit">{starred ? '★ 已星标（点击取消）' : '☆ 星标'}</button>
+          <span className="muted">
+            useFetcher【最常用】：不跳转页面地提交{starFetcher.state !== 'idle' && '（保存中……）'}
+          </span>
+        </starFetcher.Form>
       </div>
 
       <label>
@@ -363,6 +388,8 @@ export function LoginPage() {
   const target = safeRedirect(requested, '/orders')
 
   return (
+    // <Form method="post"> + action【常用】：会跳转页面的提交（登录后 redirect 回原页面）。
+    // 不跳转的提交官方说用 fetcher 更常见（「it is more common to useFetcher() to POST form data」，见详情页的星标）。
     // <Form> 会拦截原生提交，改为调用路由的 action，并自动管理 pending 状态（不用手写 submitting，19 题）。
     // replace：登录页这条历史记录被登录后的目标页替换，登录成功后按后退不会再回到登录页。
     <Form method="post" replace className="card stack">
@@ -425,6 +452,7 @@ export function SettingsProfilePage() {
 
 /**
  * 通知设置：有未保存修改时拦住离开。
+ * 离开确认【常用】（频率：工程经验；官方说它「Mostly used to avoid using half-filled form data」，讲的是用途）：
  * - useBlocker【主流·Data 模式专有】拦应用内导航（点链接、后退），blocker.state === 'blocked' 时让用户选择；
  * - useBeforeUnload 拦刷新 / 关闭标签页（浏览器自己的确认框，内容不能自定义）。
  * Vue 对照：onBeforeRouteLeave(() => window.confirm('…'))，返回 false 取消导航。
@@ -471,7 +499,7 @@ export function SettingsNotificationsPage() {
       )}
       <p className="muted">
         改一下勾选再点别的链接试试。切到「个人资料」再切回来，未保存的勾选会丢失：子路由切换就是卸载再挂载，两个框架一致。
-        Vue 可以用 KeepAlive 包住 RouterView 缓存页面；React 19.2 的 &lt;Activity&gt;【较新】能隐藏子树并保留 state，
+        Vue 可以在 RouterView 的插槽里用 KeepAlive 包住路由组件、缓存页面；React 19.2 的 &lt;Activity&gt;【较新】能隐藏子树并保留 state，
         但路由层没有现成封装（32 题，待新增）。
       </p>
     </div>

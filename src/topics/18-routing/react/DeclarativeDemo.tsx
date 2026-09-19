@@ -1,10 +1,10 @@
 /**
  * 【并排】声明式模式：<MemoryRouter> / <BrowserRouter> + <Routes> + RequireAuth 三态【主流】。
  *
- * 什么时候会遇到它：v6 的存量项目大多是这种写法，面试也最常问；
- * 官方 modes 页也认可「已经有自己的数据层（例如 TanStack Query，30 题）」时使用声明式模式。
+ * 什么时候会遇到它：行业里存量最常用的模式（工程经验：v6.4 之前只有声明式，v6 项目大多是这种写法；v5 用的是 <Switch>），面试也最常问；
+ * 官方 modes 页也认可已经有自己的数据层（例如 TanStack Query，30 题）时使用声明式模式。
  * 它提供匹配、导航、激活状态这些基础能力，没有 loader / action / useNavigation / useBlocker，
- * 所以守卫只能在渲染时做：用 RequireAuth 包住要保护的 element。
+ * 所以守卫只能在渲染时做：用 RequireAuth 包住要保护的 element（本课的写法），或者写成布局路由里渲染 <Outlet />，两种都常见（工程经验）。
  *
  * 本文件只演示守卫相关的差异；参数、query、NavLink、返回兜底在两种模式里写法相同，看主线 dataPages.tsx。
  */
@@ -26,7 +26,7 @@ import { createDemoAuth, type DemoAuth } from './demoAuth'
 type AuthStatus = 'checking' | 'authed' | 'guest'
 
 /**
- * RequireAuth 三态：
+ * RequireAuth 三态（频率见文件头；Example.tsx 二-5）：
  * - checking：刷新后还没问完后端。这时既不能放行也不能踢去登录页 ——
  *   只有 true / false 两态的话，已登录的用户会先被当成未登录送去登录页；
  * - guest：渲染 <Navigate replace />，把原地址（pathname + search）带给登录页；
@@ -65,7 +65,8 @@ function CurrentAddress() {
 function DeclLoginPage({ auth }: { auth: DemoAuth }) {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
-  // 声明式模式没有 <Form> / useNavigation，提交中的状态只能自己管（19 题）
+  // 声明式模式没有 <Form> / useNavigation，提交中的状态只能自己管（19 题）；
+  // 提交成功后用 useNavigate 跳转（声明式没有 action / redirect，只能这样）
   const [submitting, setSubmitting] = useState(false)
   const redirectTo = safeRedirect(searchParams.get('redirectTo'), '/orders')
 

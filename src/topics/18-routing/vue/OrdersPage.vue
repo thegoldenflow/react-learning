@@ -2,7 +2,7 @@
 /**
  * 订单列表（/orders）：筛选条件和页码存在 URL 的 query 里。
  *
- * Vue 的主流取数方式【主流】：导航完成后在组件里请求，watch 跟着 query 变化重新请求，
+ * Vue 的取数方式【最常用】（频率：工程经验）：导航完成后在组件里请求，watch 跟着 query 变化重新请求，
  * onWatcherCleanup（Vue 3.5 起）在下一次触发前取消上一个请求（27 题）。
  * React Data 模式对照：路由的 loader 在导航提交前取数，组件用 useLoaderData 读；
  * vue-router 5 的 vue-router/experimental 数据加载器【尝鲜】才是 Vue 这边的同类写法。
@@ -60,7 +60,7 @@ watch(
 /**
  * router.push({ query }) 会用你给的对象整体替换 query，写 { status } 会把 page 等其它参数丢掉，
  * 所以先展开 route.query 再改。React 对照：setSearchParams 的函数形式。
- * 默认 push（后退能回到上一个筛选条件）；高频变化（逐字输入的搜索词）用 router.replace。
+ * 默认 push【最常用】（后退能回到上一个筛选条件）；高频变化（逐字输入的搜索词）用 router.replace【常用】。
  */
 function updateQuery(patch: Record<string, string | undefined>) {
   const query: LocationQueryRaw = { ...route.query }
