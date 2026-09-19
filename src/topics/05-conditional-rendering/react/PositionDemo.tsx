@@ -22,7 +22,7 @@ export function PositionDemo() {
   return (
     <div className="card stack">
       <h3>区块三：三元两边是同一个组件，state 会被保留</h3>
-      <p className="muted">在三行里各输入一点备注，再点「切换客户」，看哪一行的草稿跟着留下来了。</p>
+      <p className="muted">在每一行里各输入一点备注，再点「切换客户」，看哪一行的草稿跟着留下来了。</p>
       <div className="row">
         <button onClick={() => setIsTaylor((v) => !v)}>切换客户（当前：{isTaylor ? 'Taylor' : 'Sarah'}）</button>
       </div>
@@ -37,18 +37,20 @@ export function PositionDemo() {
         {isTaylor ? <DraftEditor customer="Taylor" /> : <DraftEditor customer="Sarah" />}
       </div>
 
-      {/* ✅ 方法二：给每个分支不同的 key —— 「Specifying a key tells React to use the key itself as part of the position」，换 key 就是另一个组件实例，state 从头开始（06 题） */}
+      {/* ✅【最常用】方法二：给每个分支不同的 key（真实项目里通常是 key={userId}） —— 「Specifying a key tells React to use the key itself as part of the position」，换 key 就是另一个组件实例，state 从头开始（06 题） */}
       <div data-testid="with-key">
-        <p className="muted">② 三元，两边给不同的 key</p>
+        <p className="muted">② 三元，两边给不同的 key【最常用】</p>
         {isTaylor ? <DraftEditor key="Taylor" customer="Taylor" /> : <DraftEditor key="Sarah" customer="Sarah" />}
       </div>
 
-      {/* ✅ 方法一：渲染在不同位置（官方示例正好是两个 &&）—— 「Each Counter's state gets destroyed each time it's removed from the DOM.」 */}
+      {/* ✅【少用】方法一：渲染在不同位置（官方示例正好是两个 &&）—— 「Each Counter's state gets destroyed each time it's removed from the DOM.」只适合分支很少的情况，项目里重置 state 基本都用 key */}
+      {/* 【少用】取消注释即可运行：删掉这一行和下面的结束行
       <div data-testid="different-positions">
-        <p className="muted">③ 两个 &&（渲染到不同位置）</p>
+        <p className="muted">③ 两个 &&（渲染到不同位置）【少用】</p>
         {isTaylor && <DraftEditor customer="Taylor" />}
         {!isTaylor && <DraftEditor customer="Sarah" />}
       </div>
+      */}
     </div>
   )
 }

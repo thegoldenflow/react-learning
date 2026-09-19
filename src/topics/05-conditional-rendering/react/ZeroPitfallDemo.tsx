@@ -26,7 +26,7 @@ export function ZeroPitfallDemo() {
         */}
         <li data-testid="wrong-count">❌ {'{itemCount && …}'}：{itemCount && <span>购物车共 {itemCount} 件商品</span>}</li>
         <li data-testid="wrong-average">❌ {'{average && …}'}：{average && <span>均价 ￥{average.toFixed(2)}</span>}</li>
-        {/* ✅ 官方修法：「make the left side a boolean: messageCount > 0 && …」。!!itemCount、Boolean(itemCount)、三元 … : null 也行（这几种是补充，不是官方原文） */}
+        {/* ✅【最常用】官方修法：「make the left side a boolean: messageCount > 0 && …」。【常用】!!itemCount 或三元 … : null 效果一样（工程经验，不是官方原文） */}
         <li data-testid="right-count">✅ {'{itemCount > 0 && …}'}：{itemCount > 0 && <span>购物车共 {itemCount} 件商品</span>}</li>
         <li data-testid="right-average">
           ✅ {'{Number.isFinite(average) ? … : null}'}：{Number.isFinite(average) ? <span>均价 ￥{average.toFixed(2)}</span> : null}
