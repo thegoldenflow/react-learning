@@ -2,7 +2,7 @@
 
 > **用法**：在新会话里发送「读 `docs/upgrade/CONTINUE-PROMPT.md`，按它继续执行」。
 > **一次只开一个会话**执行本文件：`PROGRESS.md`、`eslint-suppressions.json`、README、注册表、`src/shared/` 是共享文件，并行会互相覆盖。
-> **2026-09-19 第九次更新：用户定了「使用频率」写法（§4.3），05 已按它改写成样板（dd8586c，用户确认）；01–04 已按同样方式改写（fdbff97 / 9ee15d0 / ade42f8 / 1a8ffe7，`RETROFIT-01-04-PROMPT.md`）；06 已从 wip06 恢复并直接按使用频率写法完成（efe5615，`TOPIC06-PROMPT.md`，PROGRESS 2.21）。用户随后选了先把其余九题（18、07、19、11、30、14、16、20、26）按使用频率改写：执行 prompt 是 `docs/upgrade/RETROFIT-REST-PROMPT.md` —— 先做那个，九题做完停下来问用户，再定 08 起的新题。**
+> **2026-09-19 第九次更新：用户定了「使用频率」写法（§4.3），05 已按它改写成样板（dd8586c，用户确认）；01–04 已按同样方式改写（fdbff97 / 9ee15d0 / ade42f8 / 1a8ffe7，`RETROFIT-01-04-PROMPT.md`）；06 已从 wip06 恢复并直接按使用频率写法完成（efe5615，`TOPIC06-PROMPT.md`，PROGRESS 2.21）。用户随后选了先把其余九题（18、07、19、11、30、14、16、20、26）按使用频率改写：执行 prompt 是 `docs/upgrade/RETROFIT-REST-PROMPT.md` —— 先做那个，九题做完停下来问用户，再定 08 起的新题。2026-09-19 已完成 18（6d76108）、07（13c58f9）、19（a05c7f5），接着从 11 做。**
 > 本文件写于 2026-09-17，2026-09-18 第七次更新（完成 2-C 的 05 之后；06 做了一半，半成品在 `git stash` 里），可以反复使用：每个会话都从 `docs/upgrade/PROGRESS.md` 的「下一步」接着做。两者冲突时以 PROGRESS.md 为准。
 
 ---

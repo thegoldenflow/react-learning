@@ -5,9 +5,9 @@
 > 本文件和 `CONTINUE-PROMPT.md` / `RETROFIT-01-04-PROMPT.md` 冲突时，这九题的改写以本文件为准；其余事项（工程约定、验证方法、已核实的事实）以 `CONTINUE-PROMPT.md` 和 `PROGRESS.md` 为准。
 >
 > **执行状态**（每做完一题在这里补一行，新会话从第一个「未开始」的题接着做）：
-> - 18：未开始
-> - 07：未开始
-> - 19：未开始
+> - 18：已完成（6d76108，PROGRESS 2.22；补了 useFetcher 星标演示；待用户定 18-1）
+> - 07：已完成（13c58f9，PROGRESS 2.23；待用户定 07-1）
+> - 19：已完成（a05c7f5，PROGRESS 2.24）
 > - 11：未开始
 > - 30：未开始
 > - 14：未开始
@@ -40,7 +40,7 @@
 4. `docs/upgrade/PROGRESS.md`：2.16–2.21（使用频率改写与 06 的记录、复核改过的点）；「统一措辞」各表（这九题各自定稿的表：表单与事件类型 07、服务端状态 30、自定义 Hook 14、全局状态 16、错误边界 20、过期闭包 26 —— 改写时照用，不另起说法）；「每题状态」表里这九题的「遗留」一栏。
 5. 每题动手前再读它自己的记录：18 → 2.1，07 → 2.3，19 → 2.4，11 → 2.5，30 → 2.6，14 → 2.7，16 → 2.8，20 → 2.9，26 → 2.10。
 
-然后：`git status`（只应有两个未跟踪的规格文件 `course-upgrade-prompt.md`、`update-project.md`，不要提交它们）、`git stash list`（应为空）、`git log --oneline -3`、跑一次 `npm run check` 确认基线是绿的（2026-09-19：447 条测试 / 33 个文件）。
+然后：`git status`（只应有两个未跟踪的规格文件 `course-upgrade-prompt.md`、`update-project.md`，不要提交它们）、`git stash list`（应为空）、`git log --oneline -3`、跑一次 `npm run check` 确认基线是绿的（2026-09-19 做完 18 / 07 / 19 之后：450 条测试 / 33 个文件）。
 
 ## 3. 每题的做法
 
@@ -168,6 +168,13 @@ for (const b of bad) console.log('  未命中：' + b)
 raw markdown 的地址：`https://raw.githubusercontent.com/reactjs/react.dev/main/src/content/<learn|reference/react|reference/react-dom|blog>/…md`、`https://raw.githubusercontent.com/vuejs/docs/main/src/<guide|api>/…md`、`https://raw.githubusercontent.com/vuejs/router/main/packages/docs/…`、`https://raw.githubusercontent.com/vuejs/pinia/v3/packages/docs/…`、`https://raw.githubusercontent.com/TanStack/query/main/docs/…`、`https://raw.githubusercontent.com/remix-run/react-router/main/docs/…`、`https://raw.githubusercontent.com/pmndrs/zustand/main/docs/…`（路径先在仓库里确认；分支名以仓库默认分支为准）。
 
 ## 6. 已知的坑（01–06 踩过的，加上 RETROFIT-01-04 §6）
+
+- 18 / 07 / 19 复核反复抓到的（后面各题先自查）：【主流·x 起】和频率标签叠在一起（要写成「【最常用】…（x 起）」，只有【较新】【尝鲜】【旧写法】才叠）；改写时编号标题上的【主流】丢了；
+  「用途 / 什么时候用 / 推荐哪个 API」的原句被当成频率依据（例如 useBlocker「Mostly used to…」、vue-router「usually used to…」、route-object「Most properties can be lazily imported」、
+  useTransition「For common use cases, React provides…」）；两边都有官方示例的写法硬排高低（该写「两种都常见」）；npm 同类库比较被拿去撑跨类别的结论；
+  只有一种正确写法却打了【最常用】（「只能这样做」不是频率）；文件头说「两种写法都有断言 / 测试有断言」其实只测了一边；新写的「只能 / 做不到」类排他结论（07 的「非受控做不到即时反应」是错的）。
+- 引文脚本只读 .md / .txt / .json：.mdx（react-hook-form 文档）、引用式链接 [text][ref]、三个点「...」的省略、跨行引文要手工核对。
+- 一次改三题时，用 CONTINUE-PROMPT §2 第 38 条（checkout-index 导出暂存区 + junction）逐题提交，复核代理可以同时读工作区里的下一题。
 
 - JSDoc 文件头里不能出现 `*/`；JSX 注释块里不能再嵌 `{/* … */}`；.vue 模板的注释块中间不能再有 HTML 注释。
 - 只注释用法不注释定义 → `noUnusedLocals` 报错；注释块要成对取消，第一行写清「和哪一段一起取消」。区块被注释后，整页测试里的区块标题列表、按钮文案里的数量要写成与数量无关的形式（names 数组）。
