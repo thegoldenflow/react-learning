@@ -77,7 +77,7 @@
   36. **写 heredoc 前先估长度**：超过约 8 KB 的 heredoc 在 Bash 工具里整条失败（unexpected EOF），2026-09-18 又踩了几次 —— 长脚本一律先用 Write 写到 scratchpad 的 .cjs 再执行。
   37. **【少用】片段拆成单独的组件文件**（04 题）：CaptureOrderDemo.tsx、RareModifiersDemo.tsx、PassiveWheelDemo.tsx 这类整块少用的演示，组件文件保留、只把页面上的 import 与用法放进【少用】注释块，测试直接渲染组件 —— 注释期间结论照样被测试验证，取消注释也只要改两处。取消注释后页面上会多出同名控件时，测试按名字区分（04 的两个 stopPropagation 勾选框）。Vue 侧按 Vue 项目里的频率判断，少用的同样拆成单独的 .vue 组件（04 的 CaptureOrderDemo.vue、RareModifiersDemo.vue）；模板里的注释块第一行以 `<!-- 【少用】` 开头并写明怎么取消、最后一行单独是 `-->`，中间不能再有 HTML 注释，script 里照旧 `/* 【少用】` … `*/`（RETROFIT-01-04-PROMPT.md §5.1 的脚本已能识别 .vue）。场景本身少用时，它的 ❌ 反例随场景一起注释，并在文件头写明这个例外（03 的「把函数存进 state」、04 区块六）。
   38. **不用 stash 也能「只检查要提交的改动」**（01–04 题）：按显式路径 `git add`；README 这类混着别题改动的文件，先生成只含本题改动的版本，用 `git update-index --cacheinfo 100644,$(git hash-object -w <文件>),README.md` 暂存；再 `git checkout-index -a -f --prefix=<scratchpad>/checkNN/` 导出暂存区，`cmd //c "mklink /J <scratchpad>\checkNN\node_modules D:\code\AI\learning\react\node_modules"` 链上依赖，在导出目录里跑 `npm run check`，全绿再 commit。好处是复核代理正在读别的题目录时也能提交（stash 会让它读到旧文件）。
-  39. **频率标签的格式**（01–04 复核定下来的）：频率和版本分开写（【最常用】automatic runtime（React 17 起，19 起必须）；成熟度是【较新】【尝鲜】【旧写法】时才叠加，例如 <Activity>【较新·19.2 起】【少用】），编号标题上的【主流】保留；只有一种正确写法、对照组是 ❌ 反例时不打频率标签，只用 ✅ / ❌（03 的存 id、status，04 的 stopPropagation）；两种写法各有主流出处、分不出高低时写「两种都常见，按团队约定」（02 的布尔 prop、interface / type）；行业写法和官方建议不一致时分开写，不为此改主线（02 的 ComponentProps / ComponentPropsWithRef，交给用户定）；讲「该不该用」的官方原文不当频率依据（04 的 useCallback）；测试标题不写频率字样，只用「附 N【少用】」对应注释块；Vue 侧不照搬 React 的标签。
+  39. **频率标签的格式**（01–04 复核定下来的）：频率和版本分开写（【最常用】automatic runtime（React 17 起，19 起必须）；成熟度是【较新】【尝鲜】【旧写法】时才叠加，例如 <Activity>【较新·19.2 起】【少用】），编号标题上的【主流】保留；只有一种正确写法、对照组是 ❌ 反例时不打频率标签，只用 ✅ / ❌（03 的存 id、status，04 的 stopPropagation）；两种写法各有主流出处、分不出高低时写「两种都常见，按团队约定」（02 的布尔 prop、interface / type）；行业写法和官方建议不一致时分开写，不为此改主线（02 的 ComponentProps / ComponentPropsWithRef，用户定为保持 WithRef）；讲「该不该用」的官方原文不当频率依据（04 的 useCallback）；测试标题不写频率字样，只用「附 N【少用】」对应注释块；Vue 侧不照搬 React 的标签。
   40. **频率依据的常见错误**（复核代理每题都抓到）：拿「两种写法结果相同」「什么时候用」「it's reasonable」「only valuable in a few cases」这类句子当频率依据（要找 common / uncommon / often / rarely / most cases 这类直接讲频率的原文，找不到写「工程经验」）；npm 下载量含传递依赖，只能比较同类库之间；统计要写清范围并按用途分类；风格指南的「要有作用域」不等于「用 scoped 属性」；把正文推荐的写法（练习、七里的建议）又标成【少用】。
 
 ## 3. 还要做的事（按这个顺序）
@@ -108,7 +108,7 @@
 
 ### 3.3 阶段 2-C：其余题（每题 1 个 commit，按编号）
 
-**2026-09-19 起的顺序**：已完成的题要按 §4.3「使用频率标注」回头改写 —— 05 已完成（dd8586c）；**01–04 按 `docs/upgrade/RETROFIT-01-04-PROMPT.md` 做**；18、07、19、11、30、14、16、20、26 以及 06 谁先谁后，等 01–04 做完后由用户定。06 和之后的新题直接按 §4.3 写（写完再补也行，但要在提交前完成）。
+**2026-09-19 起的顺序**：已完成的题要按 §4.3「使用频率标注」回头改写 —— 05（dd8586c）、01–04（fdbff97 / 9ee15d0 / ade42f8 / 1a8ffe7）已完成；用户定了**先做 06：按 `docs/upgrade/TOPIC06-PROMPT.md` 执行**；之后 18、07、19、11、30、14、16、20、26 的改写与 08 起的新题谁先，06 做完再问用户。02 题原生属性类型用户定为保持 ComponentPropsWithRef。06 和之后的新题直接按 §4.3 写（写完再补也行，但要在提交前完成）。
 
 `01 → 02 → 03 → 04 → 05 → 06 → 08 → 09 → 10 → 12 → 13 → 15 → 17 → 21 → 22 → 23 → 24 → 25 → 27 → 28 → 29`。**01（1e3394e，2.11）、02（8348eea，2.12）、03（ef34104，2.13）、04（9de5117，2.14）、05（8e3121b，2.15）已完成。06 做了一半，在 `git stash` 里，先接着做完 06（见下面「06 怎么接着做」），然后 08 → 09 → …。** 做每一题前先看 PROGRESS「每题状态」表里其他题留给它的遗留（例如 01 题留给 17 的 Compiler 小节、留给 28 的组件返回类型；02 题留给 12 的 ref 回调与清理 / useImperativeHandle / RefObject / defineExpose、留给 28 的 ReactElement / React.JSX / 泛型组件；26 题留给 10 的「场景二修法三 latest ref」、留给 14 的 19.2.x memo / forwardRef bug 一句；03 题：14 题留下「03 题 :64『10、14 题会再遇到快照』改写时核对」；03 题留给 21 的深嵌套拍平与 reactive 限制、留给 17 的 Compiler 小节；04 题留给 17 的内联处理函数记忆化、留给 07 的「提交按钮 onClick 跑在校验之前」；05 题留给 06 的 v-if 与 v-for 同用、留给 32 的 Activity 与 Suspense）。
 
