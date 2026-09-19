@@ -7,6 +7,7 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import userEvent from '@testing-library/user-event'
 import { expectTypeOf } from 'vitest'
 import { BindingDemo } from './BindingDemo'
+import { CaptureOrderDemo } from './CaptureOrderDemo'
 import { DefaultActionDemo } from './DefaultActionDemo'
 import { describeTarget } from './demoKit'
 import { EventObjectDemo } from './EventObjectDemo'
@@ -14,6 +15,7 @@ import Example from './Example'
 import { ModifiersDemo } from './ModifiersDemo'
 import { PassiveWheelDemo } from './PassiveWheelDemo'
 import { PropagationDemo } from './PropagationDemo'
+import { RareModifiersDemo } from './RareModifiersDemo'
 
 let consoleError: ReturnType<typeof vi.spyOn>
 beforeEach(() => {
@@ -60,10 +62,18 @@ describe('区块一：绑定与传参', () => {
   it('传参包一层箭头函数；子组件通过 onRemove 回调 prop 报告，事件对象里的 shiftKey 一起传上去', () => {
     render(<BindingDemo />)
     const keyboard = within(screen.getByTestId('row-i1'))
-    fireEvent.click(keyboard.getByRole('button'), { shiftKey: true })
+    fireEvent.click(keyboard.getByRole('button', { name: /^删除/ }), { shiftKey: true })
     expect(screen.getByTestId('row-i1')).toHaveTextContent('机械键盘 × 1')
-    fireEvent.click(keyboard.getByRole('button'))
+    fireEvent.click(keyboard.getByRole('button', { name: /^删除/ }))
     expect(screen.queryByTestId('row-i1')).toBeNull()
+  })
+
+  it('传参包一层箭头函数 onClick={() => onRemove(item.id, true)}：点击时才调用，数量减一', () => {
+    render(<BindingDemo />)
+    const mouse = within(screen.getByTestId('row-i2'))
+    expect(screen.getByTestId('row-i2')).toHaveTextContent('无线鼠标 × 2')
+    fireEvent.click(mouse.getByRole('button', { name: '减一件' }))
+    expect(screen.getByTestId('row-i2')).toHaveTextContent('无线鼠标 × 1')
   })
 
   it('onClick={removeItem(item.id)}：渲染时就调用了，列表一出现就被删光；更新会收敛，所以不报错', async () => {
@@ -103,11 +113,27 @@ describe('区块二：事件对象', () => {
 })
 
 describe('区块三：事件传播', () => {
-  it('顺序：React 捕获（外 → 中）→ 原生捕获与冒泡 → React 冒泡（按钮 → 中 → 外）→ document', async () => {
+  it('冒泡：按钮 → 中层 → 外层 → document；按钮里 stopPropagation 之后，外层和 document 冒泡阶段的监听器收不到，document 的捕获监听（{ capture: true }）照样收到', async () => {
     const u = user()
     render(<PropagationDemo />)
     await u.click(screen.getByRole('button', { name: '点我' }))
     expect(logLines('区块三日志')).toEqual([
+      'document 捕获阶段的监听器（{ capture: true }）',
+      'React 按钮 onClick',
+      'React 中层 onClick',
+      'React 外层 onClick',
+      'document 冒泡阶段的监听器',
+    ])
+    await u.click(screen.getByRole('checkbox', { name: '按钮的 onClick 里调用 e.stopPropagation()' }))
+    await u.click(screen.getByRole('button', { name: '点我' }))
+    expect(logLines('区块三日志').slice(5)).toEqual(['document 捕获阶段的监听器（{ capture: true }）', 'React 按钮 onClick'])
+  })
+
+  it('附 1【少用】顺序：React 捕获（外 → 中）→ 原生捕获与冒泡 → React 冒泡（按钮 → 中 → 外）→ document（CaptureOrderDemo，页面上已注释）', async () => {
+    const u = user()
+    render(<CaptureOrderDemo />)
+    await u.click(screen.getByRole('button', { name: '点我（捕获实验）' }))
+    expect(logLines('捕获实验日志')).toEqual([
       'React 外层 onClickCapture',
       'React 中层 onClickCapture',
       '原生 外层 div（捕获）',
@@ -120,12 +146,12 @@ describe('区块三：事件传播', () => {
     ])
   })
 
-  it('按钮里 stopPropagation：React 树里后面的 onClick 和 document 上的原生监听都收不到；DOM 里更深的原生监听早已执行', async () => {
+  it('附 1【少用】按钮里 stopPropagation：React 树里后面的 onClick 和 document 上的原生监听都收不到；DOM 里更深的原生监听早已执行', async () => {
     const u = user()
-    render(<PropagationDemo />)
-    await u.click(screen.getByRole('checkbox'))
-    await u.click(screen.getByRole('button', { name: '点我' }))
-    expect(logLines('区块三日志')).toEqual([
+    render(<CaptureOrderDemo />)
+    await u.click(screen.getByRole('checkbox', { name: '捕获实验：按钮的 onClick 里调用 e.stopPropagation()' }))
+    await u.click(screen.getByRole('button', { name: '点我（捕获实验）' }))
+    expect(logLines('捕获实验日志')).toEqual([
       'React 外层 onClickCapture',
       'React 中层 onClickCapture',
       '原生 外层 div（捕获）',
@@ -135,7 +161,7 @@ describe('区块三：事件传播', () => {
     ])
   })
 
-  it('在 onClickCapture 里 stopPropagation：原生事件在 root 容器的捕获阶段就被停住，root 里面的原生监听器和 document 都收不到', async () => {
+  it('附 1【少用】在 onClickCapture 里 stopPropagation：原生事件在 root 容器的捕获阶段就被停住，root 里面的原生监听器和 document 都收不到', async () => {
     const seen: string[] = []
     function Probe() {
       const outerRef = useRef<HTMLDivElement>(null)
@@ -175,7 +201,7 @@ describe('区块三：事件传播', () => {
     expect(seen).toEqual(['React 外层 onClickCapture'])
   })
 
-  it('stopPropagation 不挡同一个节点（root 容器）上后挂的原生监听器；e.nativeEvent.stopImmediatePropagation() 才挡得住', async () => {
+  it('附 1【少用】stopPropagation 不挡同一个节点（root 容器）上后挂的原生监听器；e.nativeEvent.stopImmediatePropagation() 才挡得住', async () => {
     for (const immediate of [false, true]) {
       const seen: string[] = []
       const { container, unmount } = render(
@@ -198,13 +224,17 @@ describe('区块三：事件传播', () => {
     }
   })
 
-  it('onScroll 在 React 里不冒泡（外层用 onScrollCapture 能收到）；onFocus 在 React 里冒泡', async () => {
+  it('onScroll 在 React 里不冒泡；onFocus 在 React 里冒泡', async () => {
     render(<PropagationDemo />)
     fireEvent.scroll(screen.getByTestId('scroll-box'))
     await act(async () => screen.getByRole('textbox', { name: '焦点实验输入框' }).focus())
-    expect(screen.getByTestId('bubbling-counts')).toHaveTextContent(
-      '里面的 onScroll：1 次 · 外层的 onScroll：0 次 · 外层的 onScrollCapture：1 次 · 外层的 onFocus：1 次',
-    )
+    expect(screen.getByTestId('bubbling-counts')).toHaveTextContent('里面的 onScroll：1 次 · 外层的 onScroll：0 次 · 外层的 onFocus：1 次')
+  })
+
+  it('附 1【少用】外层用 onScrollCapture 能收到里面的滚动（捕获阶段不限定只派发给目标；CaptureOrderDemo，页面上已注释）', () => {
+    render(<CaptureOrderDemo />)
+    fireEvent.scroll(screen.getByTestId('capture-scroll-box'))
+    expect(screen.getByTestId('capture-scroll-count')).toHaveTextContent('外层的 onScrollCapture：1 次')
   })
 
   it('原生不冒泡的 load 在 React 里冒泡（common 页 Caveats）', () => {
@@ -297,45 +327,60 @@ describe('区块四：默认行为', () => {
 })
 
 describe('区块五：Vue 修饰符的 React 写法', () => {
-  it('.once：state 标记（界面跟着变）与 ref 标记（界面不变）', async () => {
+  it('.once：state 标记 + disabled，界面跟着变', async () => {
     const u = user()
     render(<ModifiersDemo />)
     await u.click(screen.getByRole('button', { name: '领取优惠券（.once）' }))
     expect(screen.getByRole('button', { name: '已领取' })).toBeDisabled()
-    await u.click(screen.getByRole('button', { name: '上报一次（ref 标记）' }))
-    await u.click(screen.getByRole('button', { name: '上报一次（ref 标记）' }))
-    expect(logLines('区块五日志')).toEqual(['领取成功（之后再点不再处理）', '上报一次', '已经上报过，这次忽略'])
+    expect(logLines('区块五日志')).toEqual(['领取成功（之后再点不再处理）'])
   })
 
-  it('按键：Enter、Ctrl + Enter（exact）、多按了 Shift 不算、Esc 清空、输入法组字时的回车被忽略', () => {
+  it('按键：Enter 提交（按着 Shift 不算）、Esc 清空、输入法组字时的回车被忽略', () => {
     render(<ModifiersDemo />)
     const input = screen.getByRole('textbox', { name: '按键实验输入框' })
+    fireEvent.keyDown(input, { key: 'Enter' })
+    fireEvent.keyDown(input, { key: 'Enter', shiftKey: true })
+    fireEvent.keyDown(input, { key: 'Enter', isComposing: true })
+    fireEvent.keyDown(input, { key: 'Enter', keyCode: 229 })
+    fireEvent.change(input, { target: { value: '草稿' } })
+    fireEvent.keyDown(input, { key: 'Escape' })
+    expect(logLines('区块五日志')).toEqual(['Enter（按着 Shift 不算）：提交', 'Esc（相当于 .esc）：清空输入框'])
+    expect(input).toHaveValue('')
+  })
+
+  it('附 2【少用】.once 的 ref 写法：处理逻辑只执行一次，界面不变（RareModifiersDemo，页面上已注释）', async () => {
+    const u = user()
+    render(<RareModifiersDemo />)
+    await u.click(screen.getByRole('button', { name: '上报一次（ref 标记）' }))
+    await u.click(screen.getByRole('button', { name: '上报一次（ref 标记）' }))
+    expect(logLines('少用修饰符日志')).toEqual(['上报一次', '已经上报过，这次忽略'])
+  })
+
+  it('附 2【少用】精确组合键（.exact）：Enter、Ctrl + Enter 各算一种，多按了 Shift 不算，输入法组字时的回车被忽略', () => {
+    render(<RareModifiersDemo />)
+    const input = screen.getByRole('textbox', { name: '组合键实验输入框' })
     fireEvent.keyDown(input, { key: 'Enter' })
     fireEvent.keyDown(input, { key: 'Enter', ctrlKey: true })
     fireEvent.keyDown(input, { key: 'Enter', ctrlKey: true, shiftKey: true })
     fireEvent.keyDown(input, { key: 'Enter', isComposing: true })
     fireEvent.keyDown(input, { key: 'Enter', keyCode: 229 })
-    fireEvent.change(input, { target: { value: '草稿' } })
-    fireEvent.keyDown(input, { key: 'Escape' })
-    expect(logLines('区块五日志')).toEqual([
+    expect(logLines('少用修饰符日志')).toEqual([
       'Enter（没按任何修饰键，相当于 .enter.exact）：提交',
       'Ctrl + Enter（只按了 Ctrl，相当于 .ctrl.enter.exact）：提交并继续',
-      'Esc（相当于 .esc）：清空输入框',
     ])
-    expect(input).toHaveValue('')
   })
 
-  it('鼠标按键看 e.button；onContextMenu 里 preventDefault 拦住浏览器右键菜单', () => {
-    render(<ModifiersDemo />)
+  it('附 2【少用】鼠标按键看 e.button；onContextMenu 里 preventDefault 拦住浏览器右键菜单', () => {
+    render(<RareModifiersDemo />)
     const button = screen.getByRole('button', { name: '用左键 / 中键 / 右键按我' })
     fireEvent.mouseDown(button, { button: 2 })
     const notCancelled = fireEvent.contextMenu(button)
     expect(notCancelled).toBe(false)
-    expect(logLines('区块五日志')).toEqual(['按下了次键 / 右键（.right）', 'onContextMenu 里 preventDefault：浏览器右键菜单没有弹出'])
+    expect(logLines('少用修饰符日志')).toEqual(['按下了次键 / 右键（.right）', 'onContextMenu 里 preventDefault：浏览器右键菜单没有弹出'])
   })
 })
 
-describe('区块六：onWheel 是被动监听', () => {
+describe('附 3【少用】区块六：onWheel 是被动监听（页面上整块已注释，这里直接渲染组件）', () => {
   it('onWheel 里 preventDefault：合成事件记了一笔，原生事件没被拦住；原生监听器 { passive: false } 能拦住', () => {
     render(<PassiveWheelDemo />)
     // fireEvent 的返回值是 dispatchEvent 的结果：false 表示有监听器成功 preventDefault
@@ -363,15 +408,12 @@ describe('类型层（@types/react 19.2.18）', () => {
   })
 })
 
-it('整页渲染：六个区块都在，没有开发期报错', () => {
+it('整页渲染：各区块都在，没有开发期报错', () => {
   render(<Example />)
-  expect(screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent!.slice(0, 3))).toEqual([
-    '区块一',
-    '区块二',
-    '区块三',
-    '区块四',
-    '区块五',
-    '区块六',
-  ])
+  const names = ['区块一', '区块二', '区块三', '区块四', '区块五']
+  /* 【少用】演示里取消区块六（PassiveWheelDemo）的注释后，这里也取消注释
+  names.push('区块六')
+  */
+  expect(screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent!.slice(0, 3))).toEqual(names)
   expect(consoleError).not.toHaveBeenCalled()
 })

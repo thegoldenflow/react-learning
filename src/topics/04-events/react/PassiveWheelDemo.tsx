@@ -1,5 +1,7 @@
 /**
- * 区块六：onWheel / onTouchStart / onTouchMove 是被动（passive）监听 —— 在里面 preventDefault 不起作用，页面照样滚动。
+ * 区块六【少用】：onWheel / onTouchStart / onTouchMove 是被动（passive）监听 —— 在里面 preventDefault 不起作用，页面照样滚动。
+ * 只有自定义缩放、横向滚动的轮播、拖拽这类要拦滚轮 / 触摸的场景才用得上（工程经验），整块在 Example.tsx 里已注释（取消注释即可运行）；
+ * 本文件保留，Example.test.tsx 直接渲染它，结论照样被测试验证。讲解见 Example.tsx 附 3。
  * 要拦住滚轮（自定义缩放、横向滚动的轮播），用 ref + addEventListener('wheel', fn, { passive: false })。
  * Vue 对照：vue/PassiveWheelDemo.vue（@wheel.prevent 可以直接用，因为 Vue 默认不加 passive；.passive 是显式声明）。
  */
@@ -42,7 +44,7 @@ export function PassiveWheelDemo() {
 
   return (
     <div className="card stack">
-      <h3>区块六：onWheel 是被动监听 —— 要拦滚轮用原生监听器</h3>
+      <h3>区块六【少用】：onWheel 是被动监听 —— 要拦滚轮用原生监听器</h3>
       <div className="row">
         <div data-testid="react-wheel" style={boxStyle} onWheel={handleReactWheel}>
           ❌ onWheel + preventDefault

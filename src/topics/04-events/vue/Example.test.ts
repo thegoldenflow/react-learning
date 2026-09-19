@@ -6,12 +6,14 @@ import { defineComponent, h } from 'vue'
 import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
 import userEvent from '@testing-library/user-event'
 import BindingDemo from './BindingDemo.vue'
+import CaptureOrderDemo from './CaptureOrderDemo.vue'
 import DefaultActionDemo from './DefaultActionDemo.vue'
 import EventObjectDemo from './EventObjectDemo.vue'
 import Example from './Example.vue'
 import ModifiersDemo from './ModifiersDemo.vue'
 import PassiveWheelDemo from './PassiveWheelDemo.vue'
 import PropagationDemo from './PropagationDemo.vue'
+import RareModifiersDemo from './RareModifiersDemo.vue'
 
 enableAutoUnmount(afterEach)
 
@@ -40,10 +42,22 @@ describe('Vue 区块一：绑定与传参', () => {
     const wrapper = mount(BindingDemo)
     await buttonByText(wrapper, '点击计数：0').trigger('click', { clientX: 12, clientY: 34 })
     expect(wrapper.get('[data-testid="last-pos"]').text()).toBe('最后一次点击位置：x=12, y=34')
-    await wrapper.get('[data-testid="row-i1"] button').trigger('click', { shiftKey: true })
+    const removeButton = () => wrapper.get('[data-testid="row-i1"] .btn-danger')
+    await removeButton().trigger('click', { shiftKey: true })
     expect(wrapper.get('[data-testid="row-i1"]').text()).toContain('机械键盘 × 1')
-    await wrapper.get('[data-testid="row-i1"] button').trigger('click')
+    await removeButton().trigger('click')
     expect(wrapper.find('[data-testid="row-i1"]').exists()).toBe(false)
+  })
+
+  it('内联处理器传参 @click="emit(\'remove\', item.id, true)"：点击时才执行，数量减一', async () => {
+    const wrapper = mount(BindingDemo)
+    const row = () => wrapper.get('[data-testid="row-i2"]')
+    expect(row().text()).toContain('无线鼠标 × 2')
+    const minusOne = row()
+      .findAll('button')
+      .find((b) => b.text() === '减一件')
+    await minusOne!.trigger('click')
+    expect(row().text()).toContain('无线鼠标 × 1')
   })
 
   it('组件事件不冒泡：孙组件 emit 的事件，隔一层的组件收不到（给中间组件的监听器只是透传到它的根元素 div 上）', async () => {
@@ -115,10 +129,25 @@ describe('Vue 区块二：事件对象', () => {
 })
 
 describe('Vue 区块三：事件传播', () => {
-  it('没有委托：Vue 的监听器和原生监听器按 DOM 顺序交错执行，同一元素上先注册的先执行', async () => {
+  it('冒泡：按钮 → 中层 → 外层 → document；按钮里 stopPropagation 之后，外层和 document 冒泡阶段的监听器收不到，document 的捕获监听（{ capture: true }）照样收到', async () => {
     const wrapper = mount(PropagationDemo, { attachTo: document.body })
     await buttonByText(wrapper, '点我').trigger('click')
     expect(logLines(wrapper, '区块三日志')).toEqual([
+      'document 捕获阶段的监听器（{ capture: true }）',
+      'Vue 按钮 @click',
+      'Vue 中层 @click',
+      'Vue 外层 @click',
+      'document 冒泡阶段的监听器',
+    ])
+    await wrapper.get('input[type="checkbox"]').setValue(true)
+    await buttonByText(wrapper, '点我').trigger('click')
+    expect(logLines(wrapper, '区块三日志').slice(5)).toEqual(['document 捕获阶段的监听器（{ capture: true }）', 'Vue 按钮 @click'])
+  })
+
+  it('【少用】没有委托：Vue 的监听器和原生监听器按 DOM 顺序交错执行，同一元素上先注册的先执行（CaptureOrderDemo，页面上已注释）', async () => {
+    const wrapper = mount(CaptureOrderDemo, { attachTo: document.body })
+    await buttonByText(wrapper, '点我（捕获实验）').trigger('click')
+    expect(logLines(wrapper, '捕获实验日志')).toEqual([
       'Vue 外层 @click.capture',
       '原生 外层 div（捕获）',
       'Vue 中层 @click.capture',
@@ -131,11 +160,11 @@ describe('Vue 区块三：事件传播', () => {
     ])
   })
 
-  it('.stop / stopPropagation：同一元素上的其他监听器照常执行，DOM 里后面的传播停止', async () => {
-    const wrapper = mount(PropagationDemo, { attachTo: document.body })
+  it('【少用】.stop / stopPropagation：同一元素上的其他监听器照常执行，DOM 里后面的传播停止（CaptureOrderDemo，页面上已注释）', async () => {
+    const wrapper = mount(CaptureOrderDemo, { attachTo: document.body })
     await wrapper.get('input[type="checkbox"]').setValue(true)
-    await buttonByText(wrapper, '点我').trigger('click')
-    expect(logLines(wrapper, '区块三日志')).toEqual([
+    await buttonByText(wrapper, '点我（捕获实验）').trigger('click')
+    expect(logLines(wrapper, '捕获实验日志')).toEqual([
       'Vue 外层 @click.capture',
       '原生 外层 div（捕获）',
       'Vue 中层 @click.capture',
@@ -144,14 +173,20 @@ describe('Vue 区块三：事件传播', () => {
     ])
   })
 
-  it('原生 scroll、focus 不冒泡，Vue 不模拟；外层要知道里面获得焦点就用 @focusin，观察里面的滚动用 @scroll.capture', async () => {
+  it('原生 scroll、focus 不冒泡，Vue 不模拟；外层要知道里面获得焦点就用 @focusin', async () => {
     const wrapper = mount(PropagationDemo, { attachTo: document.body })
     await wrapper.get('[data-testid="scroll-box"]').trigger('scroll')
     ;(wrapper.get('[aria-label="焦点实验输入框"]').element as HTMLInputElement).focus()
     await flushPromises()
     expect(wrapper.get('[data-testid="bubbling-counts"]').text()).toBe(
-      '里面的 @scroll：1 次 · 外层的 @scroll：0 次 · 外层的 @scroll.capture：1 次 · 外层的 @focus：0 次 · 外层的 @focusin：1 次',
+      '里面的 @scroll：1 次 · 外层的 @scroll：0 次 · 外层的 @focus：0 次 · 外层的 @focusin：1 次',
     )
+  })
+
+  it('【少用】外层观察里面的滚动用 @scroll.capture（CaptureOrderDemo，页面上已注释）', async () => {
+    const wrapper = mount(CaptureOrderDemo, { attachTo: document.body })
+    await wrapper.get('[data-testid="capture-scroll-box"]').trigger('scroll')
+    expect(wrapper.get('[data-testid="capture-scroll-count"]').text()).toBe('外层的 @scroll.capture：1 次')
   })
 })
 
@@ -205,37 +240,42 @@ describe('Vue 区块五：修饰符', () => {
     expect(logLines(wrapper, '区块五日志')).toEqual(['领取成功（.once：监听器已被移除）'])
   })
 
-  it('按键：.enter.exact、.ctrl.enter.exact、多按了 Shift 都不触发、组字中的回车（isComposing 或 keyCode 229）被忽略、.esc 清空', async () => {
+  it('按键：.enter.exact 提交（按着 Shift / Ctrl 的回车不算）、组字中的回车（isComposing 或 keyCode 229）被忽略、.esc 清空', async () => {
     const wrapper = mount(ModifiersDemo)
     const input = wrapper.get('input')
     await input.trigger('keydown', { key: 'Enter' })
+    await input.trigger('keydown', { key: 'Enter', shiftKey: true })
     await input.trigger('keydown', { key: 'Enter', ctrlKey: true })
-    await input.trigger('keydown', { key: 'Enter', ctrlKey: true, shiftKey: true })
     await input.trigger('keydown', { key: 'Enter', isComposing: true })
     await input.trigger('keydown', { key: 'Enter', keyCode: 229 })
     await input.setValue('草稿')
     await input.trigger('keydown', { key: 'Escape' })
-    expect(logLines(wrapper, '区块五日志')).toEqual([
-      'Enter（.enter.exact）：提交',
-      'Ctrl + Enter（.ctrl.enter.exact）：提交并继续',
-      'Esc（.esc）：清空输入框',
-    ])
+    expect(logLines(wrapper, '区块五日志')).toEqual(['Enter（.enter.exact）：提交', 'Esc（.esc）：清空输入框'])
     expect((input.element as HTMLInputElement).value).toBe('')
   })
 
-  it('鼠标按键看 event.button；@contextmenu.prevent 拦住浏览器右键菜单', async () => {
-    const wrapper = mount(ModifiersDemo)
-    const button = wrapper.findAll('button')[1]
+  it('【少用】多个组合键精确区分：.enter.exact 与 .ctrl.enter.exact 各算一种，Ctrl + Shift + Enter 两个都不触发（RareModifiersDemo，页面上已注释）', async () => {
+    const wrapper = mount(RareModifiersDemo)
+    const input = wrapper.get('input')
+    await input.trigger('keydown', { key: 'Enter' })
+    await input.trigger('keydown', { key: 'Enter', ctrlKey: true })
+    await input.trigger('keydown', { key: 'Enter', ctrlKey: true, shiftKey: true })
+    expect(logLines(wrapper, '少用修饰符日志')).toEqual(['Enter（.enter.exact）：提交', 'Ctrl + Enter（.ctrl.enter.exact）：提交并继续'])
+  })
+
+  it('【少用】鼠标按键看 event.button；@contextmenu.prevent 拦住浏览器右键菜单（RareModifiersDemo，页面上已注释）', async () => {
+    const wrapper = mount(RareModifiersDemo)
+    const button = wrapper.get('button')
     await button.trigger('mousedown', { button: 2 })
     const event = new MouseEvent('contextmenu', { bubbles: true, cancelable: true })
     button.element.dispatchEvent(event)
     await flushPromises()
     expect(event.defaultPrevented).toBe(true)
-    expect(logLines(wrapper, '区块五日志')).toEqual(['按下了次键 / 右键（.right）', '@contextmenu.prevent：浏览器右键菜单没有弹出'])
+    expect(logLines(wrapper, '少用修饰符日志')).toEqual(['按下了次键 / 右键（.right）', '@contextmenu.prevent：浏览器右键菜单没有弹出'])
   })
 })
 
-describe('Vue 区块六：滚轮', () => {
+describe('【少用】Vue 区块六：滚轮（页面上整块已注释，这里直接挂载组件）', () => {
   it('@wheel.prevent 直接生效（Vue 不给元素上的 wheel 加 passive）', async () => {
     const wrapper = mount(PassiveWheelDemo)
     const event = new WheelEvent('wheel', { bubbles: true, cancelable: true, deltaY: -100 })
@@ -246,8 +286,12 @@ describe('Vue 区块六：滚轮', () => {
   })
 })
 
-it('整页渲染：六个区块都在，没有警告', () => {
+it('整页渲染：各区块都在，没有警告', () => {
   const wrapper = mount(Example)
-  expect(wrapper.findAll('h3').map((h3) => h3.text().slice(0, 3))).toEqual(['区块一', '区块二', '区块三', '区块四', '区块五', '区块六'])
+  const names = ['区块一', '区块二', '区块三', '区块四', '区块五']
+  /* 【少用】Example.vue 里取消区块六（PassiveWheelDemo）的注释后，这里也取消注释
+  names.push('区块六')
+  */
+  expect(wrapper.findAll('h3').map((h3) => h3.text().slice(0, 3))).toEqual(names)
   expect(consoleWarn).not.toHaveBeenCalled()
 })

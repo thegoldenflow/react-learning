@@ -16,7 +16,11 @@ const emit = defineEmits<{ remove: [id: string, onlyOne: boolean] }>()
     :data-testid="`row-${item.id}`"
   >
     <span>{{ item.name }} × {{ item.quantity }}</span>
-    <!-- 内联处理器里用 $event 拿原生事件：对应 React 的 (e) => onRemove(item.id, e.shiftKey) -->
+    <!-- 【最常用】内联处理器传参：模板里写「调用」，编译器包成函数。对应 React 的 () => onRemove(item.id, true) -->
+    <button @click="emit('remove', item.id, true)">
+      减一件
+    </button>
+    <!-- 【常用】内联处理器里用 $event 拿原生事件：对应 React 的 (e) => onRemove(item.id, e.shiftKey) -->
     <button
       class="btn-danger"
       @click="emit('remove', item.id, $event.shiftKey)"

@@ -1,5 +1,6 @@
 /**
  * 区块四：默认行为 —— preventDefault 和 stopPropagation 是两件事；表单提交用 onSubmit + preventDefault；「只在点到自己时触发」（Vue 的 .self）。
+ * 使用频率：【最常用】表单在 <form> 上监听 onSubmit + preventDefault；【常用】链接等元素上直接 preventDefault、.self 的 e.target !== e.currentTarget 判断。
  * Vue 对照：vue/DefaultActionDemo.vue（@submit.prevent、@click.prevent、@click.self）。
  */
 import { useState, type MouseEvent, type SubmitEvent } from 'react'
@@ -15,12 +16,12 @@ export function DefaultActionDemo() {
    */
   function handleLinkClick(e: MouseEvent<HTMLAnchorElement>) {
     e.preventDefault()
-    // 看原生事件的 defaultPrevented 才知道浏览器的默认动作有没有真被拦住（合成事件自己的 defaultPrevented 在调用 preventDefault 时无条件变成 true，区块六）
+    // 看原生事件的 defaultPrevented 才知道浏览器的默认动作有没有真被拦住（合成事件自己的 defaultPrevented 在调用 preventDefault 时无条件变成 true，见 Example.tsx 附 3；区块六的演示已注释）
     setMessage(`拦截了跳转（e.nativeEvent.defaultPrevented = ${e.nativeEvent.defaultPrevented}），事件照样冒泡到外层`)
   }
 
   /**
-   * 表单：在 <form> 上监听 onSubmit，不要靠提交按钮的 onClick。输入框里回车时浏览器会先对提交按钮派发一次 click（隐式提交），所以 onClick 不会漏；
+   * 【最常用】表单：在 <form> 上监听 onSubmit，不要靠提交按钮的 onClick。输入框里回车时浏览器会先对提交按钮派发一次 click（隐式提交），所以 onClick 不会漏；
    * 问题是它太早：onClick 在浏览器的约束校验（required、pattern）之前执行，必填为空时照样触发，onSubmit 要等校验通过才触发（测试覆盖）；form.requestSubmit() 也不经过按钮。
    * 不 preventDefault，浏览器会按 action 提交并整页刷新（「will reload the whole page by default」）。表单的完整写法见 07 题，React 19 的 <form action> 见 31 题（待新增）。
    */
@@ -51,6 +52,7 @@ export function DefaultActionDemo() {
   return (
     <div className="card stack">
       <h3>区块四：默认行为 —— preventDefault 与 stopPropagation 是两件事</h3>
+      <p className="muted">【最常用】表单用 onSubmit + preventDefault；【常用】链接上 preventDefault、.self 判断 e.target !== e.currentTarget。勾选框那一项是反例：只 stopPropagation 挡不住默认动作。</p>
       {/* 演示简化：外层 div 的 onClick 只用来数冒泡 */}
       <div className="stack" onClick={() => setBubbled((n) => n + 1)}>
         <p className="muted" data-testid="bubbled">

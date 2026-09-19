@@ -1,9 +1,15 @@
 /**
- * 区块三：事件传播 —— 捕获（onClickCapture）→ 目标 → 冒泡（onClick）；stopPropagation 挡住了谁；React 的委托和原生监听器的先后顺序。
+ * 区块三：事件传播 —— 【最常用】onClick（冒泡阶段）从被点的元素一层层往外传；想挡住外层就在处理函数里 e.stopPropagation()。
+ * document 上的监听器（点击外部关闭这类代码常见）：按钮里 stopPropagation 之后，document 上冒泡阶段的监听器收不到（17 起原生事件在 root 容器上被停住）；
+ * 改用捕获阶段 { capture: true } 就还能收到 —— 这是 React 17 RC 博客给的修法（测试覆盖）。
  * 另附一个小实验：onScroll 在 React 里不冒泡，onFocus 在 React 里冒泡（原生 focus 不冒泡）。
+ * 【少用】onClickCapture / onScrollCapture、React 事件和元素上的原生监听器谁先执行：拆到 CaptureOrderDemo.tsx，页面上已注释（取消注释即可运行），测试照样直接渲染它。
  * Vue 对照：vue/PropagationDemo.vue（v-on 直接挂在元素上，和原生监听器按 DOM 顺序交错执行）。
  */
 import { useEffect, useRef, useState } from 'react'
+/* 【少用】取消下面 <CaptureOrderDemo /> 的注释时，这一段也取消注释（删掉这一行和下面的结束行）
+import { CaptureOrderDemo } from './CaptureOrderDemo'
+*/
 import { createDemoLog } from './demoKit'
 import { LogPanel } from './LogPanel'
 
@@ -11,66 +17,46 @@ export function PropagationDemo() {
   const [log] = useState(() => createDemoLog(24))
   const [stopInButton, setStopInButton] = useState(false)
   const outerRef = useRef<HTMLDivElement>(null)
-  const buttonRef = useRef<HTMLButtonElement>(null)
 
-  /**
-   * 再挂几个原生监听器，和 React 的处理函数放在同一份日志里比先后。
-   * React 17 起把监听器挂在 root 容器上（React 16 及以前挂在 document 上）：原生事件先在 DOM 里走完捕获、到达目标、冒泡到 root 容器，
-   * React 才在 root 容器的监听器里按组件树依次调用 onClick。所以按钮和外层 div 上的原生冒泡监听器，都比 React 的 onClick 先执行；
-   * 而 onClickCapture 由 root 容器的捕获监听器派发，比外层 div 自己的原生捕获监听器还早（测试覆盖，顺序见日志）。
-   */
+  // document 上挂两个原生监听器（只记本区块里的点击）：冒泡阶段的会被 React 里的 stopPropagation 挡住，捕获阶段的不会
   useEffect(() => {
     const outer = outerRef.current
-    const button = buttonRef.current
-    if (!outer || !button) return
-    const onOuterCapture = () => log.add('原生 外层 div（捕获）')
-    const onButton = () => log.add('原生 按钮（冒泡）')
-    const onOuter = () => log.add('原生 外层 div（冒泡）')
-    // document 上的监听器只记本区块里的点击
-    const onDocument = (e: Event) => {
-      if (e.target instanceof Node && outer.contains(e.target)) log.add('原生 document（冒泡）')
+    if (!outer) return
+    const inOuter = (e: Event) => e.target instanceof Node && outer.contains(e.target)
+    const onCapture = (e: Event) => {
+      if (inOuter(e)) log.add('document 捕获阶段的监听器（{ capture: true }）')
     }
-    outer.addEventListener('click', onOuterCapture, true)
-    button.addEventListener('click', onButton)
-    outer.addEventListener('click', onOuter)
-    document.addEventListener('click', onDocument)
+    const onBubble = (e: Event) => {
+      if (inOuter(e)) log.add('document 冒泡阶段的监听器')
+    }
+    document.addEventListener('click', onCapture, { capture: true })
+    document.addEventListener('click', onBubble)
     return () => {
-      outer.removeEventListener('click', onOuterCapture, true)
-      button.removeEventListener('click', onButton)
-      outer.removeEventListener('click', onOuter)
-      document.removeEventListener('click', onDocument)
+      document.removeEventListener('click', onCapture, { capture: true })
+      document.removeEventListener('click', onBubble)
     }
   }, [log])
 
   return (
     <div className="card stack">
-      <h3>区块三：事件传播 —— 捕获、冒泡与 stopPropagation</h3>
+      <h3>区块三：事件传播 —— 冒泡与 stopPropagation</h3>
+      <p className="muted">
+        【最常用】onClick 在冒泡阶段执行：按钮 → 中层 → 外层；勾上下面的选项，按钮的 onClick 里调用 e.stopPropagation()，外层和 document 冒泡阶段的监听器就收不到了，
+        document 上改用 {'{ capture: true }'} 的监听器照样收到。
+      </p>
       <label className="row">
         <input type="checkbox" checked={stopInButton} onChange={(e) => setStopInButton(e.target.checked)} />
         按钮的 onClick 里调用 e.stopPropagation()
       </label>
       {/* 演示简化：外层和中层的 div 只用来观察传播顺序；真实项目里「可点击的区域」要用 button 或补齐键盘交互（Example.tsx 七） */}
-      <div
-        ref={outerRef}
-        className="card stack"
-        data-node="outer"
-        onClickCapture={() => log.add('React 外层 onClickCapture')}
-        onClick={() => log.add('React 外层 onClick')}
-      >
+      <div ref={outerRef} className="card stack" data-node="outer" onClick={() => log.add('React 外层 onClick')}>
         外层 div
-        <div
-          className="card stack"
-          data-node="inner"
-          onClickCapture={() => log.add('React 中层 onClickCapture')}
-          onClick={() => log.add('React 中层 onClick')}
-        >
+        <div className="card stack" data-node="inner" onClick={() => log.add('React 中层 onClick')}>
           中层 div
           <button
-            ref={buttonRef}
             onClick={(e) => {
               log.add('React 按钮 onClick')
-              // stopPropagation：停的是 React 树里后面的 onClick（中层、外层），同时也调用了原生事件的 stopPropagation ——
-              // 这时原生事件已经冒泡到 root 容器，所以 document / window 上的监听器收不到；DOM 里比 root 更深的原生监听器早就执行过了
+              // stopPropagation：停的是 React 树里后面的 onClick（中层、外层），同时停住原生事件，document 冒泡阶段的监听器收不到；它不管浏览器的默认动作（区块四）
               if (stopInButton) e.stopPropagation()
             }}
           >
@@ -80,6 +66,9 @@ export function PropagationDemo() {
       </div>
       <LogPanel log={log} label="区块三日志" />
       <BubblingExceptions />
+      {/* 【少用】取消注释即可运行：删掉这一行和下面的结束行，并取消文件顶部 import { CaptureOrderDemo } 那一段的注释
+      <CaptureOrderDemo />
+      */}
     </div>
   )
 }
@@ -87,22 +76,16 @@ export function PropagationDemo() {
 /**
  * onScroll 在 React 里不冒泡（「This event does not bubble.」，17 起不再模拟冒泡）；onFocus / onBlur 在 React 里冒泡
  * （「Unlike the built-in browser focus event, in React the onFocus event bubbles.」，17 起底层用 focusin / focusout）。
- * 所以外层 div 的 onFocus 能知道「里面有输入框获得了焦点」，外层的 onScroll 却收不到里面滚动区域的滚动；想在外层观察里面的滚动，用 onScrollCapture
- * （捕获阶段不限定只派发给目标，react-dom-client.development.js:19411-19413）（测试覆盖）。
+ * 所以外层 div 的 onFocus 能知道「里面有输入框获得了焦点」，外层的 onScroll 却收不到里面滚动区域的滚动（测试覆盖）。
+ * 想在外层观察里面的滚动要用 onScrollCapture（【少用】，演示在 CaptureOrderDemo.tsx）。
  */
 function BubblingExceptions() {
   const [outerScrolls, setOuterScrolls] = useState(0)
   const [innerScrolls, setInnerScrolls] = useState(0)
   const [outerFocus, setOuterFocus] = useState(0)
-  const [outerScrollCaptures, setOuterScrollCaptures] = useState(0)
 
   return (
-    <div
-      className="stack"
-      onScroll={() => setOuterScrolls((n) => n + 1)}
-      onScrollCapture={() => setOuterScrollCaptures((n) => n + 1)}
-      onFocus={() => setOuterFocus((n) => n + 1)}
-    >
+    <div className="stack" onScroll={() => setOuterScrolls((n) => n + 1)} onFocus={() => setOuterFocus((n) => n + 1)}>
       <h4>哪些事件在 React 里不冒泡</h4>
       <div
         data-testid="scroll-box"
@@ -115,7 +98,7 @@ function BubblingExceptions() {
       </div>
       <input placeholder="点进来获得焦点" aria-label="焦点实验输入框" />
       <p className="muted" data-testid="bubbling-counts">
-        里面的 onScroll：{innerScrolls} 次 · 外层的 onScroll：{outerScrolls} 次 · 外层的 onScrollCapture：{outerScrollCaptures} 次 · 外层的 onFocus：{outerFocus} 次
+        里面的 onScroll：{innerScrolls} 次 · 外层的 onScroll：{outerScrolls} 次 · 外层的 onFocus：{outerFocus} 次
       </p>
     </div>
   )

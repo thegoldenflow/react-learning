@@ -49,7 +49,7 @@ export const PHASES: TopicPhase[] = [
       {
         slug: '04-events',
         title: '事件处理',
-        summary: '传函数不要调用、合成事件与 nativeEvent、捕获与冒泡、preventDefault 与 stopPropagation、Vue 修饰符的 JS 写法、onWheel 是被动监听，对照 Vue 的 v-on、修饰符与原生事件。',
+        summary: '传函数不要调用、合成事件与 nativeEvent、冒泡与 stopPropagation、preventDefault 与表单、Vue 修饰符的 JS 写法（捕获阶段、被动滚轮等少用写法注释保留），对照 Vue 的 v-on、修饰符与原生事件。',
       },
       {
         slug: '05-conditional-rendering',

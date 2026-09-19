@@ -1,5 +1,6 @@
 /**
  * 区块一：绑定与传参 —— 传函数、不要调用；要传参就包一层箭头函数；处理函数与回调 prop 的命名约定。
+ * 使用频率：【最常用】onClick={handleClick}、传参 onClick={() => remove(id)}；【常用】既要参数又要事件对象 onClick={(e) => remove(id, e)}。
  * Vue 对照：vue/BindingDemo.vue 与 vue/OrderRow.vue（模板里写「调用」是对的，例如 @click="emit('remove', item.id, $event.shiftKey)"，因为模板会被编译成函数）。
  */
 import { useState, type MouseEvent } from 'react'
@@ -26,7 +27,9 @@ function OrderRow({ item, onRemove }: OrderRowProps) {
       <span>
         {item.name} × {item.quantity}
       </span>
-      {/* 要用事件对象又要传参：(e) => onRemove(item.id, e.shiftKey)。Vue 对应 @click="remove(item.id, $event)" */}
+      {/* 【最常用】传参包一层箭头函数：点击时才调用 onRemove(item.id, true)。Vue 对应 @click="remove(item.id)" */}
+      <button onClick={() => onRemove(item.id, true)}>减一件</button>
+      {/* 【常用】要用事件对象又要传参：(e) => onRemove(item.id, e.shiftKey)。Vue 对应 @click="remove(item.id, $event)" */}
       <button className="btn-danger" onClick={(e) => onRemove(item.id, e.shiftKey)}>
         删除（按住 Shift 只减一件）
       </button>
@@ -92,8 +95,11 @@ export function BindingDemo() {
   return (
     <div className="card stack">
       <h3>区块一：绑定与传参 —— 传函数，不要调用</h3>
+      <p className="muted">
+        【最常用】onClick={'{handleClick}'}、传参包一层箭头函数 onClick={'{() => remove(id)}'}；【常用】既要参数又要事件对象 onClick={'{(e) => remove(id, e)}'}。
+      </p>
       <div className="row">
-        {/* ✅ 传函数引用：onClick={handleCountClick}；点击时 React 调用它并传入事件对象 */}
+        {/* ✅【最常用】传函数引用：onClick={handleCountClick}；点击时 React 调用它并传入事件对象 */}
         <button onClick={handleCountClick}>点击计数：{clicks}</button>
         <span className="muted" data-testid="last-pos">
           最后一次点击位置：{lastPos}
@@ -101,7 +107,7 @@ export function BindingDemo() {
       </div>
       <ul className="stack">
         {items.map((item) => (
-          // ✅ 传参包一层箭头函数（在 OrderRow 里）：点击时才执行。内联箭头每次渲染都是新函数，一般没问题；子组件用了 memo 或者它是 Effect 依赖时才考虑 useCallback（17 题）
+          // ✅【最常用】传参包一层箭头函数（在 OrderRow 里）：点击时才执行。内联箭头每次渲染都是新函数，一般没问题；子组件用了 memo 或者它是 Effect 依赖时才考虑 useCallback（17 题）
           <OrderRow key={item.id} item={item} onRemove={handleRemove} />
         ))}
         {items.length === 0 && <li className="muted">商品已全部删除</li>}
