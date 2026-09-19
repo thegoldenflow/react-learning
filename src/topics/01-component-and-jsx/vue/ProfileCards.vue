@@ -2,7 +2,7 @@
 /**
  * 区块一 Vue 对照：资料卡。对照 react/ProfileCards.tsx。
  * 同一个 UserCard 用两次，各自是独立的组件实例；VIP 徽章通过具名插槽 #badge 传进去（React 版是把 JSX 存进变量再当参数传）。
- * Vue 的模板片段不能直接存进变量；要拿到「可以存、可以传」的 UI 值，得写渲染函数：h() 返回的 vnode 和 JSX 一样是普通对象（见 react/Example.tsx 三）。
+ * Vue 的模板片段不能直接存进变量；要拿到「可以存、可以传」的 UI 值，得写渲染函数：h() 返回的 vnode 和 JSX 一样是普通对象（Vue 项目里少用，见 react/Example.tsx 附 2）。
  */
 import type { User } from '@/shared/types'
 import UserCard from './UserCard.vue'

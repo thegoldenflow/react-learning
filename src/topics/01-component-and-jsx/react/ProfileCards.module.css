@@ -1,0 +1,27 @@
+/*
+ * 区块一的静态样式：CSS Modules（Vite 内置支持，文件名以 .module.css 结尾）。
+ * 类名会被改写成带哈希的唯一名字（开发和构建都会），别的文件里同名的 .avatar 不会冲突 —— 和 Vue 的 <style scoped> 目的相同。
+ * 规则本身加载后仍是全局的：靠的是类名唯一，而不是限定在某个组件里。
+ * 组件里写 className={styles.avatar}；依赖运行时数据的颜色（accent）不放这里，留在 style 里。
+ */
+
+/* 头像：尺寸、圆形、居中这些不随数据变化的样式 */
+.avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+/*
+ * VIP 卡：加粗边框（边框颜色由 accent 决定，在组件的 style 里）。
+ * 注意：它和全局的 .card（src/shared/styles.css 里的 border: 1px solid …）优先级相同，能盖过去靠的是加载顺序 ——
+ * 本模块随 01 题懒加载，插在 styles.css 后面（开发与生产构建实测）。改成同步引入之类的调整可能让它失效，那时要提高选择器的优先级。
+ */
+.vip {
+  border-width: 2px;
+}

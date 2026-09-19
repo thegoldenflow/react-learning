@@ -1,5 +1,6 @@
 /**
  * 区块二：JSX 编译成什么、几条硬规则 —— 编译结果对照 + style 补 px 实测 + 列表里的 Fragment 要带 key。
+ * 使用频率：automatic runtime【最常用】（19 起必须）；classic runtime【旧写法】（面试常问编译结果，照样显示）；列表里一次返回多个节点用 <Fragment key>【常用】。
  * Vue 对照：vue/TemplateRulesDemo.vue。
  *
  * JSX 不是模板，是 JavaScript 的语法扩展，浏览器不认识，要由构建工具编译。React 17 起的「新 JSX 转换」（automatic runtime）
@@ -50,7 +51,7 @@ export function JsxRulesDemo() {
           <pre className="source-view" style={{ margin: 0, overflowX: 'auto' }}>{SOURCE}</pre>
         </div>
         <div className="stack" style={{ flex: '1 1 260px', minWidth: 0 }}>
-          <strong>automatic runtime【主流 · React 17 起，19 必须】（生产构建；开发环境是 jsxDEV）</strong>
+          <strong>automatic runtime【最常用】（React 17 起，19 必须；生产构建，开发环境是 jsxDEV）</strong>
           <pre className="source-view" style={{ margin: 0, overflowX: 'auto' }}>{AUTOMATIC}</pre>
         </div>
         <div className="stack" style={{ flex: '1 1 260px', minWidth: 0 }}>
@@ -64,7 +65,7 @@ export function JsxRulesDemo() {
       </p>
 
       <div className="stack">
-        <strong>style 里的数字：哪些补 px</strong>
+        <strong>style 里的数字：哪些补 px（style 只放依赖数据的值，静态样式走 className，见区块一）</strong>
         {/* 演示用的探针元素：看不见，只为读出 React 写到 DOM 上的 style */}
         <div ref={probeRef} style={NUMERIC_STYLE} hidden />
         <div className="row">
@@ -76,7 +77,7 @@ export function JsxRulesDemo() {
       </div>
 
       <div className="stack">
-        <strong>列表里要一次返回多个节点：用 &lt;Fragment key&gt;，简写 &lt;&gt; 不能带 key</strong>
+        <strong>【常用】列表里要一次返回多个节点：用 &lt;Fragment key&gt;，简写 &lt;&gt; 不能带 key</strong>
         <dl>
           {TERMS.map((t) => (
             <Fragment key={t.term}>

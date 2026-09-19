@@ -702,6 +702,36 @@
 
 **验证**：`npm run check` 通过（lint 0 / typecheck 0 / 测试 400 条（31 个文件） / build）；用脚本取消全部 11 个【少用】注释块后 lint、typecheck、05 测试（17 条）全绿，再从备份还原并 `diff -r` 一致；引文保留检查 80 / 0；浏览器（临时 5174，已停并还原 launch.json）：区块一取消状态下只有 && 分支、没有 RestoreHint，区块三两行，区块四三块面板隐藏再显示后只有「&& 卸载」清空、「状态提升」和「hidden 属性」保留点赞与草稿，console.error / warn 为 0。
 
+### 2.17 01 按「使用频率」改写（2026-09-19）
+
+**起因**：按 `RETROFIT-01-04-PROMPT.md` 把 01 改成 05 样板的写法（用户要求：页面上运行的只有常用写法，少用的注释保留、不删）。
+
+**改动**
+- 文件头：「成熟度」下加「使用频率」说明行；30 秒速答补一条「静态样式写样式表、style 只放动态值」；二-1 补「【最常用】写成函数」（Component 页「We recommend defining components as functions instead of classes.」）；二-3 多个节点按【最常用】`<>` / 【常用】`<Fragment key>` / 【少用】带 key 的数组分开标；二-5 改成「写样式」一节（静态样式 / 依赖运行时数据的值 / 按条件拼 className 三件事分别标）；二-11 default / named 写「两种都常见，按团队约定」；三的 Vue 侧按 Vue 项目里的频率标（SFC + 模板、`:class` 对象语法、`<style scoped>`【最常用】，渲染函数 / JSX、`v-once` / `v-memo`、`:class` / `:style` 数组语法、in-DOM 模板【少用】）；五补一问「样式写 style 还是 className」；七改写「演示简化」（布局微调仍写在 style 里是全站共同简化，区块一按生产写法）；新增练习 3（`.offline` 类）；新增「附」1–5（返回数组、Vue 渲染函数、Vue 少用写法、in-DOM 模板、细节：成员表达式、jsxDEV 与 vite 行号、18.0 起返回 undefined 不报错、unitlessNumbers 行号、FunctionComponent 签名、厂商前缀）。适用版本补「Vite 7.3（CSS Modules）」。
+- 演示：**补上【最常用】的「静态样式走 className」**—— 区块一的头像与 VIP 边框从行内 style 对象挪进新文件 `react/ProfileCards.module.css`（Vite 内置 CSS Modules），style 只剩 accent 决定的底色 / 边框颜色；区块二界面标题补频率标签（automatic runtime【最常用】、`<Fragment key>`【常用】、classic【旧写法】照常显示）。本题没有【少用】的演示需要注释（返回数组原来就只在测试里）。
+- 测试：区块一第一条改成断言「CSS Modules 类名 + style 里只有颜色」（Vitest 4.1 默认不处理 CSS，CSS Module 返回 `_<类名>_<文件路径哈希>` 的代理，node_modules/vitest/dist/chunks/cli-api.*.js 的 getCSSModuleProxyReturn）；返回数组那条改名「附 1【少用】」；Vue 第一条改成断言 `vip` 类、`<style scoped>` 的 data-v 属性、`:style` 只有颜色。条数不变（React 17、Vue 5）。
+- Vue 侧：`UserCard.vue` 的静态样式挪进 `<style scoped>`（`.avatar`、`.vip`），`:class="{ vip: highlight }"`；`Example.vue` 加使用频率说明和「附」。
+- 壳：`src/shell/topicRegistry.ts` 的 React 源码 glob 加 `css`，源码查看器才能显示 `ProfileCards.module.css`（01 的 React 文件从 6 个变成 7 个，浏览器确认）。README 01 行更新（className / CSS Modules、Vue 侧 `<style scoped>`）。
+
+**频率判断与依据**
+
+| 要做的事 | 写法与标签 | 依据 |
+|---|---|---|
+| 定义组件 | 函数【最常用】；class【旧写法】 | reference/react/Component「We recommend defining components as functions instead of classes.」 |
+| JSX 转换 | automatic【最常用】（19 起必须）；classic【旧写法】（面试常问，照常显示） | 19 升级指南 |
+| 多个节点包成一个返回值 | `<>`【最常用】；`<Fragment key>`【常用】；带 key 的数组【少用】 | Fragment 页「<Fragment>, often used via <>...</> syntax」「Usually you won't need this unless you need to pass a key to your Fragment.」；数组：工程经验 |
+| 静态样式 | 样式表 + className【最常用】 | 花括号页「React does not require you to use inline styles (CSS classes work great for most cases).」 |
+| 依赖运行时数据的值 | style【最常用】 | common「We recommend only using the style attribute when your styles depend on JavaScript variables.」 |
+| 按条件拼 className | 一两个条件三元【最常用】；条件多交给 clsx 类工具【最常用】 | 工程经验；工具之间 clsx 下载量最高（npm 2026-09-11～17：clsx 88,124,459、classnames 23,020,897，含传递依赖） |
+| 导出 | default / named 两种都常见 | importing-and-exporting「some teams choose to only stick to one style … Do what works best for you!」 |
+| Vue 写组件 | SFC + 模板【最常用】；渲染函数 / JSX【少用】 | sfc「the recommended approach for using Vue in the following scenarios」；render-function「Vue recommends using templates to build applications in the vast majority of cases.」 |
+| Vue 静态样式 | `<style scoped>`【最常用】 | create-vue 默认模板（template/code/default/src/components 的 HelloWorld.vue、WelcomeItem.vue）；风格指南 Essential 要求组件样式有作用域（不限定 scoped，CSS Modules、BEM 都算） |
+| Vue 其余 | `:class` 对象语法【最常用】；数组语法、v-once / v-memo、in-DOM 模板【少用】 | v-memo「should be rarely needed」；introduction「SFC … is the recommended way to author Vue components if your use case warrants a build setup」；其余工程经验 |
+
+**验证**：`npm run check` 通过（在只含 01 改动的暂存区导出目录里跑，见提交说明）；01 测试 22 条（React 17、Vue 5）；引文保留检查 81 / 0；【少用】注释块 0 个；浏览器（临时 5174）：React 卡片 class 为 `card _vip_…`、border-top-width 2px、头像 48px 圆形、style 只有颜色，Vue 卡片 `card vip` 同样 2px，两侧「关注」各点第一张只有它变，源码查看器 7 个文件含 `ProfileCards.module.css`，console.error / warn 为 0；另由复核代理做了一次生产构建，确认懒加载的 CSS 排在 index.css 之后、`._vip_` 能盖过 `.card`。
+
+**复核**：反驳式复核代理提出 25 条（中 6、低 19），全部处理：`<>` 的频率依据换成 Fragment 页的「often used via」（「in most cases」那句挪到二-6 讲等价）；clsx 的依据写清是工具之间的比较、含传递依赖；`<style scoped>` 的依据换成 create-vue 模板，风格指南那句只用来说「要有作用域」；`:style` 数组语法与对象展开合并的演示随 avatarStyle 删掉了 → 标【少用】写进附 3 并注明 02 题 UiButton 有对象展开合并的演示；README 的 Vue 半句；`:class` / `:style` 不再打包标最常用；v-once 的少用注明是工程经验；补回 CSS-in-JS；二-5 按三件事分别标；二-2 / 二-5 / 二-11 标题补回【主流】、频率与版本分开写（【最常用】automatic runtime（React 17 起，19 起必须））；三补 h() 返回 vnode 的半句（审计 :184）；四-4 写明 CSS Modules 由构建工具提供、Vue 也有 `<style module>`；四-5 数组写法标少用；练习 3 的断言改成 `/^_offline_/`；测试注释写明哈希算的是文件路径；CSS 注释改准确并写明 `.vip` 靠加载顺序盖过 `.card`；Vue 测试补 data-v 断言；UserCard.vue 的「见附」写明附 4；「没有警告」改成「不报错（没有 console.error）」；in-DOM 的频率依据换成 introduction 页；React style 不加前缀补源码出处（setValueForStyle :2675、:2721-2735）；适用版本补 Vite；CSSProperties 不再在 01 出现 → 二-5 注明类型名并指向 02 题 UiButton（审计 :186 的对称要求改由 02 题满足）；壳改动写进本节。
+
 ## 统一措辞（各题改写时照用）
 
 ### Vue 响应式（2-A 定稿，2026-09-17）
@@ -877,7 +907,7 @@
 |---|---|---|---|---|
 | 18 | 路由（React Router） | **完成（样板已确认）** | Data 模式主线（loader / action / middleware 守卫 / errorElement / lazy / useBlocker / 面包屑）+ 声明式 RequireAuth 三态并排；十段文件头；React 18 条 + Vue 7 条结论测试；Vue 守卫改为返回值写法；safeRedirect 共享实现；源码查看器支持多文件（5.10）。详见 2.1 | 32 / 34 / 35 题新增后回填交叉引用 |
 | 26 | 过期闭包 | **完成** | 修法优先级（函数式更新 → 写对依赖 → useEffectEvent 主线 → latest ref 并排）四个区块：事件处理函数里的 setTimeout、手动 addEventListener（含被 useCallback 缓存的 JSX 处理函数）、轮询四种写法、让依赖合法消失（搬进事件 / 对象依赖 / ref.current）；Vue 侧现读 .value、手动快照与解构 reactive、3.5 解构 props、watch vs watchEffect；React 22 条 + Vue 15 条测试（含 latest ref 窗口期、Effect Event 身份与换入时机、19.2.x memo / forwardRef bug）；了结 P-26-1～6。详见 2.10 | 19.3 升级后改 memo / forwardRef 那条测试与课件；14 题 useInterval 注释可补一句 19.2.x 的 memo / forwardRef bug；10 题改写时保留「场景二修法三 latest ref」或同步改 26 的引用；31–35 新增后回填交叉引用 |
-| 01 | 组件与 JSX | **完成** | 四个区块：资料卡（UserCard 两个独立实例、JSX 当值传、className / style / Fragment）、JSX 编译成什么（automatic vs classic 编译结果、style 补 px 实测、Fragment key）、组件必须纯（茶杯例子 + StrictMode）、不要在组件里定义组件；Vue 侧 SFC + 具名插槽、:class / :style、compiler-sfc 编译输出；React 17 条 + Vue 5 条测试；了结 P-01-1～5。详见 2.11 | 17 题改写时补 Compiler 小节并回头核对 01 的引用；多根组件的 attrs 透传已在 02 补上（2.12）；28 题改写时补「组件返回类型 / FunctionComponent 签名」；19.3 升级后核 Fragment ref 的类型；33 / 35 新增后回填交叉引用 |
+| 01 | 组件与 JSX | **完成** | 四个区块：资料卡（UserCard 两个独立实例、JSX 当值传、className / style / Fragment）、JSX 编译成什么（automatic vs classic 编译结果、style 补 px 实测、Fragment key）、组件必须纯（茶杯例子 + StrictMode）、不要在组件里定义组件；Vue 侧 SFC + 具名插槽、:class / :style、compiler-sfc 编译输出；React 17 条 + Vue 5 条测试；了结 P-01-1～5。详见 2.11 | 17 题改写时补 Compiler 小节并回头核对 01 的引用；多根组件的 attrs 透传已在 02 补上（2.12）；28 题改写时补「组件返回类型 / FunctionComponent 签名」；19.3 升级后核 Fragment ref 的类型；33 / 35 新增后回填交叉引用；2026-09-19 按使用频率改写（见 2.17） |
 | 02 | Props | **完成** | 四个区块：props 的类型、解构与默认值（默认值实验表：没传 / undefined / null / 空串 / 无值写法）、props 只读与回调上浮（开发构建 TypeError、onAmountChange、快照）、不要把 props 复制进 state（useState 镜像 vs 直接读、initialPrice + 换 key）、接收原生属性（ComponentPropsWithRef + {...rest}、className / style 合并、ref 作为 prop）；Vue 侧 3.5 响应式 props 解构、布尔转型、改 props 只警告、props 是响应式对象、inheritAttrs + useAttrs、多根组件、组件 ref + defineExpose；React 20 条 + Vue 13 条测试；了结 P-02-1～5。详见 2.12 | 12 题改写时补：ref 回调与清理函数、useImperativeHandle、RefObject / MutableRefObject、useRef 必传参数、组件 ref + defineExpose（02 已写「12 题改写时补」，12 改完回头改成「见 12 题」）；28 题改写时补：ReactNode 与 ReactElement 的取舍、全局 JSX → React.JSX、useRef 必传参数、Vue 泛型组件 generic（同上）；17 题改写时核对 02 的「默认值新引用让 memo 失效」；19.3 升级后核 forwardRef 是否标弃用；35 新增后回填交叉引用 |
 | 03 | State 与 useState | **完成** | 七个区块：为什么需要 state（局部变量 vs useState、state 属于实例）、setter 只影响下一次渲染（快照、A / B、设成当前值）、对象 / 数组整体替换（原地改 + 同一个引用被跳过）、惰性初始化（调用次数面板）、state 的结构（存 id vs 存对象、status vs 两个布尔值）、useReducer（reducer 导出单测）、两个常见报错（Too many re-renders、函数存进 state）；Vue 侧普通 let 变量、DOM 在 nextTick 才变、setup 只执行一次、存同一个响应式对象 / 副本 / id、渲染中改数据的 Maximum recursive updates；React 24 条 + Vue 14 条测试；了结 P-03-1～3。详见 2.13 | 21 题改写时补：深嵌套拍平（03 二-10 已写原文，21 只讲了 Immer）与 Vue 侧 reactive 的三条限制 / ref 首选（R2-21-9；03 已写，21 可指回 03）；17 题改写时补 Compiler 小节（03 九已写「17 题改写时补」）；33 / 34 / 35 新增后回填交叉引用；19.3 升级后无需改（本课没用到 19.3 的 API） |
 | 04 | 事件处理 | **完成** | 六个区块：绑定与传参（传函数不要调用、回调 prop 以 on 开头、❌ 列表渲染时就删光）、事件对象（target / currentTarget / nativeEvent.currentTarget 是 root 容器、setTimeout 里 currentTarget 为 null）、事件传播（React 捕获 / 冒泡与原生监听器同一份日志比先后、stopPropagation 挡住谁、onScroll 不冒泡 / onScrollCapture / onFocus 冒泡）、默认行为（preventDefault 只拦默认动作、只 stopPropagation 的勾选框、form onSubmit、.self）、Vue 修饰符的 React 写法（.once、按键与 .exact、输入法组字、鼠标键与右键菜单）、onWheel 是被动监听；Vue 侧 v-on 直接绑元素（与原生监听器交错）、修饰符实现、@click.right 改写成 contextmenu、@wheel.prevent 生效、组件事件不冒泡与透传反例；React 22 条 + Vue 15 条测试；了结 P-04-1～5。详见 2.14 | 17 题改写时补 Compiler 对内联处理函数的记忆化（04 九已写「17 题改写时补」）；07 题可补「提交按钮 onClick 跑在校验之前」的一句（04 二-6 已有测试）；31 / 34 / 35 新增后回填交叉引用；19.3 升级后核 onFullscreenChange 与 submitter |

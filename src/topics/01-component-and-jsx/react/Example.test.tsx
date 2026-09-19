@@ -28,14 +28,20 @@ const errorTexts = (): string[] =>
   })
 
 describe('区块一：组件就是返回 JSX 的函数，JSX 就是值', () => {
-  it('同一个 UserCard 渲染两次；存在变量里的 JSX 通过参数传进去；数字 style 补 px', () => {
+  it('同一个 UserCard 渲染两次；存在变量里的 JSX 通过参数传进去；静态样式走 className（CSS Modules），style 里只有依赖数据的颜色', () => {
     render(<ProfileCards />)
     const cards = screen.getAllByText(/@example\.com/).map((el) => el.closest('.card') as HTMLElement)
     expect(cards).toHaveLength(2)
     expect(within(cards[0]).getByText('VIP')).toHaveClass('badge', 'badge-paid')
     expect(within(cards[1]).queryByText('VIP')).toBeNull()
-    expect(cards[0].getAttribute('style')).toContain('border-width: 2px')
-    expect(within(cards[0]).getByText('林').getAttribute('style')).toContain('width: 48px')
+    // CSS Modules 的类名在 Vitest 4.1 里是 _vip_<文件路径的哈希>（默认 css.modules.classNameStrategy: 'stable'，不处理样式表内容），生产构建里是带哈希的唯一名字
+    expect(cards[0]).toHaveClass('card', /^_vip_/)
+    expect(cards[1]).not.toHaveClass(/^_vip_/)
+    // style 里只剩依赖 accent 的颜色：宽高、圆角这些静态样式都在样式表里（jsdom 把十六进制颜色规范化成 rgb()）
+    expect(cards[0].getAttribute('style')).toBe('border-color: rgb(212, 160, 23);')
+    const avatar = within(cards[0]).getByText('林')
+    expect(avatar).toHaveClass(/^_avatar_/)
+    expect(avatar.getAttribute('style')).toBe('background: rgb(212, 160, 23);')
     expect(within(cards[1]).getByText('○ 离线')).toHaveClass('muted')
     expect(errorTexts()).toEqual([])
   })
@@ -137,7 +143,7 @@ describe('区块二：JSX 规则', () => {
     expect(errorTexts().some((t) => t.startsWith('Each child in a list should have a unique "key" prop.'))).toBe(true)
   })
 
-  it('返回带 key 的数组也合法（ReactNode 包含 Iterable<ReactNode>），但日常写 Fragment 更清楚', () => {
+  it('附 1【少用】返回带 key 的数组也合法（ReactNode 包含 Iterable<ReactNode>），但日常写 Fragment 更清楚', () => {
     function Pair() {
       return [<dt key="t">术语</dt>, <dd key="d">解释</dd>]
     }

@@ -267,8 +267,8 @@ const reactModules = import.meta.glob<{ default: ComponentType }>(
   '../topics/*/react/Example.tsx',
 )
 const vueModules = import.meta.glob<{ default: VueComponent }>('../topics/*/vue/Example.vue')
-// 源码查看器展示每题 react/、vue/ 目录下的全部文件（含测试），不只是两个 Example
-const reactSources = import.meta.glob<string>('../topics/*/react/**/*.{ts,tsx}', {
+// 源码查看器展示每题 react/、vue/ 目录下的全部文件（含测试），不只是两个 Example；React 侧含 .css（01 题区块一的 CSS Modules）
+const reactSources = import.meta.glob<string>('../topics/*/react/**/*.{ts,tsx,css}', {
   query: '?raw',
   import: 'default',
 })

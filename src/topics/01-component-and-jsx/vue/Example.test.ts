@@ -9,13 +9,20 @@ import TemplateRulesDemo from './TemplateRulesDemo.vue'
 enableAutoUnmount(afterEach)
 
 describe('Vue 区块一：SFC 组件与模板', () => {
-  it('同一个 UserCard 渲染两次；VIP 徽章通过具名插槽传入；:class 对象语法', () => {
+  it('同一个 UserCard 渲染两次；VIP 徽章通过具名插槽传入；:class 对象语法；静态样式在 <style scoped>，:style 里只有依赖数据的颜色', () => {
     const wrapper = mount(ProfileCards)
     const cards = wrapper.findAll('.card')
     expect(cards).toHaveLength(2)
     expect(cards[0].find('.badge-paid').text()).toBe('VIP')
     expect(cards[1].find('.badge-paid').exists()).toBe(false)
-    expect(cards[0].attributes('style')).toContain('border-width: 2px')
+    expect(cards[0].classes()).toEqual(['card', 'vip'])
+    expect(cards[1].classes()).toEqual(['card'])
+    expect(cards[0].attributes('style')).toBe('border-color: rgb(212, 160, 23);')
+    expect(cards[0].get('.avatar').attributes('style')).toBe('background: rgb(212, 160, 23);')
+    // <style scoped>：编译器给组件里的元素加上同一个 data-v-<id> 属性，样式选择器也带上它（.vip[data-v-…]），所以类名只在本组件里生效
+    const scopeAttrs = (el: Element) => el.getAttributeNames().filter((n) => n.startsWith('data-v-'))
+    expect(scopeAttrs(cards[0].element)).toHaveLength(1)
+    expect(scopeAttrs(cards[0].get('.avatar').element)).toEqual(scopeAttrs(cards[0].element))
     expect(cards[1].find('p').classes()).toEqual(['muted'])
   })
 
