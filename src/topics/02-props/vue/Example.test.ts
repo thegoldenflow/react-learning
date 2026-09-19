@@ -1,6 +1,6 @@
 /**
  * 02 题 Vue 侧的结论测试，和 react/Example.test.tsx 对照着看（vue 3.5.42，开发构建）。
- * 生产构建下改 props 的行为是 node + 生产构建的一次性实测，写在 react/Example.tsx 二-3。
+ * 生产构建下改 props 的行为是 node + 生产构建的一次性实测，写在 react/Example.tsx 二-3 与附 3（Vue 的结论在四-3 与附 6）。
  */
 /* eslint-disable vue/one-component-per-file -- 探针组件（多根、inheritAttrs 对照、attrs 的 watch）只在测试里用，写成 defineComponent + h() 更直观 */
 import { defineComponent, h, mergeProps, nextTick, ref, useAttrs, watch } from 'vue'

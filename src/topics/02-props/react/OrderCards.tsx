@@ -1,5 +1,6 @@
 /**
  * 区块一：给 props 写类型、用参数解构读取、给可选 prop 写默认值；默认值只对「没传 / 传 undefined」生效。
+ * 使用频率：【最常用】在参数里解构 + 解构默认值；类型用 interface 或 type 两种都常见（按团队约定）。
  * Vue 对照：vue/OrderCards.vue、vue/OrderCard.vue、vue/NoteText.vue。
  */
 import type { ReactNode } from 'react'
@@ -21,7 +22,7 @@ interface OrderCardProps {
 }
 
 /**
- * props 是组件函数唯一的参数（一个对象）。参数里直接解构，默认值用 JS 的解构默认值语法 { discount = 0 }。
+ * props 是组件函数唯一的参数（一个对象）。【最常用】参数里直接解构，默认值用 JS 的解构默认值语法 { discount = 0 }。
  * 对应 Vue 3.5 的响应式 props 解构 const { discount = 0 } = defineProps<Props>()（3.4 及以前用 withDefaults）。
  * 不要再写 OrderCard.defaultProps：React 19 起函数组件的 defaultProps 在日常 JSX 写法下被静默忽略（createElement 路径仍会合并，见 Example.tsx 八，测试覆盖）。
  * 一个 .tsx 文件里放多个组件很常见（只导出需要对外的那个）；Vue 一个 SFC 只有一个模板组件，所以对照版拆成了 OrderCard.vue。
@@ -89,6 +90,7 @@ export function OrderCards() {
   return (
     <div className="stack">
       <h3>区块一：props 的类型、解构与默认值</h3>
+      <p className="muted">【最常用】在参数里解构 props、用解构默认值写默认值（下面第一、三张卡没传 discount，走默认值 0）。</p>
       {/* 传 props 就是写 JSX 属性：字符串可以直接用引号；数字、布尔、对象、函数等其他 JS 值一律用花括号。
           属性名原样传给组件（orderNo 就是 orderNo），JSX 不做大小写转换；Vue 模板里惯用 kebab-case（order-no），由 Vue 转成 camelCase。 */}
       <OrderCard orderNo="SO-20260801" customer="林小满" amount={1280} status="pending" />

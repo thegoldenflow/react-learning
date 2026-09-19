@@ -1,9 +1,9 @@
 /**
  * 02 题的结论测试：文件头里标了「测试覆盖」的结论都在这里有可运行的证明（react / react-dom 19.2.8，开发构建）。
- * 生产构建下改 props 的行为是 node + 生产构建的一次性实测，写在 Example.tsx 二-3，不在这里。
+ * 生产构建下改 props 的行为是 node + 生产构建的一次性实测，写在 Example.tsx 二-3 与附 3，不在这里。
  * 故意触发开发环境报错（console.error）的用例都 spy 住并断言文案，不让它进 stderr。测试工具本身在 34 题（待新增）细讲。
  */
-import { Component, forwardRef, useRef, type ComponentPropsWithoutRef, type ComponentPropsWithRef } from 'react'
+import { Component, forwardRef, useRef, type ComponentProps, type ComponentPropsWithoutRef, type ComponentPropsWithRef } from 'react'
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { expectTypeOf } from 'vitest'
@@ -197,6 +197,12 @@ describe('区块四：接收原生属性与 ref 作为 prop', () => {
     expectTypeOf<GoodInputProps['size']>().toEqualTypeOf<'sm' | 'md' | undefined>()
     // 用一下 BadInputProps，免得上面的 @ts-expect-error 被「声明了没用」这个错误满足
     expectTypeOf<BadInputProps>().toBeObject()
+  })
+
+  it('类型层：对 DOM 元素，ComponentProps 和 ComponentPropsWithRef 是同一个类型（expectTypeOf 由 npm run typecheck 检查）', () => {
+    expectTypeOf<ComponentProps<'button'>>().toEqualTypeOf<ComponentPropsWithRef<'button'>>()
+    expectTypeOf<ComponentProps<'input'>>().toEqualTypeOf<ComponentPropsWithRef<'input'>>()
+    expectTypeOf<ComponentProps<'button'>>().toHaveProperty('ref')
   })
 })
 

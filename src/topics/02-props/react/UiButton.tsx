@@ -13,6 +13,7 @@ import type { ComponentPropsWithRef, CSSProperties } from 'react'
  * 以及 ref（React 19 起 ref 对函数组件来说就是一个普通 prop）。data-* 不在这个类型里，TypeScript 对 JSX 里带连字符的属性名不做检查，所以照样能传。
  * @types/react 19.2.18 的 JSDoc 建议用 WithRef / WithoutRef 这两个，
  * 「as they let you be explicit about whether or not to include the `ref` prop」；对 DOM 元素来说 ComponentProps<'button'> 是同一个类型。
+ * 行业里更常见的是写成 ComponentProps<'button'>（shadcn/ui 的组件就这样写）；对 DOM 元素两者是同一个类型（Example.tsx 二-7，测试覆盖），本课按 @types/react 的建议写 WithRef。
  * 组件自己的 props 用交叉类型 & 拼上去。和原生属性同名、类型又不兼容的自定义 prop 要先 Omit 掉原生的那个（Example.tsx 二-10，测试里有类型层的例子）。
  */
 export type UiButtonProps = ComponentPropsWithRef<'button'> & {

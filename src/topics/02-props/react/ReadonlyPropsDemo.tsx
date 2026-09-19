@@ -14,7 +14,7 @@ interface AmountEditorProps {
 }
 
 /**
- * 这里故意用整个 props 对象（不解构），为了能演示 props.amount = 0 这个反例。平时照样在参数里解构。
+ * 这里故意用整个 props 对象（不解构；平时这是【少用】写法，见 Example.tsx 附 1），只为了演示 ❌ props.amount = 0 这个反例。平时照样在参数里解构。
  * 注意 TypeScript 不拦这个赋值：interface 的字段默认可写。想在编译期拦下，可以把类型写成 Readonly<AmountEditorProps>。
  */
 function AmountEditor(props: AmountEditorProps) {
@@ -24,7 +24,7 @@ function AmountEditor(props: AmountEditorProps) {
 
   // ❌ 反例：直接改 props。开发构建里 React 把 props 对象冻结了（Object.freeze），ES 模块是严格模式，赋值直接抛 TypeError；
   // 生产构建不冻结：赋值「成功」但不触发重渲染，这个组件下次自己重渲染时会读到改过的值，父组件一重渲染又被新的 props 对象盖掉
-  // —— 界面和数据源对不上（node + 生产构建实测，见 Example.tsx 二-3）。
+  // —— 界面和数据源对不上（node + 生产构建实测，见 Example.tsx 二-3 与附 3）。
   function mutateProps() {
     try {
       // eslint-disable-next-line react-hooks/immutability -- 教学反例：演示开发构建里 props 被冻结。lint 实测报「This value cannot be modified」「Modifying component props or hook arguments is not allowed. Consider using a local variable instead.」
@@ -38,7 +38,7 @@ function AmountEditor(props: AmountEditorProps) {
   // ❌ 反例二（不演示按钮）：amount = 0 —— 只改了这次渲染的局部变量，父组件和 React 都不知道、不会重渲染；但同一次渲染里的其他闭包
   // （例如已经排队的定时器回调）会读到 0，界面和逻辑对不上。在事件处理函数里这样写，react-hooks/immutability 同样报错。
 
-  // ✅ 正确做法：把「想改成多少」告诉父组件
+  // ✅【最常用】正确做法：把「想改成多少」告诉父组件
   function resetByParent() {
     onAmountChange(0)
     addLog('调用 onAmountChange(0)：父组件更新 state → 重新渲染 → 传下来新的 amount')
@@ -84,6 +84,7 @@ export function ReadonlyPropsDemo({ delayMs = 1500 }: { delayMs?: number }) {
         </span>
         <button onClick={() => setAmount((a) => a + 100)}>父组件 +100</button>
       </div>
+      <p className="muted">【最常用】子组件想改数据就调用父组件传下来的 onXxx 回调（✅ 按钮）；❌ 按钮只是演示直接改 props 会怎样。</p>
       <p className="muted">试试：先点「稍后读取」，再马上点「父组件 +100」—— 日志里读到的还是点击时的旧值。</p>
       <AmountEditor amount={amount} onAmountChange={setAmount} delayMs={delayMs} />
     </div>

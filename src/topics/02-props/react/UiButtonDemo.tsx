@@ -8,7 +8,7 @@ import { UiButton } from './UiButton'
 export function UiButtonDemo() {
   const [clicks, setClicks] = useState(0)
   const [focusInfo, setFocusInfo] = useState('（还没移动过焦点）')
-  // ref 作为 prop【主流·React 19 起】：父组件的 ref 直接传给 UiButton，UiButton 把它交给真实的 <button>，
+  // 【最常用】ref 作为普通 prop（React 19 起）：父组件的 ref 直接传给 UiButton，UiButton 把它交给真实的 <button>，
   // 所以 deleteRef.current 拿到的是 DOM 节点（Vue 的组件 ref 拿到的是组件实例，要 defineExpose，见 vue/UiButtonDemo.vue）。
   // useRef 必须传初始值（@types/react 19 起的要求，12 / 28 题改写时补）。
   const deleteRef = useRef<HTMLButtonElement>(null)
@@ -21,6 +21,9 @@ export function UiButtonDemo() {
   return (
     <div className="card stack">
       <h3>区块四：接收原生属性（{'{...rest}'} 展开）与 ref 作为 prop</h3>
+      <p className="muted">
+        【最常用】类型上继承原生 button 的 props、运行时 {'{...rest}'} 展开；ref 作为普通 prop（React 19 起）。类名合并项目里一般用 clsx / cn，这里用 filter(Boolean).join(' ') 演示简化。
+      </p>
       <p className="muted">
         UiButton 只声明了 variant / size 两个自己的 prop；下面的 onClick / disabled / type / title / aria-label 都是原生 button 的属性，靠组件内部的
         {'{...rest}'} 展开才落到真实 &lt;button&gt; 上（Vue 默认由框架自动透传）；className / style 被组件单独接住，和它自己的类名、样式合并后再交给 &lt;button&gt;。

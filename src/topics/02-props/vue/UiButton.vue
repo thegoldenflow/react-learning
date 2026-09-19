@@ -3,9 +3,9 @@
  * 区块四的按钮。对照 react/UiButton.tsx。
  *
  * Vue 的属性透传有两种状态：
- * (1) 默认（fallthrough attributes）：没被 props / emits 声明的属性和 v-on 监听器（disabled、type、title、aria-*、@click，以及 class、style），
+ * (1)【最常用】默认（fallthrough attributes）：没被 props / emits 声明的属性和 v-on 监听器（disabled、type、title、aria-*、@click，以及 class、style），
  *     单根组件会自动加到根元素上，class / style 与根元素已有的合并，监听器两边都触发。模板只写 <button :class="…"><slot /></button>，外面传的 disabled、@click 照样生效。
- * (2) 手动接管（本文件）：defineOptions({ inheritAttrs: false }) 关掉自动透传【主流·defineOptions 3.3 起】，再用 useAttrs() 拿到这些属性，v-bind 到想绑的元素上。
+ * (2)【常用】手动接管（本文件）：defineOptions({ inheritAttrs: false }) 关掉自动透传（defineOptions 3.3 起），再用 useAttrs() 拿到这些属性，v-bind 到想绑的元素上。
  *     这一步才相当于 React 的 { ...rest } —— React 只有这一种写法，没有 (1) 这种自动行为（React 的 props 只是函数参数）。
  * 什么时候要 (2)：属性不该落在根元素上（例如根是 <label>、真正的 <input> 在里面），或者要控制 attrs 和自己的属性谁先谁后。本组件用 (2) 是为了和 React 版逐行对照。
  */
